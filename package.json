@@ -23,9 +23,9 @@
   },
   "dependencies": {
     "@heroui/button": "2.2.10",
+    "@heroui/card": "2.2.27",
     "@heroui/checkbox": "2.3.9",
     "@heroui/code": "2.2.7",
-    "@heroui/card": "2.2.27",
     "@heroui/divider": "2.2.6",
     "@heroui/dropdown": "2.3.10",
     "@heroui/image": "2.2.6",
@@ -35,6 +35,7 @@
     "@heroui/progress": "2.2.7",
     "@heroui/react": "2.7.11",
     "@heroui/select": "2.4.10",
+    "@heroui/scroll-shadow": "^2.3.19",
     "@heroui/slider": "2.4.8",
     "@heroui/spinner": "2.2.7",
     "@heroui/switch": "^2.2.20",

@@ -56,7 +56,7 @@ export const zoomInStaggerAnimation: { container: Variants; item: Variants } = {
   },
   item: {
     hidden: { opacity: 0, scale: 0.9 },
-    show: { opacity: 1, scale: 1 },
+    show: { opacity: 1, scale: 1, transition: { bounce: 0.3, damping: 100 } },
     exit: { opacity: 0, scale: 0.9 },
   },
 }

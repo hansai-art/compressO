@@ -7,7 +7,6 @@ import Button from '@/components/Button'
 import Divider from '@/components/Divider'
 import Icon from '@/components/Icon'
 import Layout from '@/components/Layout'
-import Spinner from '@/components/Spinner'
 import { toast } from '@/components/Toast'
 import { compressVideos } from '@/tauri/commands/ffmpeg'
 import { CompressionResult } from '@/types/compression'
@@ -16,7 +15,6 @@ import { formatBytes } from '@/utils/fs'
 import { cn } from '@/utils/tailwind'
 import { appProxy } from '../-state'
 import CancelCompression from './CancelCompression'
-import Compressing from './Compressing'
 import CompressionPreset from './compression-options/CompressionPreset'
 import CompressionQuality from './compression-options/CompressionQuality'
 import MuteAudio from './compression-options/MuteAudio'
@@ -132,96 +130,93 @@ function VideoConfig() {
       }}
       hideLogo
     >
-      {!isThumbnailGenerating ? (
-        <div className={cn(['h-full p-6', styles.videoConfigContainer])}>
-          <AnimatePresence>
-            <section
-              className={cn(
-                'px-4 py-6 hlg:py-10 rounded-xl border-2 border-zinc-200 dark:border-zinc-800',
-                videos.length === 1
-                  ? 'flex flex-col justify-center items-center'
-                  : '',
-              )}
-            >
-              {fileName && !isCompressing ? <FileName /> : null}
-              {isCompressing ? (
-                <Compressing />
-              ) : isProcessCompleted ? (
-                <>
-                  <VideoThumbnail />
-                  <Success />
-                </>
-              ) : videos.length > 1 ? (
-                <PreviewBatchVideos />
-              ) : (
-                <motion.div
-                  className="flex flex-col justify-center items-center"
-                  {...zoomInTransition}
-                >
-                  <PreviewSingleVideo />
-                </motion.div>
-              )}
-            </section>
-          </AnimatePresence>
+      <div className={cn(['h-full p-6', styles.videoConfigContainer])}>
+        <AnimatePresence>
           <section
-            className="px-4 py-6 hlg:py-10 rounded-xl border-2 border-zinc-200 dark:border-zinc-800"
-            {...zoomInTransition}
+            className={cn(
+              'px-4 py-6 hlg:py-10 rounded-xl border-2 border-zinc-200 dark:border-zinc-800',
+              videos.length === 1
+                ? 'flex flex-col justify-center items-center'
+                : '',
+            )}
           >
-            <p className="text-xl mb-6 font-bold">Output Settings</p>
-            <>
-              <CompressionPreset />
-              <Divider className="my-3" />
-            </>
-            <>
-              <MuteAudio />
-              <Divider className="my-3" />
-            </>
-
-            <>
-              <CompressionQuality />
-              <Divider className="my-3" />
-            </>
-            {isSingleVideoMode && dimensions ? (
+            {fileName && !isCompressing ? <FileName /> : null}
+            {isCompressing ? (
+              // <Compressing />
+              <PreviewBatchVideos />
+            ) : isProcessCompleted ? (
               <>
-                <VideoDimensions />
-                <Divider className="my-3" />
-                <TransformVideo />
-                <Divider className="my-3" />
+                <VideoThumbnail />
+                <Success />
               </>
-            ) : null}
-            {fps ? (
-              <>
-                <VideoFPS />
-                <Divider className="my-3" />
-              </>
-            ) : null}
-            <>
-              <div className="mt-8">
-                <VideoExtension />
-              </div>
-            </>
-            <div className="mt-4">
-              {isCompressing ? (
-                <CancelCompression />
-              ) : isProcessCompleted ? (
-                <SaveVideo />
-              ) : (
-                <Button
-                  as={motion.button}
-                  color="primary"
-                  onPress={handleCompression}
-                  fullWidth
-                  className="text-primary"
-                >
-                  Compress <Icon name="logo" size={25} />
-                </Button>
-              )}
-            </div>
+            ) : videos.length > 1 ? (
+              <PreviewBatchVideos />
+            ) : (
+              <motion.div
+                className="flex flex-col justify-center items-center"
+                {...zoomInTransition}
+              >
+                <PreviewSingleVideo />
+              </motion.div>
+            )}
           </section>
-        </div>
-      ) : (
-        <Spinner size="lg" />
-      )}
+        </AnimatePresence>
+        <section
+          className="px-4 py-6 hlg:py-10 rounded-xl border-2 border-zinc-200 dark:border-zinc-800"
+          {...zoomInTransition}
+        >
+          <p className="text-xl mb-6 font-bold">Output Settings</p>
+          <>
+            <CompressionPreset />
+            <Divider className="my-3" />
+          </>
+          <>
+            <MuteAudio />
+            <Divider className="my-3" />
+          </>
+
+          <>
+            <CompressionQuality />
+            <Divider className="my-3" />
+          </>
+          {isSingleVideoMode && dimensions ? (
+            <>
+              <VideoDimensions />
+              <Divider className="my-3" />
+              <TransformVideo />
+              <Divider className="my-3" />
+            </>
+          ) : null}
+          {fps ? (
+            <>
+              <VideoFPS />
+              <Divider className="my-3" />
+            </>
+          ) : null}
+          <>
+            <div className="mt-8">
+              <VideoExtension />
+            </div>
+          </>
+          <div className="mt-4">
+            {isCompressing ? (
+              <CancelCompression />
+            ) : isProcessCompleted ? (
+              <SaveVideo />
+            ) : (
+              <Button
+                as={motion.button}
+                color="primary"
+                onPress={handleCompression}
+                fullWidth
+                className="text-primary"
+              >
+                Compress <Icon name="logo" size={25} />
+              </Button>
+            )}
+          </div>
+        </section>
+      </div>
     </Layout>
   )
 }
