@@ -24,6 +24,7 @@ pub struct FileMetadata {
 #[serde(rename_all = "camelCase")]
 pub struct VideoCompressionProgress {
     pub video_id: String,
+    pub batch_id: String,
     pub file_name: String,
     pub current_duration: String,
 }

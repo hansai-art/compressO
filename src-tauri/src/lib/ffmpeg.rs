@@ -79,6 +79,7 @@ impl FFMPEG {
             None => nanoid!(),
         };
         let batch_id_clone1 = batch_id.clone();
+        let batch_id_clone2 = batch_id.clone();
 
         let file_name = format!("{}.{}", video_id, convert_to_extension);
         let file_name_clone = file_name.clone();
@@ -350,6 +351,7 @@ impl FFMPEG {
                     while let Ok(current_duration) = rx.recv() {
                         let video_progress = VideoCompressionProgress {
                             video_id: String::from(video_id_clone2.clone()),
+                            batch_id: batch_id_clone2.clone(),
                             file_name: String::from(file_name_clone_str),
                             current_duration,
                         };

@@ -61,6 +61,7 @@ export type Video = {
 
 export type App = {
   batchId?: string
+  totalSelectedFilesCount: number
   videos: Video[]
   currentVideoIndex: number
   totalDurationMs: number

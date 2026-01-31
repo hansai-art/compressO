@@ -14,6 +14,7 @@ export const videoConfigInitialState: VideoConfig = {
 
 const appInitialState: App = {
   videos: [],
+  totalSelectedFilesCount: 0,
   currentVideoIndex: 0,
   totalDurationMs: 0,
   isCompressing: false,

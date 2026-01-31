@@ -24,6 +24,7 @@ export enum CustomEvents {
 
 export type VideoCompressionProgress = {
   videoId: string
+  batchId: string
   fileName: string
   currentDuration: string
 }

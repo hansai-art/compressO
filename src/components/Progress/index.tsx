@@ -1,12 +1,20 @@
 import {
   CircularProgress as NextUICircularProgress,
   type CircularProgressProps as NextUICircularProgressProps,
+  Progress as NextUIProgress,
+  type ProgressProps as NextUIProgressProps,
 } from '@heroui/progress'
 
 interface CircularProgressProps extends NextUICircularProgressProps {}
 
-function CircularProgress(props: CircularProgressProps) {
+export function CircularProgress(props: CircularProgressProps) {
   return <NextUICircularProgress {...props} />
 }
 
-export default CircularProgress
+interface ProgressProps extends NextUIProgressProps {}
+
+function Progress(props: ProgressProps) {
+  return <NextUIProgress {...props} />
+}
+
+export default Progress

@@ -1,5 +1,6 @@
 import { useSnapshot } from 'valtio'
 
+import Code from '@/components/Code'
 import Divider from '@/components/Divider'
 import { cn } from '@/utils/tailwind'
 import { appProxy } from '../-state'
@@ -9,7 +10,7 @@ import VideoThumbnail from './VideoThumbnail'
 
 function PreviewSingleVideo() {
   const {
-    state: { videos },
+    state: { videos, isProcessCompleted },
   } = useSnapshot(appProxy)
   const video = videos.length > 0 ? videos[0] : null
   const {
@@ -22,8 +23,23 @@ function PreviewSingleVideo() {
   } = video ?? {}
   const { shouldTransformVideo } = config ?? {}
 
+  const singleFileNameDisplay =
+    (isProcessCompleted
+      ? video?.compressedVideo?.fileNameToDisplay
+      : video?.fileName) ?? ''
+
   return videos.length === 1 ? (
     <>
+      <Code
+        size="sm"
+        className="mb-3 text-center rounded-xl px-4 text-xs xl:text-sm"
+      >
+        {singleFileNameDisplay?.length > 50
+          ? `${singleFileNameDisplay?.slice(0, 20)}...${singleFileNameDisplay?.slice(
+              -10,
+            )}`
+          : singleFileNameDisplay}
+      </Code>
       {shouldTransformVideo ? <VideoTransformer /> : <VideoThumbnail />}
       <section className={cn(['my-4', styles.videoMetadata])}>
         <>

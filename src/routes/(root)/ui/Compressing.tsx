@@ -3,7 +3,7 @@ import React from 'react'
 import { useSnapshot } from 'valtio'
 
 import Image from '@/components/Image'
-import Progress from '@/components/Progress'
+import { CircularProgress } from '@/components/Progress'
 import { appProxy } from '../-state'
 
 function Compressing() {
@@ -24,7 +24,7 @@ function Compressing() {
       transition={{ type: 'spring', duration: 0.6 }}
     >
       <div className="relative">
-        <Progress
+        <CircularProgress
           {...(videDurationRaw == null
             ? { isIndeterminate: true }
             : { value: compressionProgress })}

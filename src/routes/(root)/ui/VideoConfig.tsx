@@ -15,6 +15,7 @@ import { formatBytes } from '@/utils/fs'
 import { cn } from '@/utils/tailwind'
 import { appProxy } from '../-state'
 import CancelCompression from './CancelCompression'
+import Compressing from './Compressing'
 import CompressionPreset from './compression-options/CompressionPreset'
 import CompressionQuality from './compression-options/CompressionQuality'
 import MuteAudio from './compression-options/MuteAudio'
@@ -22,7 +23,7 @@ import TransformVideo from './compression-options/TransformVideo'
 import VideoDimensions from './compression-options/VideoDimensions'
 import VideoExtension from './compression-options/VideoExtension'
 import VideoFPS from './compression-options/VideoFPS'
-import FileName from './FileName'
+import CompressionActions from './CompressionActions'
 import PreviewBatchVideos from './PreviewBatchVideos'
 import PreviewSingleVideo from './PreviewSingleVideo'
 import SaveVideo from './SaveVideo'
@@ -32,10 +33,10 @@ import VideoThumbnail from './VideoThumbnail'
 
 function VideoConfig() {
   const {
-    state: { videos, isCompressing, isProcessCompleted },
+    state: { videos, isCompressing, isProcessCompleted, isLoadingFiles },
   } = useSnapshot(appProxy)
   const video = videos.length > 0 ? videos[0] : null
-  const { config, thumbnailPath, fileName, dimensions, fps } = video ?? {}
+  const { config, thumbnailPath, dimensions, fps } = video ?? {}
 
   const { presetName, shouldMuteVideo } = config ?? {}
   const isThumbnailGenerating = thumbnailPath == null
@@ -92,7 +93,6 @@ function VideoConfig() {
       if (Object.keys(results).length === 0) {
         throw new Error()
       }
-      // console.log('Compression results', results)
 
       appProxy.state.isCompressing = false
       appProxy.state.isProcessCompleted = true
@@ -137,16 +137,23 @@ function VideoConfig() {
         <AnimatePresence>
           <section
             className={cn(
-              'px-4 py-6 hlg:py-10 rounded-xl border-2 border-zinc-200 dark:border-zinc-800',
+              'relative px-4 py-6 rounded-xl border-2 border-zinc-200 dark:border-zinc-800',
               videos.length === 1
                 ? 'flex flex-col justify-center items-center'
                 : '',
             )}
           >
-            {fileName && !isCompressing ? <FileName /> : null}
+            {!isCompressing ? (
+              <div className="absolute -top-4 right-4">
+                <CompressionActions />
+              </div>
+            ) : null}
             {isCompressing ? (
-              // <Compressing />
-              <PreviewBatchVideos />
+              videos.length === 1 ? (
+                <Compressing />
+              ) : (
+                <PreviewBatchVideos />
+              )
             ) : isProcessCompleted ? (
               <>
                 <VideoThumbnail />
@@ -165,7 +172,7 @@ function VideoConfig() {
           </section>
         </AnimatePresence>
         <section
-          className="px-4 py-6 hlg:py-10 rounded-xl border-2 border-zinc-200 dark:border-zinc-800"
+          className="p-4 rounded-xl border-2 border-zinc-200 dark:border-zinc-800"
           {...zoomInTransition}
         >
           <p className="text-xl mb-6 font-bold">Output Settings</p>
@@ -213,6 +220,7 @@ function VideoConfig() {
                 onPress={handleCompression}
                 fullWidth
                 className="text-primary"
+                isDisabled={isLoadingFiles}
               >
                 Compress <Icon name="logo" size={25} />
               </Button>

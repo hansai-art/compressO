@@ -1,4 +1,3 @@
-import { Spinner } from '@heroui/react'
 import { createFileRoute } from '@tanstack/react-router'
 import { core } from '@tauri-apps/api'
 import { motion } from 'framer-motion'
@@ -8,6 +7,7 @@ import { useSnapshot } from 'valtio'
 
 import Icon from '@/components/Icon'
 import Layout from '@/components/Layout'
+import Spinner from '@/components/Spinner'
 import { toast } from '@/components/Toast'
 import { generateVideoThumbnail, getVideoInfo } from '@/tauri/commands/ffmpeg'
 import { getFileMetadata } from '@/tauri/commands/fs'
@@ -28,14 +28,17 @@ export const Route = createFileRoute('/(root)/')({
 function Root() {
   const { state, resetProxy } = useSnapshot(appProxy)
 
-  const { videos, isLoadingFiles } = state
+  const { videos, isLoadingFiles, totalSelectedFilesCount } = state
 
   const handleVideoSelected = React.useCallback(
     async (path: string | string[]) => {
       if (appProxy.state.isCompressing) return
 
       appProxy.state.isLoadingFiles = true
+
       const videoPaths = Array.isArray(path) ? path : [path]
+      appProxy.state.totalSelectedFilesCount = videoPaths.length
+
       if (videoPaths.length === 0) {
         toast.error('Invalid video(s) selected.')
         return
@@ -124,14 +127,16 @@ function Root() {
     [resetProxy],
   )
 
-  return videos.length ? (
-    isLoadingFiles ? (
-      <div className="w-screen h-screen flex justify-center items-center dark:bg-black1 bg-white1">
-        <Spinner size="lg" />
+  return isLoadingFiles ? (
+    !videos.length || (totalSelectedFilesCount > 1 && videos.length === 1) ? (
+      <div className="w-full h-full flex justify-center items-center">
+        <Spinner />
       </div>
     ) : (
       <VideoConfig />
     )
+  ) : videos.length ? (
+    <VideoConfig />
   ) : (
     <Layout
       containerProps={{ className: 'relative' }}

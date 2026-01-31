@@ -10,13 +10,10 @@ import { CustomEvents, VideoCompressionProgress } from '@/types/compression'
 import { convertDurationToMilliseconds } from '@/utils/string'
 import { appProxy } from '../-state'
 
-// TODO: Refactors
 function CancelCompression() {
   const {
-    state: { videos, isCompressing },
+    state: { isCompressing, batchId },
   } = useSnapshot(appProxy)
-  const video = videos.length > 0 ? videos[0] : null
-  const { videoDurationMilliseconds, id: videoId } = video ?? {}
 
   const [confirmCancellation, setConfirmCancellation] = React.useState(false)
   const [isCancelling, setIsCancelling] = React.useState(false)
@@ -24,7 +21,7 @@ function CancelCompression() {
   const compressionProgressRef = React.useRef<event.UnlistenFn>()
 
   React.useEffect(() => {
-    if (videoDurationMilliseconds) {
+    if (batchId) {
       ;(async function iife() {
         if (compressionProgressRef.current) {
           compressionProgressRef.current?.()
@@ -34,16 +31,29 @@ function CancelCompression() {
             CustomEvents.VideoCompressionProgress,
             (evt) => {
               const payload = evt?.payload
-              if (videoId === payload?.videoId) {
-                const currentDurationInMilliseconds =
-                  convertDurationToMilliseconds(payload?.currentDuration)
-                if (
-                  currentDurationInMilliseconds > 0 &&
-                  videoDurationMilliseconds >= currentDurationInMilliseconds
-                ) {
-                  appProxy.state.videos[0].compressionProgress =
-                    (currentDurationInMilliseconds * 100) /
-                    videoDurationMilliseconds
+              if (batchId === payload?.batchId) {
+                const videos = snapshot(appProxy).state.videos
+                const targetVideoIndex = videos.findIndex(
+                  (v) => v.id === payload.videoId,
+                )
+                if (targetVideoIndex !== -1) {
+                  appProxy.state.currentVideoIndex = targetVideoIndex
+                  const videoDurationMilliseconds =
+                    videos[targetVideoIndex].videoDurationMilliseconds
+                  if (!(videoDurationMilliseconds == null)) {
+                    const currentDurationInMilliseconds =
+                      convertDurationToMilliseconds(payload?.currentDuration)
+                    if (
+                      currentDurationInMilliseconds > 0 &&
+                      videoDurationMilliseconds >= currentDurationInMilliseconds
+                    ) {
+                      appProxy.state.videos[
+                        targetVideoIndex
+                      ].compressionProgress =
+                        (currentDurationInMilliseconds * 100) /
+                        videoDurationMilliseconds
+                    }
+                  }
                 }
               }
             },
@@ -54,7 +64,7 @@ function CancelCompression() {
     return () => {
       compressionProgressRef.current?.()
     }
-  }, [videoDurationMilliseconds, videoId])
+  }, [batchId])
 
   React.useEffect(() => {
     if (isCancelling) {
