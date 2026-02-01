@@ -6,6 +6,7 @@ import { snapshot, useSnapshot } from 'valtio'
 
 import Button from '@/components/Button'
 import Icon from '@/components/Icon'
+import { deleteFile } from '@/tauri/commands/fs'
 import AlertDialog, { AlertDialogButton } from '@/ui/Dialogs/AlertDialog'
 import { appProxy } from '../-state'
 
@@ -26,15 +27,19 @@ function CompressionActions() {
     closeModal: UseDisclosureProps['onClose']
   }) => {
     try {
-      // await Promise.allSettled([
-      //   deleteFile(compressedVideo?.pathRaw as string),
-      //   deleteFile(thumbnailPathRaw as string),
-      // ])
+      const deletePromises = videos
+        .flatMap((video) => [
+          video.compressedVideo?.pathRaw
+            ? deleteFile(video.compressedVideo.pathRaw)
+            : null,
+          video.thumbnailPathRaw ? deleteFile(video.thumbnailPathRaw) : null,
+        ])
+        .filter(Boolean)
+
+      await Promise.allSettled(deletePromises)
       closeModal?.()
       resetProxy()
-    } catch {
-      //
-    }
+    } catch {}
   }
 
   const handleCancelCompression = () => {
