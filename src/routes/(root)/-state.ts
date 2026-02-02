@@ -24,6 +24,7 @@ const appInitialState: App = {
   isBatchCompressionCancelled: false,
   isSaving: false,
   isSaved: false,
+  selectedVideoIndexForCustomization: -1,
 }
 
 const snapshotMoment = {

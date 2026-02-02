@@ -8,15 +8,21 @@ import Icon from '@/components/Icon'
 import Image from '@/components/Image'
 import { CircularProgress } from '@/components/Progress'
 import { cn } from '@/utils/tailwind'
-import { appProxy } from '../-state'
-import VideoTransformer from './compression-options/VideoTransformer'
 import styles from './styles.module.css'
+import VideoThumbnail from './VideoThumbnail'
+import { appProxy } from '../-state'
 
-function PreviewSingleVideo() {
+type PreviewSingleVideoProps = {
+  videoIndex: number
+}
+
+function PreviewSingleVideo({ videoIndex }: PreviewSingleVideoProps) {
+  if (videoIndex < 0) return
+
   const {
     state: { videos, isCompressing, isProcessCompleted },
   } = useSnapshot(appProxy)
-  const video = videos.length > 0 ? videos[0] : null
+  const video = videos.length > 0 ? videos[videoIndex] : null
   const {
     config,
     size: videoSize,
@@ -29,7 +35,7 @@ function PreviewSingleVideo() {
     compressedVideo,
     compressionProgress,
   } = video ?? {}
-  const { shouldTransformVideo, shouldDisableCompression } = config ?? {}
+  const { shouldDisableCompression } = config ?? {}
 
   const compressedSizeDiff: number = useMemo(
     () =>
@@ -48,115 +54,97 @@ function PreviewSingleVideo() {
       : video?.fileName) ?? ''
 
   return !isCompressing ? (
-    videos.length === 1 ? (
-      <>
-        <Code
-          size="sm"
-          className="mb-3 text-center rounded-xl px-4 text-xs xl:text-sm"
-        >
-          {singleFileNameDisplay?.length > 50
-            ? `${singleFileNameDisplay?.slice(0, 20)}...${singleFileNameDisplay?.slice(
-                -10,
-              )}`
-            : singleFileNameDisplay}
-        </Code>
-        {shouldTransformVideo && !isProcessCompleted ? (
-          <VideoTransformer />
-        ) : (
-          <Image
-            alt="video to compress"
-            src={thumbnailPath as string}
-            className="max-w-[65vw] xxl:max-w-[75vw] max-h-[60vh] object-contain rounded-3xl border-primary border-4"
-          />
-        )}
-        {!isProcessCompleted ? (
-          <section className={cn(['my-4 mb-2', styles.videoMetadata])}>
-            <>
-              <div>
-                <p className="italic text-gray-600 dark:text-gray-400">Size</p>
-                <span className="block font-black">{videoSize}</span>
-              </div>
-              <Divider orientation="vertical" className="h-10" />
-            </>
-            <>
-              <div>
-                <p className="italic text-gray-600 dark:text-gray-400">
-                  Extension
-                </p>
-                <span className="block font-black">
-                  {videoExtension ?? '-'}
-                </span>
-              </div>
-              <Divider orientation="vertical" className="h-10" />
-            </>
-
-            <>
-              <div>
-                <p className="italic text-gray-600 dark:text-gray-400">
-                  Duration
-                </p>
-                <span className="block font-black">
-                  {videDurationRaw ?? '-'}
-                </span>
-              </div>
-            </>
-            <>
-              {dimensions ? (
-                <>
-                  <Divider orientation="vertical" className="h-10" />{' '}
-                  <div>
-                    <p className="italic text-gray-600 dark:text-gray-400">
-                      Dimensions
-                    </p>
-                    <span className="block font-black">
-                      {dimensions.width ?? '-'} x {dimensions.height ?? '-'}
-                    </span>
-                  </div>
-                </>
-              ) : null}
-            </>
-            <>
-              {fps ? (
-                <>
-                  <Divider orientation="vertical" className="h-10" />{' '}
-                  <div>
-                    <p className="italic text-gray-600 dark:text-gray-400">
-                      FPS
-                    </p>
-                    <span className="block font-black">{fps ?? '-'}</span>
-                  </div>
-                </>
-              ) : null}
-            </>
-          </section>
-        ) : null}
-        {isProcessCompleted ? (
-          <section className="animate-appearance-in">
-            <div className="flex justify-center items-center mt-3 hslg:mt-6">
-              <p className="text-2xl hslg:text-4xl font-bold mx-4">
-                {videoSize}
-              </p>
-              <Icon
-                name="curvedArrow"
-                className="text-black dark:text-white rotate-[-65deg] translate-y-[-8px]"
-                size={100}
-              />
-              <p className="text-3xl hslg:text-4xl font-bold mx-4 text-primary">
-                {compressedVideo?.size}
-              </p>
+    <>
+      <Code
+        size="sm"
+        className="mb-3 text-center rounded-xl px-4 text-xs xl:text-sm"
+      >
+        {singleFileNameDisplay?.length > 50
+          ? `${singleFileNameDisplay?.slice(0, 20)}...${singleFileNameDisplay?.slice(
+              -10,
+            )}`
+          : singleFileNameDisplay}
+      </Code>
+      {video ? <VideoThumbnail videoIndex={0} /> : null}
+      {!isProcessCompleted ? (
+        <section className={cn(['my-4 mb-2', styles.videoMetadata])}>
+          <>
+            <div>
+              <p className="italic text-gray-600 dark:text-gray-400">Size</p>
+              <span className="block font-black">{videoSize}</span>
             </div>
-            {!(compressedSizeDiff <= 0) ? (
-              <p className="block text-5xl hslg:text-7xl text-center text-green-500">
-                {compressedSizeDiff.toFixed(2)?.endsWith('.00')
-                  ? compressedSizeDiff.toFixed(2)?.slice(0, -3)
-                  : compressedSizeDiff.toFixed(2)}
-                %<span className="text-large block">smaller</span>
+            <Divider orientation="vertical" className="h-10" />
+          </>
+          <>
+            <div>
+              <p className="italic text-gray-600 dark:text-gray-400">
+                Extension
               </p>
+              <span className="block font-black">{videoExtension ?? '-'}</span>
+            </div>
+            <Divider orientation="vertical" className="h-10" />
+          </>
+
+          <>
+            <div>
+              <p className="italic text-gray-600 dark:text-gray-400">
+                Duration
+              </p>
+              <span className="block font-black">{videDurationRaw ?? '-'}</span>
+            </div>
+          </>
+          <>
+            {dimensions ? (
+              <>
+                <Divider orientation="vertical" className="h-10" />{' '}
+                <div>
+                  <p className="italic text-gray-600 dark:text-gray-400">
+                    Dimensions
+                  </p>
+                  <span className="block font-black">
+                    {dimensions.width ?? '-'} x {dimensions.height ?? '-'}
+                  </span>
+                </div>
+              </>
             ) : null}
-          </section>
-        ) : null}
-      </>
-    ) : null
+          </>
+          <>
+            {fps ? (
+              <>
+                <Divider orientation="vertical" className="h-10" />{' '}
+                <div>
+                  <p className="italic text-gray-600 dark:text-gray-400">FPS</p>
+                  <span className="block font-black">{fps ?? '-'}</span>
+                </div>
+              </>
+            ) : null}
+          </>
+        </section>
+      ) : null}
+      {isProcessCompleted ? (
+        <section className="animate-appearance-in">
+          <div className="flex justify-center items-center mt-3 hslg:mt-6">
+            <p className="text-2xl hslg:text-4xl font-bold mx-4">{videoSize}</p>
+            <Icon
+              name="curvedArrow"
+              className="text-black dark:text-white rotate-[-65deg] translate-y-[-8px]"
+              size={100}
+            />
+            <p className="text-3xl hslg:text-4xl font-bold mx-4 text-primary">
+              {compressedVideo?.size}
+            </p>
+          </div>
+          {!(compressedSizeDiff <= 0) ? (
+            <p className="block text-5xl hslg:text-7xl text-center text-green-500">
+              {compressedSizeDiff.toFixed(2)?.endsWith('.00')
+                ? compressedSizeDiff.toFixed(2)?.slice(0, -3)
+                : compressedSizeDiff.toFixed(2)}
+              %<span className="text-large block">smaller</span>
+            </p>
+          ) : null}
+        </section>
+      ) : null}
+    </>
   ) : (
     <motion.div
       className="w-full flex flex-col justify-center items-center flex-shrink-0"

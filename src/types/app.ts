@@ -73,4 +73,5 @@ export type App = {
   isSaving: boolean
   isSaved: boolean
   savedPath?: string
+  selectedVideoIndexForCustomization: number
 }

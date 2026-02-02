@@ -216,14 +216,27 @@ function PreviewBatchVideos() {
                       {!isCompressing &&
                       !isProcessCompleted &&
                       !isLoadingFiles ? (
-                        <Button
-                          size="sm"
-                          isIconOnly
-                          onPress={() => handleRemoveVideo(index)}
-                          className="absolute top-2 right-2 z-10 p-2 rounded-full bg-zinc-800/80 text-white hover:bg-zinc-700 transition-colors"
-                        >
-                          <Icon name="cross" size={18} />
-                        </Button>
+                        <>
+                          <Button
+                            size="sm"
+                            isIconOnly
+                            onPress={() => handleRemoveVideo(index)}
+                            className="absolute top-2 right-2 z-10 p-2 rounded-full bg-zinc-800/80 text-white hover:bg-zinc-700 transition-colors"
+                          >
+                            <Icon name="cross" size={18} />
+                          </Button>
+                          <Button
+                            size="sm"
+                            isIconOnly
+                            onPress={() => {
+                              appProxy.state.selectedVideoIndexForCustomization =
+                                index
+                            }}
+                            className="absolute bottom-2 left-2 z-10 rounded-full bg-zinc-800/80 text-white hover:bg-zinc-700 transition-colors"
+                          >
+                            <Icon name="pencil" size={20} />
+                          </Button>
+                        </>
                       ) : null}
                       {isCompressing && currentVideoIndex === index ? (
                         <>

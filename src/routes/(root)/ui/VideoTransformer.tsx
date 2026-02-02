@@ -8,14 +8,19 @@ import Divider from '@/components/Divider'
 import Icon from '@/components/Icon'
 import Tooltip from '@/components/Tooltip'
 import { VideoTransforms, VideoTransformsHistory } from '@/types/compression'
-import { appProxy } from '../../-state'
+import { appProxy } from '../-state'
 
-// Applies to single video only
-function VideoTransformer() {
+type VideoTransformerProps = {
+  videoIndex: number
+}
+
+function VideoTransformer({ videoIndex }: VideoTransformerProps) {
+  if (videoIndex < 0) return
+
   const {
     state: { videos },
   } = useSnapshot(appProxy)
-  const video = videos.length > 0 ? videos[0] : null
+  const video = videos.length > 0 ? videos[videoIndex] : null
   const { config, thumbnailPath } = video ?? {}
   const { shouldTransformVideo } = config ?? {}
 
@@ -23,25 +28,25 @@ function VideoTransformer() {
   const debouncedRef = useRef<NodeJS.Timeout | null>(null)
 
   const recordTransformHistory = (action: VideoTransformsHistory) => {
-    if (appProxy.state.videos.length === 1) {
-      const transformsHistory =
-        appProxy.state.videos[0].config.transformVideoConfig
-          ?.transformsHistory ?? []
+    const targetVideo = appProxy.state.videos[videoIndex]
+    if (!targetVideo || !targetVideo.config) return
 
-      transformsHistory.push(action)
+    const transformsHistory =
+      targetVideo.config?.transformVideoConfig?.transformsHistory ?? []
 
-      if (appProxy.state.videos[0].config.transformVideoConfig) {
-        appProxy.state.videos[0].config.transformVideoConfig.transformsHistory =
-          transformsHistory
-      } else {
-        appProxy.state.videos[0].config.transformVideoConfig = {
-          transforms: {
-            crop: { width: 0, height: 0, top: 0, left: 0 },
-            flip: { horizontal: false, vertical: false },
-            rotate: 0,
-          },
-          transformsHistory,
-        }
+    transformsHistory.push(action)
+
+    if (targetVideo?.config?.transformVideoConfig) {
+      targetVideo.config.transformVideoConfig.transformsHistory =
+        transformsHistory
+    } else {
+      targetVideo.config.transformVideoConfig = {
+        transforms: {
+          crop: { width: 0, height: 0, top: 0, left: 0 },
+          flip: { horizontal: false, vertical: false },
+          rotate: 0,
+        },
+        transformsHistory,
       }
     }
   }
@@ -59,7 +64,7 @@ function VideoTransformer() {
         factor: 0,
         center: { left: 0, top: 0 },
       })
-      // This is related to crop so it's history will be recorded on `oNChange` handler
+      // This is related to crop so it's history will be recorded on `onChange` handler
     }
   }
 
@@ -85,11 +90,14 @@ function VideoTransformer() {
           height: visibleArea.height,
         })
       }
-      // This is related to crop so it's history will be recorded on `oNChange` handler
+      // This is related to crop so it's history will be recorded on `onChange` handler
     }
   }
 
   const onChange = (cropper: CropperRef) => {
+    const targetVideo = appProxy.state.videos[videoIndex]
+    if (!targetVideo || !targetVideo.config) return
+
     if (debouncedRef.current) {
       clearTimeout(debouncedRef.current)
     }
@@ -97,17 +105,16 @@ function VideoTransformer() {
       const cropperState = cropper.getState()
       if (cropperState) {
         const blob = await getCanvasBlob(cropper.getCanvas()!)
-        if (appProxy.state.videos[0].config.transformVideoConfig?.previewUrl) {
+        if (targetVideo.config?.transformVideoConfig?.previewUrl) {
           URL.revokeObjectURL(
-            appProxy.state.videos[0].config.transformVideoConfig.previewUrl,
+            targetVideo?.config?.transformVideoConfig?.previewUrl!,
           )
         }
         const coordinates = cropperState.coordinates
         const transforms = cropperState.transforms
 
         const transformsHistory =
-          appProxy.state.videos[0].config.transformVideoConfig
-            ?.transformsHistory ?? []
+          targetVideo.config.transformVideoConfig?.transformsHistory ?? []
 
         const newTransforms: VideoTransforms = {
           crop: {
@@ -125,8 +132,7 @@ function VideoTransformer() {
 
         if (
           JSON.stringify(
-            appProxy.state.videos[0].config.transformVideoConfig?.transforms
-              ?.crop,
+            targetVideo.config.transformVideoConfig?.transforms?.crop,
           ) !== JSON.stringify(newTransforms?.crop)
         ) {
           transformsHistory.push({
@@ -135,7 +141,7 @@ function VideoTransformer() {
           })
         }
 
-        appProxy.state.videos[0].config.transformVideoConfig = {
+        targetVideo.config.transformVideoConfig = {
           transforms: newTransforms,
           previewUrl: URL.createObjectURL(blob!),
           transformsHistory,
@@ -144,7 +150,7 @@ function VideoTransformer() {
     }, 500)
   }
 
-  return videos.length === 1 ? (
+  return video ? (
     <>
       <Cropper
         ref={cropperRef}
@@ -159,7 +165,7 @@ function VideoTransformer() {
           ? {
               defaultCoordinates(state: CropperState) {
                 const crop =
-                  appProxy.state.videos[0].config.transformVideoConfig
+                  appProxy.state.videos[videoIndex].config.transformVideoConfig
                     ?.transforms?.crop
                 return {
                   left: crop?.left ?? 0,
@@ -170,7 +176,7 @@ function VideoTransformer() {
               },
               defaultPosition() {
                 const crop =
-                  appProxy.state.videos[0].config.transformVideoConfig
+                  appProxy.state.videos[videoIndex].config.transformVideoConfig
                     ?.transforms?.crop
                 return {
                   left: crop?.left ?? 0,
@@ -179,7 +185,7 @@ function VideoTransformer() {
               },
               defaultSize(state: CropperState) {
                 const crop =
-                  appProxy.state.videos[0].config.transformVideoConfig
+                  appProxy.state.videos[videoIndex].config.transformVideoConfig
                     ?.transforms?.crop
                 return {
                   width: crop?.width ?? state.imageSize.width,
@@ -188,7 +194,7 @@ function VideoTransformer() {
               },
               defaultTransforms() {
                 const transforms =
-                  appProxy.state.videos[0].config.transformVideoConfig
+                  appProxy.state.videos[videoIndex].config.transformVideoConfig
                     ?.transforms
                 return {
                   rotate: transforms?.rotate ?? 0,

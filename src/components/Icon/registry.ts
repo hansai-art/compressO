@@ -1,5 +1,6 @@
 import React from 'react'
 
+import Back from '@/assets/icons/back.svg?react'
 import Copy from '@/assets/icons/copy.svg?react'
 import Cross from '@/assets/icons/cross.svg?react'
 import CurvedArrow from '@/assets/icons/curved-arrow.svg?react'
@@ -14,6 +15,7 @@ import Info from '@/assets/icons/info.svg?react'
 import Logo from '@/assets/icons/logo.svg?react'
 import LowResHeart from '@/assets/icons/low-res-heart.svg?react'
 import Moon from '@/assets/icons/moon.svg?react'
+import Pencil from '@/assets/icons/pencil.svg?react'
 import Play from '@/assets/icons/play.svg?react'
 import Question from '@/assets/icons/question.svg?react'
 import Redo from '@/assets/icons/redo.svg?react'
@@ -64,6 +66,8 @@ const registry = asRegistry({
   flipHorizontal: FlipHorizontal,
   expand: Expand,
   resetZoom: ResetZoom,
+  pencil: Pencil,
+  back: Back,
 })
 
 export default registry
