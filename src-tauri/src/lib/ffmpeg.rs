@@ -1,7 +1,7 @@
 use crate::domain::{
     BatchCompressionIndividualCompressionResult, BatchCompressionProgress, BatchCompressionResult,
     CancelInProgressCompressionPayload, CompressionResult, CustomEvents, TauriEvents,
-    VideoCompressionProgress, VideoInfo, VideoThumbnail, VideoWithPath,
+    VideoCompressionConfig, VideoCompressionProgress, VideoInfo, VideoThumbnail,
 };
 use crate::fs::get_file_metadata;
 use crossbeam_channel::{Receiver, Sender};
@@ -415,23 +415,16 @@ impl FFMPEG {
     /// Compressed videos in batch
     pub async fn compress_videos_batch(
         &mut self,
-        batch_id: &str,
-        videos: Vec<VideoWithPath>,
-        convert_to_extension: &str,
-        preset_name: Option<&str>,
-        should_mute_video: bool,
-        quality: u16,
-        dimensions: Option<(u32, u32)>,
-        fps: Option<&str>,
-        transforms_history: Option<&Vec<Value>>,
+        videos: Vec<VideoCompressionConfig>,
     ) -> Result<BatchCompressionResult, String> {
         let mut results: std::collections::HashMap<String, CompressionResult> =
             std::collections::HashMap::new();
         let total_count = videos.len();
 
-        for (index, video_with_path) in videos.iter().enumerate() {
-            let video_path = &video_with_path.video_path;
-            let video_id = &video_with_path.video_id;
+        for (index, video_options) in videos.iter().enumerate() {
+            let video_path = &video_options.video_path;
+            let video_id = &video_options.video_id;
+            let batch_id = video_options.batch_id.as_deref().unwrap_or("");
 
             let app_clone = self.app.clone();
             let batch_id_clone = batch_id.to_string();
@@ -471,22 +464,30 @@ impl FFMPEG {
             let app_clone2 = self.app.clone();
             let batch_id_clone2 = batch_id.to_string();
 
+            let convert_to_extension = &video_options.convert_to_extension;
+            let preset_name = video_options.preset_name.as_deref();
+            let batch_id_for_compression = video_options.batch_id.as_deref();
+            let should_mute_video = video_options.should_mute_video;
+            let quality = video_options.quality;
+            let dimensions = video_options.dimensions;
+            let fps = video_options.fps.as_deref();
+            let transforms_history = video_options
+                .transforms_history
+                .as_ref()
+                .map(|v| v.as_ref());
+
             match ffmpeg_instance
                 .compress_video(
                     video_path,
                     convert_to_extension,
                     preset_name,
                     video_id,
-                    Some(&batch_id.to_owned()),
+                    batch_id_for_compression,
                     should_mute_video,
                     quality,
-                    if videos.len() == 1 { dimensions } else { None },
+                    dimensions,
                     fps,
-                    if videos.len() == 1 {
-                        transforms_history.map(|v| v.as_ref())
-                    } else {
-                        None
-                    },
+                    transforms_history,
                 )
                 .await
             {

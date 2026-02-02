@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 use strum::{AsRefStr, EnumProperty};
 
 #[derive(Serialize, Deserialize, Clone)]
@@ -131,4 +132,19 @@ pub struct VideoFileMetadata {
 pub struct VideoWithPath {
     pub video_path: String,
     pub video_id: String,
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct VideoCompressionConfig {
+    pub video_path: String,
+    pub convert_to_extension: String,
+    pub preset_name: Option<String>,
+    pub video_id: String,
+    pub batch_id: Option<String>,
+    pub should_mute_video: bool,
+    pub quality: u16,
+    pub dimensions: Option<(u32, u32)>,
+    pub fps: Option<String>,
+    pub transforms_history: Option<Vec<Value>>,
 }

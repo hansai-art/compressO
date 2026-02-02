@@ -1,3 +1,4 @@
+import { core } from '@tauri-apps/api'
 import { useRef } from 'react'
 import { Cropper, CropperRef, type CropperState } from 'react-advanced-cropper'
 import 'react-advanced-cropper/dist/style.css'
@@ -21,7 +22,7 @@ function VideoTransformer({ videoIndex }: VideoTransformerProps) {
     state: { videos },
   } = useSnapshot(appProxy)
   const video = videos.length > 0 ? videos[videoIndex] : null
-  const { config, thumbnailPath } = video ?? {}
+  const { config, thumbnailPathRaw } = video ?? {}
   const { shouldTransformVideo } = config ?? {}
 
   const cropperRef = useRef<CropperRef>(null)
@@ -154,7 +155,7 @@ function VideoTransformer({ videoIndex }: VideoTransformerProps) {
     <>
       <Cropper
         ref={cropperRef}
-        src={thumbnailPath}
+        src={core.convertFileSrc(thumbnailPathRaw!)}
         stencilProps={{
           grid: true,
         }}

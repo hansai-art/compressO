@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from 'framer-motion'
-import React from 'react'
+import React, { useCallback } from 'react'
 import { useSnapshot } from 'valtio'
 
 import Button from '@/components/Button'
@@ -17,6 +17,28 @@ function VideoConfig() {
   const {
     state: { videos, isCompressing, selectedVideoIndexForCustomization },
   } = useSnapshot(appProxy)
+
+  const handleApplyVideoConfig = useCallback(() => {
+    const selectedVideoIndexForCustomization =
+      appProxy.state.selectedVideoIndexForCustomization
+    if (selectedVideoIndexForCustomization >= 0) {
+      appProxy.state.selectedVideoIndexForCustomization = -1
+
+      if (
+        appProxy.state.videos[selectedVideoIndexForCustomization]?.config
+          ?.shouldTransformVideo &&
+        appProxy.state.videos[selectedVideoIndexForCustomization].config
+          ?.transformVideoConfig?.previewUrl
+      ) {
+        appProxy.state.videos[
+          selectedVideoIndexForCustomization
+        ].thumbnailPath =
+          appProxy.state.videos[
+            selectedVideoIndexForCustomization
+          ]?.config?.transformVideoConfig?.previewUrl
+      }
+    }
+  }, [])
 
   return (
     <Layout
@@ -52,9 +74,7 @@ function VideoConfig() {
                       <Button
                         size="sm"
                         className="absolute top-4 right-4"
-                        onPress={() => {
-                          appProxy.state.selectedVideoIndexForCustomization = -1
-                        }}
+                        onPress={handleApplyVideoConfig}
                       >
                         Apply
                       </Button>

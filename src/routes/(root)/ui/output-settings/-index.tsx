@@ -8,7 +8,7 @@ import { snapshot, useSnapshot } from 'valtio'
 import Button from '@/components/Button'
 import Icon from '@/components/Icon'
 import { compressVideos } from '@/tauri/commands/ffmpeg'
-import { CompressionResult } from '@/types/compression'
+import { CompressionResult, VideoTransformsHistory } from '@/types/compression'
 import { formatBytes } from '@/utils/fs'
 import CompressionPreset from './CompressionPreset'
 import CompressionQuality from './CompressionQuality'
@@ -48,8 +48,6 @@ function OutputSettings({ videoIndex }: OutputSettingsProps) {
     appProxy.state.selectedVideoIndexForCustomization = -1
     appProxy.takeSnapshot('beforeCompressionStarted')
 
-    const video = appSnapshot.state.videos[videoIndex]
-
     try {
       appProxy.state.isCompressing = true
 
@@ -68,34 +66,31 @@ function OutputSettings({ videoIndex }: OutputSettingsProps) {
       const batchId = `${+new Date()}`
       appProxy.state.batchId = batchId
 
-      const { results } = await compressVideos({
-        batchId,
-        videos: appSnapshot.state.videos.map((v) => ({
+      const { results } = await compressVideos(
+        appSnapshot.state.videos.map((v) => ({
           videoId: v.id!,
+          batchId: batchId,
           videoPath: v.pathRaw!,
+          convertToExtension: v.config?.convertToExtension ?? 'mp4',
+          presetName: !v.config?.shouldDisableCompression
+            ? v.config.presetName
+            : null,
+          shouldMuteVideo: v.config?.shouldMuteVideo ?? false,
+          quality: v.config?.shouldEnableQuality
+            ? (v.config?.quality as number)
+            : 101,
+          dimensions: v.config?.shouldEnableCustomDimensions
+            ? (v.config.customDimensions as [number, number])
+            : null,
+          fps: v.config?.shouldEnableCustomFPS
+            ? v.config.customFPS?.toString?.()
+            : null,
+          transformsHistory: v.config?.shouldTransformVideo
+            ? ((v.config.transformVideoConfig?.transformsHistory ??
+                []) as VideoTransformsHistory[])
+            : null,
         })),
-        convertToExtension: video?.config?.convertToExtension ?? 'mp4',
-        presetName: !video?.config?.shouldDisableCompression
-          ? video.config.presetName
-          : null,
-        shouldMuteVideo: video.config.shouldMuteVideo,
-        ...(video?.config?.shouldEnableQuality
-          ? { quality: video?.config?.quality as number }
-          : {}),
-        ...(video.config.shouldEnableCustomDimensions
-          ? { dimensions: video.config.customDimensions }
-          : {}),
-        ...(video.config.shouldEnableCustomFPS
-          ? { fps: video.config.customFPS?.toString?.() }
-          : {}),
-        ...(video.config.shouldTransformVideo
-          ? {
-              transformsHistory:
-                video.config.transformVideoConfig?.transformsHistory ??
-                ([] as any),
-            }
-          : {}),
-      })
+      )
       if (Object.keys(results).length === 0) {
         throw new Error()
       }
@@ -130,7 +125,7 @@ function OutputSettings({ videoIndex }: OutputSettingsProps) {
         appProxy.timeTravel('beforeCompressionStarted')
       }
     }
-  }, [videoIndex])
+  }, [])
 
   return (
     <section className="p-4 rounded-xl border-2 border-zinc-200 dark:border-zinc-800 h-full">
@@ -173,24 +168,26 @@ function OutputSettings({ videoIndex }: OutputSettingsProps) {
           <VideoExtension videoIndex={videoIndex} />
         </div>
       </>
-      <div className="mt-4">
-        {isCompressing ? (
-          <CancelCompression />
-        ) : isProcessCompleted ? (
-          <SaveVideo />
-        ) : (
-          <Button
-            as={motion.button}
-            color="primary"
-            onPress={handleCompression}
-            fullWidth
-            className="text-primary"
-            isDisabled={isLoadingFiles}
-          >
-            Compress <Icon name="logo" size={25} />
-          </Button>
-        )}
-      </div>
+      {selectedVideoIndexForCustomization < 0 ? (
+        <div className="mt-4">
+          {isCompressing ? (
+            <CancelCompression />
+          ) : isProcessCompleted ? (
+            <SaveVideo />
+          ) : (
+            <Button
+              as={motion.button}
+              color="primary"
+              onPress={handleCompression}
+              fullWidth
+              className="text-primary"
+              isDisabled={isLoadingFiles}
+            >
+              Compress <Icon name="logo" size={25} />
+            </Button>
+          )}
+        </div>
+      ) : null}
     </section>
   )
 }

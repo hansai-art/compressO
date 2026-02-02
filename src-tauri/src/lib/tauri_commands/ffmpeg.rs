@@ -1,5 +1,8 @@
 use crate::{
-    domain::{BatchCompressionResult, CompressionResult, VideoInfo, VideoThumbnail, VideoWithPath},
+    domain::{
+        BatchCompressionResult, CompressionResult, VideoCompressionConfig, VideoInfo,
+        VideoThumbnail,
+    },
     ffmpeg::{self},
     fs::delete_stale_files,
 };
@@ -65,15 +68,7 @@ pub async fn get_video_info(app: tauri::AppHandle, video_path: &str) -> Result<V
 #[tauri::command]
 pub async fn compress_videos_batch(
     app: tauri::AppHandle,
-    batch_id: &str,
-    videos: Vec<VideoWithPath>,
-    convert_to_extension: &str,
-    preset_name: Option<&str>,
-    should_mute_video: bool,
-    quality: u16,
-    dimensions: Option<(u32, u32)>,
-    fps: Option<&str>,
-    transforms_history: Option<Vec<Value>>,
+    videos: Vec<VideoCompressionConfig>,
 ) -> Result<BatchCompressionResult, String> {
     let mut ffmpeg = ffmpeg::FFMPEG::new(&app)?;
     if let Ok(files) =
@@ -85,17 +80,7 @@ pub async fn compress_videos_batch(
         )
     };
     ffmpeg
-        .compress_videos_batch(
-            batch_id,
-            videos,
-            convert_to_extension,
-            preset_name,
-            should_mute_video,
-            quality,
-            dimensions,
-            fps,
-            transforms_history.as_ref(),
-        )
+        .compress_videos_batch(videos)
         .await
         .map(|result| Ok(result))
         .unwrap_or_else(|err| Err(err))

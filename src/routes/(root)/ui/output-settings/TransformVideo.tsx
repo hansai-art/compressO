@@ -1,3 +1,4 @@
+import { core } from '@tauri-apps/api'
 import { useSnapshot } from 'valtio'
 
 import Switch from '@/components/Switch'
@@ -33,6 +34,10 @@ function TransformVideo({ videoIndex }: TransformVideoProps) {
             if (shouldTransformVideo) {
               appProxy.state.videos[videoIndex].config.transformVideoConfig =
                 undefined
+              appProxy.state.videos[videoIndex].thumbnailPath =
+                core.convertFileSrc(
+                  appProxy.state.videos[videoIndex].thumbnailPathRaw!,
+                )
             }
           }
         }}

@@ -15,10 +15,10 @@ function VideoThumbnail({ videoIndex }: VideoThumbnailProps) {
     state: { videos },
   } = useSnapshot(appProxy)
   const video = videos.length > 0 ? videos[videoIndex] : null
-  const { config, thumbnailPath } = video ?? {}
+  const { config, thumbnailPath, isProcessCompleted } = video ?? {}
   const { shouldTransformVideo } = config ?? {}
 
-  return shouldTransformVideo ? (
+  return shouldTransformVideo && !isProcessCompleted ? (
     <VideoTransformer videoIndex={videoIndex} />
   ) : (
     <Image

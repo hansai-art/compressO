@@ -81,3 +81,16 @@ export type VideoFileMetadata = {
   dimensions?: [number, number]
   fps?: number
 }
+
+export type VideoCompressionConfig = {
+  videoPath: string
+  convertToExtension: string
+  presetName?: string | null
+  videoId: string
+  batchId?: string | null
+  shouldMuteVideo: boolean
+  quality: number
+  dimensions?: [number, number] | null
+  fps?: string | null
+  transformsHistory?: VideoTransformsHistory[] | null
+}
