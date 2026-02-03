@@ -1,12 +1,14 @@
 import { Divider } from '@heroui/react'
+import { Tab } from '@heroui/tabs'
 import { core } from '@tauri-apps/api'
 import { motion } from 'framer-motion'
-import { useCallback } from 'react'
+import { useCallback, useState } from 'react'
 import { toast } from 'sonner'
 import { snapshot, useSnapshot } from 'valtio'
 
 import Button from '@/components/Button'
 import Icon from '@/components/Icon'
+import Tabs from '@/components/Tabs'
 import { compressVideos } from '@/tauri/commands/ffmpeg'
 import { CompressionResult, VideoTransformsHistory } from '@/types/compression'
 import { formatBytes } from '@/utils/fs'
@@ -26,6 +28,21 @@ type OutputSettingsProps = {
   videoIndex: number // if videoIndex < 0, we'll only show settings that applies to all videos
 }
 
+const TABS = {
+  video: {
+    id: 'video',
+    title: 'Video',
+  },
+  audio: {
+    id: 'audio',
+    title: 'Audio',
+  },
+  metadata: {
+    id: 'metadata',
+    title: 'Metadata',
+  },
+} as const
+
 function OutputSettings({ videoIndex }: OutputSettingsProps) {
   const {
     state: {
@@ -38,6 +55,8 @@ function OutputSettings({ videoIndex }: OutputSettingsProps) {
   } = useSnapshot(appProxy)
   const video = videos.length && videoIndex >= 0 ? videos[videoIndex] : null
   const { dimensions } = video ?? {}
+
+  const [tab, setTab] = useState<keyof typeof TABS>('video')
 
   const handleCompression = useCallback(async () => {
     const appSnapshot = snapshot(appProxy)
@@ -142,36 +161,64 @@ function OutputSettings({ videoIndex }: OutputSettingsProps) {
         </p>
         {!isCompressing ? <CompressionActions /> : null}
       </div>
-      <>
-        <CompressionPreset videoIndex={videoIndex} />
-        <Divider className="my-3" />
-      </>
-      <>
-        <MuteAudio videoIndex={videoIndex} />
-        <Divider className="my-3" />
-      </>
-
-      <>
-        <CompressionQuality videoIndex={videoIndex} />
-        <Divider className="my-3" />
-      </>
-      {videoIndex >= 0 && dimensions ? (
-        <>
-          <VideoDimensions videoIndex={videoIndex} />
-          <Divider className="my-3" />
-          <TransformVideo videoIndex={videoIndex} />
-          <Divider className="my-3" />
-        </>
-      ) : null}
-      <>
-        <VideoFPS videoIndex={videoIndex} />
-        <Divider className="my-3" />
-      </>
-      <>
-        <div className="mt-8">
-          <VideoExtension videoIndex={videoIndex} />
+      <section>
+        <Tabs
+          aria-label="Compression Settings"
+          size="sm"
+          selectedKey={tab}
+          onSelectionChange={(t) => setTab(t as keyof typeof TABS)}
+          className="w-full"
+          fullWidth
+          classNames={{}}
+        >
+          {Object.values(TABS).map((t) => (
+            <Tab
+              key={t.id}
+              value={t.id}
+              title={t.title}
+              className="text-[11px]"
+            />
+          ))}
+        </Tabs>
+        <div className="my-4">
+          {tab === 'video' ? (
+            <div>
+              <>
+                <CompressionPreset videoIndex={videoIndex} />
+                <Divider className="my-3" />
+              </>
+              <>
+                <CompressionQuality videoIndex={videoIndex} />
+                <Divider className="my-3" />
+              </>
+              {videoIndex >= 0 && dimensions ? (
+                <>
+                  <VideoDimensions videoIndex={videoIndex} />
+                  <Divider className="my-3" />
+                  <TransformVideo videoIndex={videoIndex} />
+                  <Divider className="my-3" />
+                </>
+              ) : null}
+              <>
+                <VideoFPS videoIndex={videoIndex} />
+                <Divider className="my-3" />
+              </>
+              <>
+                <div className="mt-8">
+                  <VideoExtension videoIndex={videoIndex} />
+                </div>
+              </>
+            </div>
+          ) : null}
+          {tab === 'audio' ? (
+            <>
+              <MuteAudio videoIndex={videoIndex} />
+              <Divider className="my-3" />
+            </>
+          ) : null}
         </div>
-      </>
+      </section>
+
       {selectedVideoIndexForCustomization < 0 ? (
         <div className="mt-4">
           {isCompressing ? (
