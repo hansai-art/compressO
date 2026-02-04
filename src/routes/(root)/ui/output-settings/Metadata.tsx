@@ -128,7 +128,7 @@ function Metadata({ videoIndex }: MetadataProps) {
     videos.length === 0 || isCompressing || isProcessCompleted || isLoadingFiles
 
   return (
-    <ScrollShadow className="max-h-[75vh]" hideScrollBar>
+    <ScrollShadow className="max-h-[70vh]" hideScrollBar>
       <Switch
         isSelected={shouldPreserveMetadata}
         onValueChange={handlePreserveMetadataToggle}

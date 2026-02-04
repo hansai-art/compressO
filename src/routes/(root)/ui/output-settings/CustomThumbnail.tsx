@@ -13,7 +13,7 @@ import Switch from '@/components/Switch'
 import TextInput from '@/components/TextInput'
 import { slideDownTransition } from '@/utils/animation'
 import { cn } from '@/utils/tailwind'
-import { appProxy } from '../../-state'
+import { appProxy, normalizeBatchVideosConfig } from '../../-state'
 
 type CustomThumbnailProps = {
   videoIndex: number
@@ -69,6 +69,7 @@ function CustomThumbnail({ videoIndex }: CustomThumbnailProps) {
           if (appProxy.state.videos.length > 1) {
             appProxy.state.commonConfigForBatchCompression.customThumbnailPath =
               filePath
+            normalizeBatchVideosConfig()
           }
         }
       }
@@ -83,7 +84,9 @@ function CustomThumbnail({ videoIndex }: CustomThumbnailProps) {
       appProxy.state.videos[videoIndex].isConfigDirty = true
     } else {
       if (appProxy.state.videos.length > 1) {
-        appProxy.state.commonConfigForBatchCompression.customThumbnailPath = ''
+        appProxy.state.commonConfigForBatchCompression.customThumbnailPath =
+          null
+        normalizeBatchVideosConfig()
       }
     }
   }, [videoIndex])
@@ -98,6 +101,7 @@ function CustomThumbnail({ videoIndex }: CustomThumbnailProps) {
         if (appProxy.state.videos.length > 1) {
           appProxy.state.commonConfigForBatchCompression.shouldEnableCustomThumbnail =
             isSelected
+          normalizeBatchVideosConfig()
         }
       }
     },

@@ -222,29 +222,26 @@ impl FFMPEG {
             }
         }
 
+        for arg in metadata_args.iter().map(|s| s.as_str()) {
+            cmd_args.push(arg);
+        }
+
         if custom_thumbnail_path.is_some() && convert_to_extension != "webm" {
             if let Some(thumb_path) = custom_thumbnail_path {
                 if thumb_path.len() > 0 {
-                    metadata_args.push("-c:v:1".to_string());
+                    cmd_args.push("-c:v:1");
                     if thumb_path.to_lowercase().ends_with(".webp") {
-                        metadata_args.push("png".to_string());
+                        cmd_args.push("png");
                     } else {
-                        metadata_args.push("copy".to_string());
+                        cmd_args.push("copy");
                     }
-
                     cmd_args.extend_from_slice(&["-map", "0"]);
 
-                    metadata_args.push("-map".to_string());
-                    metadata_args.push("1".to_string());
+                    cmd_args.extend_from_slice(&["-map", "1"]);
 
-                    metadata_args.push("-disposition:v:1".to_string());
-                    metadata_args.push("attached_pic".to_string());
+                    cmd_args.extend_from_slice(&["-disposition:v:1", "attached_pic"]);
                 }
             }
-        }
-
-        for arg in metadata_args.iter().map(|s| s.as_str()) {
-            cmd_args.push(arg);
         }
 
         // Output path
