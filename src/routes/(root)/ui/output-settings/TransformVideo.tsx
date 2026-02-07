@@ -1,6 +1,8 @@
 import { core } from '@tauri-apps/api'
 import { useSnapshot } from 'valtio'
 
+import Button from '@/components/Button'
+import Icon from '@/components/Icon'
 import Switch from '@/components/Switch'
 import { appProxy } from '../../-state'
 
@@ -16,18 +18,20 @@ function TransformVideo({ videoIndex }: TransformVideoProps) {
   } = useSnapshot(appProxy)
   const video = videos.length > 0 ? videos[videoIndex] : null
   const { config } = video ?? {}
-  const { shouldTransformVideo } = config ?? {}
+  const { shouldTransformVideo, isVideoTransformEditMode } = config ?? {}
 
   const shouldDisableInput =
     videos.length === 0 || isCompressing || isProcessCompleted || isLoadingFiles
 
   return (
-    <>
+    <div className="w-full flex">
       <Switch
         isSelected={shouldTransformVideo}
         onValueChange={() => {
           if (appProxy.state.videos[videoIndex]?.config) {
             appProxy.state.videos[videoIndex].config.shouldTransformVideo =
+              !shouldTransformVideo
+            appProxy.state.videos[videoIndex].config.isVideoTransformEditMode =
               !shouldTransformVideo
             appProxy.state.videos[videoIndex].isConfigDirty = true
 
@@ -47,7 +51,19 @@ function TransformVideo({ videoIndex }: TransformVideoProps) {
           Transform
         </p>
       </Switch>
-    </>
+      {shouldTransformVideo && !isVideoTransformEditMode ? (
+        <Button
+          size="sm"
+          onPress={(evt) => {
+            appProxy.state.videos[videoIndex].config.isVideoTransformEditMode =
+              true
+          }}
+          className="h-[unset] py-1 ml-auto"
+        >
+          <Icon name="pencil" size={16} /> Edit
+        </Button>
+      ) : null}
+    </div>
   )
 }
 

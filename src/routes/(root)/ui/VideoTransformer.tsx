@@ -1,5 +1,5 @@
 import { core } from '@tauri-apps/api'
-import { useRef } from 'react'
+import { useEffect, useRef } from 'react'
 import { Cropper, CropperRef, type CropperState } from 'react-advanced-cropper'
 import 'react-advanced-cropper/dist/style.css'
 import { useSnapshot } from 'valtio'
@@ -105,7 +105,10 @@ function VideoTransformer({ videoIndex }: VideoTransformerProps) {
     debouncedRef.current = setTimeout(async () => {
       const cropperState = cropper.getState()
       if (cropperState) {
-        const blob = await getCanvasBlob(cropper.getCanvas()!)
+        const canvas = cropper.getCanvas()!
+        const blob = await new Promise<Blob | null>((resolve) =>
+          canvas.toBlob(resolve, 'image/png'),
+        )
         if (targetVideo.config?.transformVideoConfig?.previewUrl) {
           URL.revokeObjectURL(
             targetVideo?.config?.transformVideoConfig?.previewUrl!,
@@ -151,6 +154,19 @@ function VideoTransformer({ videoIndex }: VideoTransformerProps) {
     }, 500)
   }
 
+  const handleVideoTransformEditMode = (isVideoTransformEditMode = false) => {
+    const targetVideo = appProxy.state.videos[videoIndex]
+    if (!targetVideo || !targetVideo.config) return
+
+    targetVideo.config.isVideoTransformEditMode = isVideoTransformEditMode
+  }
+
+  useEffect(() => {
+    if (shouldTransformVideo && cropperRef.current) {
+      cropperRef.current?.refresh?.()
+    }
+  }, [shouldTransformVideo])
+
   return video ? (
     <>
       <Cropper
@@ -161,101 +177,105 @@ function VideoTransformer({ videoIndex }: VideoTransformerProps) {
         }}
         onChange={onChange}
         className="w-full"
-        boundaryClassName="max-w-[65vw] xxl:max-w-[80vw] max-h-[60vh] object-contain"
-        {...(shouldTransformVideo
-          ? {
-              defaultCoordinates(state: CropperState) {
-                const crop =
-                  appProxy.state.videos[videoIndex].config.transformVideoConfig
-                    ?.transforms?.crop
-                return {
-                  left: crop?.left ?? 0,
-                  top: crop?.top ?? 0,
-                  width: crop?.width ?? state.imageSize.width,
-                  height: crop?.height ?? state.imageSize.height,
-                }
-              },
-              defaultPosition() {
-                const crop =
-                  appProxy.state.videos[videoIndex].config.transformVideoConfig
-                    ?.transforms?.crop
-                return {
-                  left: crop?.left ?? 0,
-                  top: crop?.top ?? 0,
-                }
-              },
-              defaultSize(state: CropperState) {
-                const crop =
-                  appProxy.state.videos[videoIndex].config.transformVideoConfig
-                    ?.transforms?.crop
-                return {
-                  width: crop?.width ?? state.imageSize.width,
-                  height: crop?.height ?? state.imageSize.height,
-                }
-              },
-              defaultTransforms() {
-                const transforms =
-                  appProxy.state.videos[videoIndex].config.transformVideoConfig
-                    ?.transforms
-                return {
-                  rotate: transforms?.rotate ?? 0,
-                  flip: {
-                    horizontal: transforms?.flip?.horizontal ?? false,
-                    vertical: transforms?.flip?.vertical ?? false,
-                  },
-                }
-              },
-            }
-          : {})}
+        boundaryClassName="max-w-full max-h-full w-full h-full object-contain"
+        defaultCoordinates={(state: CropperState) => {
+          const crop =
+            appProxy.state.videos[videoIndex].config.transformVideoConfig
+              ?.transforms?.crop
+          return {
+            left: crop?.left ?? 0,
+            top: crop?.top ?? 0,
+            width: crop?.width ?? state.imageSize.width,
+            height: crop?.height ?? state.imageSize.height,
+          }
+        }}
+        defaultPosition={() => {
+          const crop =
+            appProxy.state.videos[videoIndex].config.transformVideoConfig
+              ?.transforms?.crop
+          return {
+            left: crop?.left ?? 0,
+            top: crop?.top ?? 0,
+          }
+        }}
+        defaultSize={(state: CropperState) => {
+          const crop =
+            appProxy.state.videos[videoIndex].config.transformVideoConfig
+              ?.transforms?.crop
+          return {
+            width: crop?.width ?? state.imageSize.width,
+            height: crop?.height ?? state.imageSize.height,
+          }
+        }}
+        defaultTransforms={() => {
+          const transforms =
+            appProxy.state.videos[videoIndex].config.transformVideoConfig
+              ?.transforms
+          return {
+            rotate: transforms?.rotate ?? 0,
+            flip: {
+              horizontal: transforms?.flip?.horizontal ?? false,
+              vertical: transforms?.flip?.vertical ?? false,
+            },
+          }
+        }}
       />
       <div className="mx-auto flex items-center justify-center gap-2 mt-4">
         <>
-          <Button isIconOnly onPress={() => rotate(-90)}>
+          <Button size="sm" isIconOnly onPress={() => rotate(-90)}>
             <Tooltip content="Rotate Left" aria-label="Rotate Left">
-              <Icon name="rotateLeft" size={25} />
+              <Icon name="rotateLeft" size={20} />
             </Tooltip>
           </Button>
           <Divider className="my-3 h-5" orientation="vertical" />
         </>
         <>
-          <Button isIconOnly onPress={() => flip(false, true)}>
+          <Button size="sm" isIconOnly onPress={() => flip(false, true)}>
             <Tooltip content="Flip Vertical" aria-label="Flip Vertical">
-              <Icon name="flipVertical" size={25} />
+              <Icon name="flipVertical" size={20} />
             </Tooltip>
           </Button>{' '}
           <Divider className="my-3 h-5" orientation="vertical" />
         </>
         <>
-          <Button isIconOnly onPress={() => flip(true, false)}>
+          <Button size="sm" isIconOnly onPress={() => flip(true, false)}>
             <Tooltip content="Flip Horizontal" aria-label="Flip Horizontal">
-              <Icon name="flipHorizontal" size={25} />
+              <Icon name="flipHorizontal" size={20} />
             </Tooltip>
           </Button>{' '}
           <Divider className="my-3 h-5" orientation="vertical" />
         </>{' '}
         <>
-          <Button isIconOnly onPress={resetZoom}>
+          <Button size="sm" isIconOnly onPress={resetZoom}>
             <Tooltip content="Reset Zoom" aria-label="Reset Zoom">
-              <Icon name="resetZoom" size={25} />
+              <Icon name="resetZoom" size={20} />
             </Tooltip>
             <Divider className="my-3 h-5" orientation="vertical" />
           </Button>{' '}
           <Divider className="my-3 h-5" orientation="vertical" />
         </>
         <>
-          <Button isIconOnly onPress={expandCropArea}>
+          <Button size="sm" isIconOnly onPress={expandCropArea}>
             <Tooltip content="Expand" aria-label="Expand">
-              <Icon name="expand" size={25} />
+              <Icon name="expand" size={20} />
             </Tooltip>
+          </Button>
+          <Divider className="my-3 h-5" orientation="vertical" />
+        </>{' '}
+        <>
+          <Button
+            size="sm"
+            color="success"
+            onPress={() => {
+              handleVideoTransformEditMode(false)
+            }}
+          >
+            Apply
           </Button>
         </>
       </div>
     </>
   ) : null
-}
-
-async function getCanvasBlob(canvas: HTMLCanvasElement): Promise<Blob | null> {
-  return new Promise((resolve) => canvas.toBlob(resolve, 'image/png'))
 }
 
 export default VideoTransformer

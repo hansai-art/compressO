@@ -13,10 +13,6 @@ import { compressVideos } from '@/tauri/commands/ffmpeg'
 import { VideoMetadataConfig } from '@/types/app'
 import { CompressionResult, VideoTransformsHistory } from '@/types/compression'
 import { formatBytes } from '@/utils/fs'
-import { appProxy } from '../../-state'
-import CancelCompression from '../CancelCompression'
-import CompressionActions from '../CompressionActions'
-import SaveVideo from '../SaveVideo'
 import CompressionPreset from './CompressionPreset'
 import CompressionQuality from './CompressionQuality'
 import CustomThumbnail from './CustomThumbnail'
@@ -26,6 +22,10 @@ import TransformVideo from './TransformVideo'
 import VideoDimensions from './VideoDimensions'
 import VideoExtension from './VideoExtension'
 import VideoFPS from './VideoFPS'
+import { appProxy } from '../../-state'
+import CancelCompression from '../CancelCompression'
+import CompressionActions from '../CompressionActions'
+import SaveVideo from '../SaveVideo'
 
 type OutputSettingsProps = {
   videoIndex: number // if videoIndex < 0, we'll only show settings that applies to all videos
@@ -65,9 +65,14 @@ function OutputSettings({ videoIndex }: OutputSettingsProps) {
     const appSnapshot = snapshot(appProxy)
     if (appSnapshot.state.isCompressing) return
 
+    // Resets
     appProxy.clearSnapshots()
     appProxy.state.isBatchCompressionCancelled = false
     appProxy.state.selectedVideoIndexForCustomization = -1
+    for (const index in appProxy.state.videos) {
+      appProxy.state.videos[index].config.isVideoTransformEditMode = false
+    }
+
     appProxy.takeSnapshot('beforeCompressionStarted')
 
     try {
@@ -83,6 +88,7 @@ function OutputSettings({ videoIndex }: OutputSettingsProps) {
               index
             ]?.config?.transformVideoConfig?.previewUrl
         }
+        appProxy.state.videos[index].config.isVideoTransformEditMode = false
       }
 
       const batchId = `${+new Date()}`

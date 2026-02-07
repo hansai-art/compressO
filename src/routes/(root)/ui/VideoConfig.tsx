@@ -1,9 +1,8 @@
-import { AnimatePresence, motion } from 'framer-motion'
+import { AnimatePresence } from 'framer-motion'
 import React from 'react'
 import { useSnapshot } from 'valtio'
 
 import Layout from '@/components/Layout'
-import { zoomInTransition } from '@/utils/animation'
 import { cn } from '@/utils/tailwind'
 import CompressionProgress from './CompressionProgress'
 import CustomizeVideoOnBatchActions from './CustomizeVideoOnBatchActions'
@@ -29,9 +28,6 @@ function VideoConfig() {
         <section
           className={cn(
             'relative px-4 py-6 rounded-xl border-2 border-zinc-200 dark:border-zinc-800 overflow-hidden',
-            videos.length === 1
-              ? 'flex flex-col justify-center items-center'
-              : '',
           )}
         >
           <AnimatePresence>
@@ -43,12 +39,7 @@ function VideoConfig() {
                 ) : null}
               </>
             ) : (
-              <motion.div
-                className="flex flex-col justify-center items-center"
-                {...zoomInTransition}
-              >
-                <PreviewSingleVideo videoIndex={0} />
-              </motion.div>
+              <PreviewSingleVideo videoIndex={0} />
             )}
           </AnimatePresence>
         </section>

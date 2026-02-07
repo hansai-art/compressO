@@ -18,6 +18,7 @@ export interface VideoPlayerRef {
   togglePlayPause: () => void
   playVideo: () => void
   pauseVideo: () => void
+  captureVideoFrame: () => Promise<string | null>
 }
 
 interface VideoPlayerProps extends Omit<ReactPlayerProps, 'ref'> {
@@ -33,6 +34,7 @@ const VideoPlayer = forwardRef(
 
     const playerRef = useRef<HTMLVideoElement | null>(null)
     const playPauseButtonRef = useRef<HTMLButtonElement | null>(null)
+    const lastCapturedVideoFrame = useRef<string | null>(null)
 
     const togglePlayPause = useCallback(() => {
       setIsPlaying((s) => !s)
@@ -48,6 +50,37 @@ const VideoPlayer = forwardRef(
       [togglePlayPause],
     )
 
+    const captureVideoFrame = useCallback(async () => {
+      if (!playerRef.current) return null
+
+      const canvas = document.createElement('canvas')
+      canvas.width = playerRef.current.videoWidth
+      canvas.height = playerRef.current.videoHeight
+
+      const ctx = canvas.getContext('2d')
+      if (!ctx) return null
+
+      ctx.drawImage(playerRef.current, 0, 0, canvas.width, canvas.height)
+
+      const blob = await new Promise<Blob | null>((resolve) =>
+        canvas.toBlob(resolve, 'image/png'),
+      )
+
+      if (!blob) {
+        return null
+      }
+
+      if (lastCapturedVideoFrame.current) {
+        URL.revokeObjectURL(lastCapturedVideoFrame.current)
+      }
+
+      const videoFrameUrl = URL.createObjectURL(blob)
+
+      lastCapturedVideoFrame.current = videoFrameUrl
+
+      return videoFrameUrl
+    }, [])
+
     useImperativeHandle(forwardedRef, () => ({
       playerRef: playerRef.current,
       togglePlayPause: togglePlayPause,
@@ -57,6 +90,7 @@ const VideoPlayer = forwardRef(
       pauseVideo: () => {
         setIsPlaying(false)
       },
+      captureVideoFrame,
     }))
 
     useEffect(() => {

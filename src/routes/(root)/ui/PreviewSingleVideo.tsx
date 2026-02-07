@@ -7,6 +7,7 @@ import Divider from '@/components/Divider'
 import Icon from '@/components/Icon'
 import Image from '@/components/Image'
 import { CircularProgress } from '@/components/Progress'
+import { zoomInTransition } from '@/utils/animation'
 import { cn } from '@/utils/tailwind'
 import styles from './styles.module.css'
 import VideoThumbnail from './VideoThumbnail'
@@ -54,7 +55,10 @@ function PreviewSingleVideo({ videoIndex }: PreviewSingleVideoProps) {
       : video?.fileName) ?? ''
 
   return !isCompressing ? (
-    <>
+    <motion.div
+      className="w-full h-full flex flex-col justify-center items-center"
+      {...zoomInTransition}
+    >
       <Code
         size="sm"
         className="mb-3 text-center rounded-xl px-4 text-xs xl:text-sm"
@@ -66,7 +70,29 @@ function PreviewSingleVideo({ videoIndex }: PreviewSingleVideoProps) {
           : singleFileNameDisplay}
       </Code>
       {video ? <VideoThumbnail videoIndex={videoIndex} /> : null}
-      {!isProcessCompleted ? (
+      {isProcessCompleted ? (
+        <section className="animate-appearance-in">
+          <div className="flex justify-center items-center mt-3 hslg:mt-6">
+            <p className="text-2xl hslg:text-4xl font-bold mx-4">{videoSize}</p>
+            <Icon
+              name="curvedArrow"
+              className="text-black dark:text-white rotate-[-65deg] translate-y-[-8px]"
+              size={100}
+            />
+            <p className="text-3xl hslg:text-4xl font-bold mx-4 text-primary">
+              {compressedVideo?.size}
+            </p>
+          </div>
+          {!(compressedSizeDiff <= 0) ? (
+            <p className="block text-5xl hslg:text-7xl text-center text-green-500">
+              {compressedSizeDiff.toFixed(2)?.endsWith('.00')
+                ? compressedSizeDiff.toFixed(2)?.slice(0, -3)
+                : compressedSizeDiff.toFixed(2)}
+              %<span className="text-large block">smaller</span>
+            </p>
+          ) : null}
+        </section>
+      ) : (
         <section className={cn(['my-4 mb-2', styles.videoMetadata])}>
           <>
             <div>
@@ -120,34 +146,11 @@ function PreviewSingleVideo({ videoIndex }: PreviewSingleVideoProps) {
             ) : null}
           </>
         </section>
-      ) : null}
-      {isProcessCompleted ? (
-        <section className="animate-appearance-in">
-          <div className="flex justify-center items-center mt-3 hslg:mt-6">
-            <p className="text-2xl hslg:text-4xl font-bold mx-4">{videoSize}</p>
-            <Icon
-              name="curvedArrow"
-              className="text-black dark:text-white rotate-[-65deg] translate-y-[-8px]"
-              size={100}
-            />
-            <p className="text-3xl hslg:text-4xl font-bold mx-4 text-primary">
-              {compressedVideo?.size}
-            </p>
-          </div>
-          {!(compressedSizeDiff <= 0) ? (
-            <p className="block text-5xl hslg:text-7xl text-center text-green-500">
-              {compressedSizeDiff.toFixed(2)?.endsWith('.00')
-                ? compressedSizeDiff.toFixed(2)?.slice(0, -3)
-                : compressedSizeDiff.toFixed(2)}
-              %<span className="text-large block">smaller</span>
-            </p>
-          ) : null}
-        </section>
-      ) : null}
-    </>
+      )}
+    </motion.div>
   ) : (
     <motion.div
-      className="w-full flex flex-col justify-center items-center flex-shrink-0"
+      className="w-full h-full flex flex-col justify-center items-center flex-shrink-0"
       initial={{ scale: 0.9 }}
       animate={{ scale: 1 }}
       transition={{ type: 'spring', duration: 0.6 }}

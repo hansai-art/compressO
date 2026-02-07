@@ -36,6 +36,7 @@ export type VideoConfig = {
     transformsHistory: VideoTransformsHistory[]
     previewUrl?: string
   }
+  isVideoTransformEditMode?: boolean
   shouldPreserveMetadata?: boolean
   metadataConfig?: VideoMetadataConfig | null
   customThumbnailPath?: string | null
@@ -77,6 +78,7 @@ export type Video = {
   dimensions?: { width: number; height: number }
   fps?: number
   previewMode?: 'video' | 'image'
+  previewVideoFrameUrl?: string | null
 }
 
 export type App = {

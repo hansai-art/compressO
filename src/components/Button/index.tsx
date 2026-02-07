@@ -21,7 +21,7 @@ const Button = React.forwardRef(
         disableRipple
         color={color ?? 'default'}
         variant={variant ?? 'flat'}
-        size="md"
+        radius="md"
         {...nextButtonProps}
         className={cn(['font-medium', nextButtonProps.className])}
       />

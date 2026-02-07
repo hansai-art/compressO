@@ -2,6 +2,7 @@ import { AnimatePresence, motion } from 'framer-motion'
 import React, { useEffect, useMemo } from 'react'
 import { useSnapshot } from 'valtio'
 
+import Button from '@/components/Button'
 import NumberInput from '@/components/NumberInput'
 import Switch from '@/components/Switch'
 import { slideDownTransition } from '@/utils/animation'
@@ -147,33 +148,52 @@ function VideoDimensions({ videoIndex }: VideoDimensionsProps) {
       </Switch>
       <AnimatePresence mode="wait">
         {shouldEnableCustomDimensions ? (
-          <motion.div
-            {...slideDownTransition}
-            className="mt-2 flex items-center space-x-2"
-          >
-            <NumberInput
-              label="Width"
-              className="max-w-[120px] xl:max-w-[150px]"
-              value={dimensions?.width}
-              onValueChange={(val) => handleChange(val, 'width')}
-              labelPlacement="outside"
-              classNames={{ label: '!text-gray-600 dark:!text-gray-400' }}
-              isDisabled={!shouldEnableCustomDimensions || shouldDisableInput}
-            />
-            <NumberInput
-              label="Height"
-              className="max-w-[120px] xl:max-w-[150px]"
-              value={dimensions?.height}
-              onValueChange={(val) => handleChange(val, 'height')}
-              labelPlacement="outside"
-              classNames={{ label: '!text-gray-600 dark:!text-gray-400' }}
-              isDisabled={
-                videos.length === 0 ||
-                isCompressing ||
-                isProcessCompleted ||
-                isLoadingFiles
-              }
-            />
+          <motion.div {...slideDownTransition}>
+            <div className="mt-2 flex items-center space-x-2">
+              <NumberInput
+                label="Width"
+                className="max-w-[120px] xl:max-w-[150px]"
+                value={dimensions?.width}
+                onValueChange={(val) => handleChange(val, 'width')}
+                labelPlacement="outside"
+                classNames={{ label: '!text-gray-600 dark:!text-gray-400' }}
+                isDisabled={!shouldEnableCustomDimensions || shouldDisableInput}
+              />
+              <NumberInput
+                label="Height"
+                className="max-w-[120px] xl:max-w-[150px]"
+                value={dimensions?.height}
+                onValueChange={(val) => handleChange(val, 'height')}
+                labelPlacement="outside"
+                classNames={{ label: '!text-gray-600 dark:!text-gray-400' }}
+                isDisabled={
+                  videos.length === 0 ||
+                  isCompressing ||
+                  isProcessCompleted ||
+                  isLoadingFiles
+                }
+              />
+            </div>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {[
+                { label: '480p', width: 640 },
+                { label: '720p', width: 1280 },
+                { label: '1080p', width: 1920 },
+                { label: '2k', width: 2560 },
+                { label: '4k', width: 3840 },
+              ].map((preset) => (
+                <Button
+                  size="sm"
+                  radius="md"
+                  key={preset.label}
+                  onPress={() => handleChange(preset.width, 'width')}
+                  disabled={shouldDisableInput}
+                  className="min-w-[unset]"
+                >
+                  {preset.label}
+                </Button>
+              ))}
+            </div>
           </motion.div>
         ) : null}
       </AnimatePresence>
