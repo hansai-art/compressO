@@ -59,6 +59,7 @@ function TransformVideo({ videoIndex }: TransformVideoProps) {
               true
           }}
           className="h-[unset] py-1 ml-auto"
+          isDisabled={shouldDisableInput}
         >
           <Icon name="pencil" size={16} /> Edit
         </Button>

@@ -1,6 +1,8 @@
-import { useRef } from 'react'
+import { core } from '@tauri-apps/api'
+import { useEffect, useRef } from 'react'
 import { toast } from 'sonner'
 import { useSnapshot } from 'valtio'
+import { subscribeKey } from 'valtio/utils'
 
 import Image from '@/components/Image'
 import VideoPlayer, { VideoPlayerRef } from '@/components/VideoPlayer'
@@ -34,9 +36,7 @@ function VideoThumbnail({ videoIndex }: VideoThumbnailProps) {
     <div className="relative w-full flex items-center justify-center">
       <>
         {previewMode === 'video' && videoPath ? (
-          <div>
-            <VideoPreview videoIndex={videoIndex} />
-          </div>
+          <VideoPreview videoIndex={videoIndex} />
         ) : (
           <Image
             alt="video to compress"
@@ -61,7 +61,7 @@ type VideoPreviewProps = {
 function VideoPreview({ videoIndex }: VideoPreviewProps) {
   if (videoIndex < 0) return
 
-  const ref = useRef<VideoPlayerRef | null>(null)
+  const playerRef = useRef<VideoPlayerRef | null>(null)
 
   const {
     state: { videos },
@@ -69,9 +69,37 @@ function VideoPreview({ videoIndex }: VideoPreviewProps) {
   const video = videos.length > 0 ? videos[videoIndex] : null
   const { path } = video ?? {}
 
+  useEffect(() => {
+    let unsubscribe: () => void
+    if (appProxy.state.videos[videoIndex]?.config) {
+      unsubscribe = subscribeKey(
+        appProxy.state.videos[videoIndex].config,
+        'isVideoTransformEditMode',
+        async () => {
+          if (
+            playerRef.current &&
+            appProxy.state.videos[videoIndex].config.isVideoTransformEditMode
+          ) {
+            const videoSnapshot = appProxy.state.videos[videoIndex]
+            const originalThumbnail = core.convertFileSrc(
+              videoSnapshot.thumbnailPathRaw!,
+            )
+            const url = await playerRef.current.captureVideoFrame()
+            appProxy.state.videos[videoIndex].thumbnailPath =
+              url ?? originalThumbnail
+            playerRef.current.pauseVideo()
+          }
+        },
+      )
+    }
+    return () => {
+      unsubscribe?.()
+    }
+  }, [videoIndex])
+
   return (
     <VideoPlayer
-      ref={ref}
+      ref={playerRef}
       src={path!}
       controls={false}
       playPauseOnSpaceKeydown
@@ -80,7 +108,7 @@ function VideoPreview({ videoIndex }: VideoPreviewProps) {
         appProxy.state.videos[videoIndex].previewMode = 'image'
       }}
       autoFocus
-      className="max-w-[65vw] max-h-[65vh] xxl:max-w-[75vw] "
+      className="max-w-[65vw] max-h-[65vh] xxl:max-w-[75vw] mx-auto"
     />
   )
 }

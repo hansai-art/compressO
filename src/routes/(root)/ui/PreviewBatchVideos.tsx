@@ -187,7 +187,11 @@ function PreviewBatchVideos() {
                               }
                               className="rounded-full text-white"
                             >
-                              <Icon name="copy" size={28} />
+                              <Icon
+                                name="copy"
+                                size={28}
+                                className="text-green-400"
+                              />
                             </Button>
                           </Tooltip>
                         ) : null}
@@ -208,7 +212,11 @@ function PreviewBatchVideos() {
                               }
                               className="p-2 rounded-full text-white"
                             >
-                              <Icon name="fileExplorer" size={20} />
+                              <Icon
+                                name="fileExplorer"
+                                size={20}
+                                className="text-green-400"
+                              />
                             </Button>
                           </Tooltip>
                         ) : null}

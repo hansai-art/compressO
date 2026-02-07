@@ -22,7 +22,7 @@ function VideoTransformer({ videoIndex }: VideoTransformerProps) {
     state: { videos },
   } = useSnapshot(appProxy)
   const video = videos.length > 0 ? videos[videoIndex] : null
-  const { config, thumbnailPathRaw } = video ?? {}
+  const { config, thumbnailPath, thumbnailPathRaw } = video ?? {}
   const { shouldTransformVideo } = config ?? {}
 
   const cropperRef = useRef<CropperRef>(null)
@@ -171,7 +171,7 @@ function VideoTransformer({ videoIndex }: VideoTransformerProps) {
     <>
       <Cropper
         ref={cropperRef}
-        src={core.convertFileSrc(thumbnailPathRaw!)}
+        src={thumbnailPath ?? core.convertFileSrc(thumbnailPathRaw!)}
         stencilProps={{
           grid: true,
         }}
@@ -261,7 +261,7 @@ function VideoTransformer({ videoIndex }: VideoTransformerProps) {
             </Tooltip>
           </Button>
           <Divider className="my-3 h-5" orientation="vertical" />
-        </>{' '}
+        </>
         <>
           <Button
             size="sm"
@@ -270,7 +270,7 @@ function VideoTransformer({ videoIndex }: VideoTransformerProps) {
               handleVideoTransformEditMode(false)
             }}
           >
-            Apply
+            Save
           </Button>
         </>
       </div>

@@ -1,4 +1,5 @@
 import { Button } from '@heroui/react'
+import { core } from '@tauri-apps/api'
 import { motion } from 'framer-motion'
 import { cloneDeep } from 'lodash'
 import { useCallback } from 'react'
@@ -31,6 +32,9 @@ function CustomizeVideoOnBatchActions() {
           appProxy.state.videos[
             selectedVideoIndexForCustomization
           ]?.config?.transformVideoConfig?.previewUrl
+        appProxy.state.videos[
+          selectedVideoIndexForCustomization
+        ].config.isVideoTransformEditMode = false
       }
     }
   }, [])
@@ -39,9 +43,15 @@ function CustomizeVideoOnBatchActions() {
     const selectedVideoIndexForCustomization =
       appProxy.state.selectedVideoIndexForCustomization
     if (selectedVideoIndexForCustomization >= 0) {
-      if (appProxy.state.videos[selectedVideoIndexForCustomization]) {
-        appProxy.state.videos[selectedVideoIndexForCustomization].config =
-          cloneDeep(appProxy.state.commonConfigForBatchCompression)
+      const videoSnapshot =
+        appProxy.state.videos[selectedVideoIndexForCustomization]
+      if (videoSnapshot) {
+        videoSnapshot.thumbnailPath = core.convertFileSrc(
+          videoSnapshot.thumbnailPathRaw!,
+        )
+        videoSnapshot.config = cloneDeep(
+          appProxy.state.commonConfigForBatchCompression,
+        )
         appProxy.state.videos[
           selectedVideoIndexForCustomization
         ].isConfigDirty = false
