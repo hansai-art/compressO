@@ -38,11 +38,20 @@ function CompressionProgress() {
                 if (targetVideoIndex !== -1) {
                   appProxy.state.currentVideoIndex = targetVideoIndex
                   appProxy.state.videos[targetVideoIndex].isCompressing = true
+
+                  const trimConfig =
+                    videos[targetVideoIndex]?.config?.trimConfig
+
                   const videoDurationMilliseconds =
-                    videos[targetVideoIndex].videoDurationMilliseconds
+                    videos[targetVideoIndex]?.config?.shouldTrimVideo &&
+                    trimConfig
+                      ? (trimConfig?.endTime - trimConfig?.startTime) * 1000
+                      : videos[targetVideoIndex].videoDurationMilliseconds
+
                   if (!(videoDurationMilliseconds == null)) {
                     const currentDurationInMilliseconds =
                       convertDurationToMilliseconds(payload?.currentDuration)
+
                     if (
                       currentDurationInMilliseconds > 0 &&
                       videoDurationMilliseconds >= currentDurationInMilliseconds

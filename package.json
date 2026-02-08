@@ -53,6 +53,8 @@
     "@tauri-apps/plugin-fs": "2.0.0",
     "@tauri-apps/plugin-os": "2.0.0",
     "@tauri-apps/plugin-shell": "2.0.0",
+    "@xzdarcy/react-timeline-editor": "^0.1.9",
+    "@xzdarcy/timeline-engine": "^1.0.0",
     "clsx": "^2.0.0",
     "framer-motion": "11.18.2",
     "lodash": "^4.17.21",
@@ -90,8 +92,6 @@
     }
   },
   "lint-staged": {
-    "src/**/*.{js,ts,jsx,tsx}": [
-      "biome check --write"
-    ]
+    "src/**/*.{js,ts,jsx,tsx}": ["biome check --write"]
   }
 }

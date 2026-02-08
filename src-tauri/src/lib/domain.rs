@@ -149,6 +149,8 @@ pub struct VideoCompressionConfig {
     pub metadata_config: Option<VideoMetadataConfig>,
     pub custom_thumbnail_path: Option<String>,
     pub should_enable_custom_thumbnail: Option<bool>,
+    pub trim_start_time: Option<f64>,
+    pub trim_end_time: Option<f64>,
 }
 
 #[derive(Serialize, Deserialize, Clone)]

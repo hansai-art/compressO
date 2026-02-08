@@ -26,6 +26,12 @@ export const videoConfigInitialState: VideoConfig = {
   metadataConfig: null,
   customThumbnailPath: null,
   shouldEnableCustomThumbnail: false,
+  shouldTrimVideo: false,
+  trimConfig: {
+    startTime: 0,
+    endTime: 0,
+  },
+  isVideoTrimEditMode: false,
 }
 
 const appInitialState: App = {

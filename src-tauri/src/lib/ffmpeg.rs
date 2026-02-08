@@ -69,6 +69,8 @@ impl FFMPEG {
         transforms_history: Option<&Vec<Value>>,
         metadata_config: Option<&VideoMetadataConfig>,
         custom_thumbnail_path: Option<&str>,
+        trim_start_time: Option<f64>,
+        trim_end_time: Option<f64>,
     ) -> Result<CompressionResult, String> {
         if !EXTENSIONS.contains(&convert_to_extension) {
             return Err(String::from("Invalid convert to extension."));
@@ -91,7 +93,19 @@ impl FFMPEG {
             .iter()
             .collect();
 
-        let mut cmd_args = vec!["-i", &video_path];
+        let mut cmd_args: Vec<&str> = Vec::new();
+
+        // Add trim start time (seek) before input for faster processing
+        let trim_start_args: Vec<String> = match trim_start_time {
+            Some(start_time) => vec!["-ss".to_string(), start_time.to_string()],
+            _ => vec![],
+        };
+        for arg in trim_start_args.iter().map(|s| s.as_str()) {
+            cmd_args.push(arg);
+        }
+
+        cmd_args.push("-i");
+        cmd_args.push(video_path);
 
         if convert_to_extension != "webm" {
             if let Some(thumb_path) = custom_thumbnail_path {
@@ -242,6 +256,18 @@ impl FFMPEG {
                     cmd_args.extend_from_slice(&["-disposition:v:1", "attached_pic"]);
                 }
             }
+        }
+
+        // Add trim end time
+        let trim_end_args: Vec<String> = match trim_end_time {
+            Some(end_time) => match trim_start_time {
+                Some(start_time) => vec!["-t".to_string(), (end_time - start_time).to_string()],
+                _ => vec!["-to".to_string(), end_time.to_string()],
+            },
+            _ => vec![],
+        };
+        for arg in trim_end_args.iter().map(|s| s.as_str()) {
+            cmd_args.push(arg);
         }
 
         // Output path
@@ -512,6 +538,8 @@ impl FFMPEG {
                 .map(|v| v.as_ref());
             let metadata_config = video_options.metadata_config.as_ref();
             let thumbnail_path = video_options.custom_thumbnail_path.as_deref();
+            let trim_start_time = video_options.trim_start_time;
+            let trim_end_time = video_options.trim_end_time;
 
             match ffmpeg_instance
                 .compress_video(
@@ -527,6 +555,8 @@ impl FFMPEG {
                     transforms_history,
                     metadata_config,
                     thumbnail_path,
+                    trim_start_time,
+                    trim_end_time,
                 )
                 .await
             {

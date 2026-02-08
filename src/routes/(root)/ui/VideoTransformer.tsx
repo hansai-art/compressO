@@ -154,13 +154,6 @@ function VideoTransformer({ videoIndex }: VideoTransformerProps) {
     }, 500)
   }
 
-  const handleVideoTransformEditMode = (isVideoTransformEditMode = false) => {
-    const targetVideo = appProxy.state.videos[videoIndex]
-    if (!targetVideo || !targetVideo.config) return
-
-    targetVideo.config.isVideoTransformEditMode = isVideoTransformEditMode
-  }
-
   useEffect(() => {
     if (shouldTransformVideo && cropperRef.current) {
       cropperRef.current?.refresh?.()
@@ -259,20 +252,6 @@ function VideoTransformer({ videoIndex }: VideoTransformerProps) {
             <Tooltip content="Expand" aria-label="Expand">
               <Icon name="expand" size={20} />
             </Tooltip>
-          </Button>
-          <Divider className="my-3 h-5" orientation="vertical" />
-        </>
-        <>
-          <Button
-            size="sm"
-            color="success"
-            variant="faded"
-            onPress={() => {
-              handleVideoTransformEditMode(false)
-            }}
-            className="h-[unset] py-[5px] text-[10px]"
-          >
-            Save
           </Button>
         </>
       </div>

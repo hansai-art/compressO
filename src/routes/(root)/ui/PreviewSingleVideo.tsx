@@ -36,7 +36,11 @@ function PreviewSingleVideo({ videoIndex }: PreviewSingleVideoProps) {
     compressedVideo,
     compressionProgress,
   } = video ?? {}
-  const { shouldDisableCompression } = config ?? {}
+  const {
+    shouldDisableCompression,
+    isVideoTransformEditMode,
+    isVideoTrimEditMode,
+  } = config ?? {}
 
   const compressedSizeDiff: number = useMemo(
     () =>
@@ -59,94 +63,109 @@ function PreviewSingleVideo({ videoIndex }: PreviewSingleVideoProps) {
       className="w-full h-full flex flex-col justify-center items-center"
       {...zoomInTransition}
     >
-      <Code
-        size="sm"
-        className="mb-3 text-center rounded-xl px-4 text-xs xl:text-sm"
-      >
-        {singleFileNameDisplay?.length > 50
-          ? `${singleFileNameDisplay?.slice(0, 20)}...${singleFileNameDisplay?.slice(
-              -10,
-            )}`
-          : singleFileNameDisplay}
-      </Code>
-      {video ? <VideoThumbnail videoIndex={videoIndex} /> : null}
-      {isProcessCompleted ? (
-        <section className="animate-appearance-in">
-          <div className="flex justify-center items-center mt-3 hslg:mt-6">
-            <p className="text-2xl hslg:text-4xl font-bold mx-4">{videoSize}</p>
-            <Icon
-              name="curvedArrow"
-              className="text-black dark:text-white rotate-[-65deg] translate-y-[-8px]"
-              size={100}
-            />
-            <p className="text-3xl hslg:text-4xl font-bold mx-4 text-primary">
-              {compressedVideo?.size}
-            </p>
-          </div>
-          {!(compressedSizeDiff <= 0) ? (
-            <p className="block text-5xl hslg:text-7xl text-center text-green-500">
-              {compressedSizeDiff.toFixed(2)?.endsWith('.00')
-                ? compressedSizeDiff.toFixed(2)?.slice(0, -3)
-                : compressedSizeDiff.toFixed(2)}
-              %<span className="text-large block">smaller</span>
-            </p>
-          ) : null}
-        </section>
-      ) : (
-        <section className={cn(['my-4 mb-2', styles.videoMetadata])}>
-          <>
-            <div>
-              <p className="italic text-gray-600 dark:text-gray-400">Size</p>
-              <span className="block font-black">{videoSize}</span>
-            </div>
-            <Divider orientation="vertical" className="h-10" />
-          </>
-          <>
-            <div>
-              <p className="italic text-gray-600 dark:text-gray-400">
-                Extension
-              </p>
-              <span className="block font-black">{videoExtension ?? '-'}</span>
-            </div>
-            <Divider orientation="vertical" className="h-10" />
-          </>
+      {!(isVideoTransformEditMode || isVideoTrimEditMode) &&
+      !isProcessCompleted ? (
+        <Code
+          size="sm"
+          className="mb-3 text-center rounded-xl px-4 text-xs xl:text-sm"
+        >
+          {singleFileNameDisplay?.length > 50
+            ? `${singleFileNameDisplay?.slice(0, 20)}...${singleFileNameDisplay?.slice(
+                -10,
+              )}`
+            : singleFileNameDisplay}
+        </Code>
+      ) : null}
 
-          <>
-            <div>
-              <p className="italic text-gray-600 dark:text-gray-400">
-                Duration
+      {video ? <VideoThumbnail videoIndex={videoIndex} /> : null}
+
+      {!(isVideoTransformEditMode || isVideoTrimEditMode) ? (
+        isProcessCompleted ? (
+          <section className="animate-appearance-in">
+            <div className="flex justify-center items-center mt-3 hslg:mt-6">
+              <p className="text-2xl hslg:text-4xl font-bold mx-4">
+                {videoSize}
               </p>
-              <span className="block font-black">{videDurationRaw ?? '-'}</span>
+              <Icon
+                name="curvedArrow"
+                className="text-black dark:text-white rotate-[-65deg] translate-y-[-8px]"
+                size={100}
+              />
+              <p className="text-3xl hslg:text-4xl font-bold mx-4 text-primary">
+                {compressedVideo?.size}
+              </p>
             </div>
-          </>
-          <>
-            {dimensions ? (
-              <>
-                <Divider orientation="vertical" className="h-10" />{' '}
-                <div>
-                  <p className="italic text-gray-600 dark:text-gray-400">
-                    Dimensions
-                  </p>
-                  <span className="block font-black">
-                    {dimensions.width ?? '-'} x {dimensions.height ?? '-'}
-                  </span>
-                </div>
-              </>
+            {!(compressedSizeDiff <= 0) ? (
+              <p className="block text-5xl hslg:text-7xl text-center text-green-500">
+                {compressedSizeDiff.toFixed(2)?.endsWith('.00')
+                  ? compressedSizeDiff.toFixed(2)?.slice(0, -3)
+                  : compressedSizeDiff.toFixed(2)}
+                %<span className="text-large block">smaller</span>
+              </p>
             ) : null}
-          </>
-          <>
-            {fps ? (
-              <>
-                <Divider orientation="vertical" className="h-10" />{' '}
-                <div>
-                  <p className="italic text-gray-600 dark:text-gray-400">FPS</p>
-                  <span className="block font-black">{fps ?? '-'}</span>
-                </div>
-              </>
-            ) : null}
-          </>
-        </section>
-      )}
+          </section>
+        ) : (
+          <section className={cn(['my-4 mb-2', styles.videoMetadata])}>
+            <>
+              <div>
+                <p className="italic text-gray-600 dark:text-gray-400">Size</p>
+                <span className="block font-black">{videoSize}</span>
+              </div>
+              <Divider orientation="vertical" className="h-10" />
+            </>
+            <>
+              <div>
+                <p className="italic text-gray-600 dark:text-gray-400">
+                  Extension
+                </p>
+                <span className="block font-black">
+                  {videoExtension ?? '-'}
+                </span>
+              </div>
+              <Divider orientation="vertical" className="h-10" />
+            </>
+
+            <>
+              <div>
+                <p className="italic text-gray-600 dark:text-gray-400">
+                  Duration
+                </p>
+                <span className="block font-black">
+                  {videDurationRaw ?? '-'}
+                </span>
+              </div>
+            </>
+            <>
+              {dimensions ? (
+                <>
+                  <Divider orientation="vertical" className="h-10" />{' '}
+                  <div>
+                    <p className="italic text-gray-600 dark:text-gray-400">
+                      Dimensions
+                    </p>
+                    <span className="block font-black">
+                      {dimensions.width ?? '-'} x {dimensions.height ?? '-'}
+                    </span>
+                  </div>
+                </>
+              ) : null}
+            </>
+            <>
+              {fps ? (
+                <>
+                  <Divider orientation="vertical" className="h-10" />{' '}
+                  <div>
+                    <p className="italic text-gray-600 dark:text-gray-400">
+                      FPS
+                    </p>
+                    <span className="block font-black">{fps ?? '-'}</span>
+                  </div>
+                </>
+              ) : null}
+            </>
+          </section>
+        )
+      ) : null}
     </motion.div>
   ) : (
     <motion.div

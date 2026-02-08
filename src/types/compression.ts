@@ -96,4 +96,6 @@ export type VideoCompressionConfig = {
   transformsHistory?: VideoTransformsHistory[] | null
   metadataConfig?: VideoMetadataConfig | null
   customThumbnailPath?: string | null
+  trimStartTime?: number | null
+  trimEndTime?: number | null
 }

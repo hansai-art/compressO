@@ -37,6 +37,12 @@ export type VideoConfig = {
     previewUrl?: string
   }
   isVideoTransformEditMode?: boolean
+  shouldTrimVideo?: boolean
+  trimConfig?: {
+    startTime: number
+    endTime: number
+  }
+  isVideoTrimEditMode?: boolean
   shouldPreserveMetadata?: boolean
   metadataConfig?: VideoMetadataConfig | null
   customThumbnailPath?: string | null

@@ -104,3 +104,20 @@ body > * {
 * {
   -webkit-tap-highlight-color: rgba(0, 0, 0, 0) !important;
 }
+
+.timeline-editor-action-left-stretch,
+.timeline-editor-action-right-stretch {
+  @apply bg-zinc-200;
+  @apply !w-2;
+}
+
+.timeline-editor-action-effect-video-boundary
+  > .timeline-editor-action-left-stretch,
+.timeline-editor-action-effect-video-boundary
+  > .timeline-editor-action-right-stretch {
+  @apply !w-0;
+}
+
+.timeline-editor-action {
+  background-color: transparent !important;
+}

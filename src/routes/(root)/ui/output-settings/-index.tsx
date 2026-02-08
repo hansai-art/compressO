@@ -19,6 +19,7 @@ import CustomThumbnail from './CustomThumbnail'
 import Metadata from './Metadata'
 import MuteAudio from './MuteAudio'
 import TransformVideo from './TransformVideo'
+import TrimVideo from './TrimVideo'
 import VideoDimensions from './VideoDimensions'
 import VideoExtension from './VideoExtension'
 import VideoFPS from './VideoFPS'
@@ -71,6 +72,7 @@ function OutputSettings({ videoIndex }: OutputSettingsProps) {
     appProxy.state.selectedVideoIndexForCustomization = -1
     for (const index in appProxy.state.videos) {
       appProxy.state.videos[index].config.isVideoTransformEditMode = false
+      appProxy.state.videos[index].config.isVideoTrimEditMode = false
     }
 
     appProxy.takeSnapshot('beforeCompressionStarted')
@@ -137,6 +139,14 @@ function OutputSettings({ videoIndex }: OutputSettingsProps) {
             v.config?.shouldEnableCustomThumbnail &&
             v.config?.customThumbnailPath?.length
               ? v.config.customThumbnailPath
+              : null,
+          trimStartTime:
+            v.config?.shouldTrimVideo && v.config?.trimConfig
+              ? v.config.trimConfig.startTime
+              : null,
+          trimEndTime:
+            v.config?.shouldTrimVideo && v.config?.trimConfig
+              ? v.config.trimConfig.endTime
               : null,
         })),
       )
@@ -216,6 +226,8 @@ function OutputSettings({ videoIndex }: OutputSettingsProps) {
                   <VideoDimensions videoIndex={videoIndex} />
                   <Divider className="my-3" />
                   <TransformVideo videoIndex={videoIndex} />
+                  <Divider className="my-3" />
+                  <TrimVideo videoIndex={videoIndex} />
                   <Divider className="my-3" />
                 </>
               ) : null}
