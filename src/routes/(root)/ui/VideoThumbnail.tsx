@@ -1,16 +1,18 @@
 import { core } from '@tauri-apps/api'
-import { useEffect, useRef } from 'react'
+import { useCallback, useEffect, useRef } from 'react'
+import { OnProgressProps } from 'react-player/base'
 import { toast } from 'sonner'
 import { useSnapshot } from 'valtio'
 import { subscribeKey } from 'valtio/utils'
 
 import Image from '@/components/Image'
 import VideoPlayer, { VideoPlayerRef } from '@/components/VideoPlayer'
-import VideoTrimmer, {
+import VideoTrimmerTimeline, {
   rowIds,
-  VideoTrimmerRef,
-} from '@/components/VideoTrimmer'
-import useTimelineEngine from '@/components/VideoTrimmer/useTimelineEngine'
+  VideoTrimmerTimelineRef,
+} from '@/components/VideoTrimmerTimeline'
+import useTimelineEngine from '@/components/VideoTrimmerTimeline/useTimelineEngine'
+import { formatDuration } from '@/utils/string'
 import VideoTransformer from './VideoTransformer'
 import { appProxy } from '../-state'
 
@@ -43,8 +45,8 @@ function VideoThumbnail({ videoIndex }: VideoThumbnailProps) {
   } = config ?? {}
 
   const playerRef = useRef<VideoPlayerRef | null>(null)
-
-  const trimmerRef = useRef<VideoTrimmerRef | null>(null)
+  const trimmerRef = useRef<VideoTrimmerTimelineRef | null>(null)
+  const trimConfigSetDebounceRef = useRef<NodeJS.Timeout | null>(null)
 
   useEffect(() => {
     let unsubscribeTransform: (() => void) | undefined
@@ -90,9 +92,18 @@ function VideoThumbnail({ videoIndex }: VideoThumbnailProps) {
     }
   }, [videoIndex])
 
-  useTimelineEngine({
+  const seekPlayerTo = useCallback((time: number) => {
+    if (playerRef.current?.playerRef) {
+      const playbackState = playerRef.current.getPlaybackState()
+      if (playbackState === 'paused') {
+        playerRef.current.playerRef.seekTo(time)
+      }
+    }
+  }, [])
+
+  const { setTime, autoScrollCursor, refreshTimeline } = useTimelineEngine({
     timelineState: trimmerRef,
-    totalDuration: 21,
+    totalDuration: (videoDurationMilliseconds ?? 0) / 1000,
     onPlay: () => {
       playerRef.current?.playVideo?.()
     },
@@ -102,16 +113,7 @@ function VideoThumbnail({ videoIndex }: VideoThumbnailProps) {
     onEnd: () => {
       playerRef.current?.pauseVideo?.()
     },
-    onSeek: (time) => {
-      if (playerRef.current?.playerRef && playerRef.current.playerRef.paused) {
-        playerRef.current.playerRef.currentTime = time
-      }
-    },
-    onTimeChange: (time) => {
-      if (playerRef.current?.playerRef && playerRef.current.playerRef.paused) {
-        playerRef.current.playerRef.currentTime = time
-      }
-    },
+    onSeek: seekPlayerTo,
   })
 
   const showTrimmerLayout =
@@ -122,29 +124,52 @@ function VideoThumbnail({ videoIndex }: VideoThumbnailProps) {
 
   return (
     <div className="relative w-full flex items-center justify-center">
-      <div className="min-w-[40vw]">
+      <div className="min-w-[60vw]">
         {previewMode === 'video' && videoPath ? (
           <VideoPlayer
             ref={playerRef}
-            src={
+            url={
               isProcessCompleted && compressedVideo
                 ? compressedVideo?.path!
                 : videoPath!
             }
+            progressInterval={10}
             controls={false}
             playPauseOnSpaceKeydown
             autoFocus
-            className="max-w-[65vw] max-h-[65vh] xxl:max-w-[75vw] mx-auto"
+            containerClassName="min-w-[60vw] mx-auto"
+            style={{
+              maxWidth: '65vw',
+              maxHeight: '65vh',
+              aspectRatio:
+                (video?.dimensions?.width ?? 1) /
+                (video?.dimensions?.height ?? 1),
+            }}
             onError={() => {
               toast.error('Could not load video. Switching to image thumbnail.')
               appProxy.state.videos[videoIndex].previewMode = 'image'
             }}
-            onTimeUpdate={() => {
+            onProgress={({ playedSeconds }: OnProgressProps) => {
               if (playerRef.current?.playerRef) {
-                const currentTime = playerRef.current.playerRef?.currentTime
-                if (trimmerRef.current && !playerRef.current.playerRef.paused) {
-                  trimmerRef.current?.setTime(currentTime)
+                const internalPlayer = playerRef.current.getInternalPlayer()
+                if (internalPlayer && !internalPlayer.paused) {
+                  setTime(playedSeconds)
+                  autoScrollCursor()
                 }
+              }
+            }}
+            // ffmpeg duration is sometimes incorrect, so force set this duration to particular video
+            onDuration={(duration: number) => {
+              if (
+                duration &&
+                !Number.isNaN(duration) &&
+                !appProxy.state.isProcessCompleted
+              ) {
+                appProxy.state.videos[videoIndex].videoDurationMilliseconds =
+                  duration * 1000
+                appProxy.state.videos[videoIndex].videDurationRaw =
+                  formatDuration(duration)
+                refreshTimeline()
               }
             }}
           />
@@ -157,7 +182,7 @@ function VideoThumbnail({ videoIndex }: VideoThumbnailProps) {
         )}
         {showTrimmerLayout && videoDurationMilliseconds ? (
           <div className="mt-4">
-            <VideoTrimmer
+            <VideoTrimmerTimeline
               id="video-trimmer-1"
               ref={trimmerRef}
               duration={videoDurationMilliseconds / 1000}
@@ -170,21 +195,36 @@ function VideoThumbnail({ videoIndex }: VideoThumbnailProps) {
               onActionResizing={(data) => {
                 if (data.row.id === rowIds.videoTrim) {
                   if (playerRef.current?.playerRef) {
-                    playerRef.current.playerRef.currentTime =
-                      data.dir === 'left' ? data.start : data.end
-                    if (
-                      data.end > data.start &&
-                      appProxy.state.videos[videoIndex]?.config
-                    ) {
-                      const videoConfig =
-                        appProxy.state.videos[videoIndex].config
-                      videoConfig.trimConfig = {
-                        startTime: data.start,
-                        endTime: data.end,
-                      }
+                    playerRef.current.playerRef.seekTo(
+                      data.dir === 'left' ? data.start : data.end,
+                    )
+                    if (trimConfigSetDebounceRef.current) {
+                      clearTimeout(trimConfigSetDebounceRef.current)
                     }
+                    trimConfigSetDebounceRef.current = setTimeout(() => {
+                      if (
+                        data.end > data.start &&
+                        appProxy.state.videos[videoIndex]?.config
+                      ) {
+                        const videoConfig =
+                          appProxy.state.videos[videoIndex].config
+                        videoConfig.trimConfig = {
+                          startTime: data.start,
+                          endTime: data.end,
+                        }
+                      }
+                    }, 250)
                   }
                 }
+              }}
+              onCursorDrag={seekPlayerTo}
+              onClickTimeArea={(time) => {
+                seekPlayerTo(time)
+                return true
+              }}
+              onClickActionOnly={(_, { time }) => {
+                seekPlayerTo(time)
+                setTime(time)
               }}
             />
           </div>

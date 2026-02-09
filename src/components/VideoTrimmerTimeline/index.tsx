@@ -67,6 +67,11 @@ const getDefaultEditorData = ({
   ]
 }
 
+export const scales = {
+  scale: 1,
+  scaleWidth: 50,
+} as const
+
 export const TrimRow: FC<{
   action: TimelineAction
   row: TimelineRow
@@ -93,7 +98,7 @@ export const BoundaryRow: FC<{
   )
 }
 
-export interface VideoTrimmerProps
+export interface VideoTrimmerTimelineProps
   extends Omit<TimelineEditor, 'editorData' | 'effects'> {
   id: string
   duration: number
@@ -101,9 +106,9 @@ export interface VideoTrimmerProps
   endDuration?: number
 }
 
-export interface VideoTrimmerRef extends TimelineState {}
+export interface VideoTrimmerTimelineRef extends TimelineState {}
 
-const VideoTrimmer = forwardRef(
+const VideoTrimmerTimeline = forwardRef(
   (
     {
       id,
@@ -112,8 +117,8 @@ const VideoTrimmer = forwardRef(
       endDuration,
       style,
       ...props
-    }: VideoTrimmerProps,
-    forwardedRef: ForwardedRef<VideoTrimmerRef>,
+    }: VideoTrimmerTimelineProps,
+    forwardedRef: ForwardedRef<VideoTrimmerTimelineRef>,
   ) => {
     const [editorData, setEditorData] = useState<TimelineRow[]>(() =>
       getDefaultEditorData({ duration, startDuration, endDuration }),
@@ -127,13 +132,14 @@ const VideoTrimmer = forwardRef(
         effects={effects}
         onChange={setEditorData}
         autoScroll
+        scaleWidth={scales.scaleWidth}
+        scale={scales.scale}
         style={{
           width: '100%',
           height: '125px',
           borderRadius: '10px',
           ...(style ?? {}),
         }}
-        scaleWidth={50}
         getActionRender={(action, row) => {
           if (action.effectId === effects.effectVideoBoundary.id) {
             return <BoundaryRow action={action} row={row} />
@@ -147,4 +153,4 @@ const VideoTrimmer = forwardRef(
   },
 )
 
-export default VideoTrimmer
+export default VideoTrimmerTimeline

@@ -1,6 +1,8 @@
 import { TimelineState } from '@xzdarcy/react-timeline-editor'
 import React, { useEffect } from 'react'
 
+import { scales } from '.'
+
 type UseEngineProps = {
   timelineState: React.RefObject<TimelineState>
   totalDuration: number
@@ -45,6 +47,16 @@ function useTimelineEngine({
     }
   }, [timelineState.current])
 
+  const autoScrollCursor = () => {
+    if (!timelineState.current) return
+
+    const { width } = timelineState.current.target.getBoundingClientRect()
+    const currentTime = timelineState.current.getTime()
+    const left =
+      currentTime * (scales.scaleWidth / scales.scale) + 20 - width / 2
+    timelineState.current.setScrollLeft(left)
+  }
+
   const playOrPause = () => {
     if (!timelineState.current) return
     if (timelineState.current.isPlaying) {
@@ -63,13 +75,13 @@ function useTimelineEngine({
     timelineState.current.setTime(0)
   }
 
-  const seekRight = (time: number) => {
+  const seekRightBy = (time: number) => {
     if (!time || !timelineState.current) return
     const next = timelineState.current.getTime() + time
     timelineState.current.setTime(next > totalDuration ? totalDuration : next)
   }
 
-  const seekLeft = (time: number) => {
+  const seekLeftBy = (time: number) => {
     if (!time || !timelineState.current) return
     const next = timelineState.current.getTime() - time
     timelineState.current.setTime(next < 0 ? 0 : next)
@@ -80,7 +92,20 @@ function useTimelineEngine({
     timelineState.current.setTime(time)
   }
 
-  return { playOrPause, restart, seekLeft, seekRight, setTime }
+  const refreshTimeline = () => {
+    if (!timelineState.current) return
+    timelineState.current.reRender()
+  }
+
+  return {
+    playOrPause,
+    restart,
+    seekLeftBy,
+    seekRightBy,
+    setTime,
+    autoScrollCursor,
+    refreshTimeline,
+  }
 }
 
 export default useTimelineEngine

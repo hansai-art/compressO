@@ -82,21 +82,19 @@ function PreviewSingleVideo({ videoIndex }: PreviewSingleVideoProps) {
       {!(isVideoTransformEditMode || isVideoTrimEditMode) ? (
         isProcessCompleted ? (
           <section className="animate-appearance-in">
-            <div className="flex justify-center items-center mt-3 hslg:mt-6">
-              <p className="text-2xl hslg:text-4xl font-bold mx-4">
-                {videoSize}
-              </p>
+            <div className="flex justify-center items-center mt-3">
+              <p className="text-2xl font-bold mx-4">{videoSize}</p>
               <Icon
                 name="curvedArrow"
                 className="text-black dark:text-white rotate-[-65deg] translate-y-[-8px]"
                 size={100}
               />
-              <p className="text-3xl hslg:text-4xl font-bold mx-4 text-primary">
+              <p className="text-3xl  font-bold mx-4 text-primary">
                 {compressedVideo?.size}
               </p>
             </div>
             {!(compressedSizeDiff <= 0) ? (
-              <p className="block text-5xl hslg:text-7xl text-center text-green-500">
+              <p className="block text-5xl text-center text-green-500">
                 {compressedSizeDiff.toFixed(2)?.endsWith('.00')
                   ? compressedSizeDiff.toFixed(2)?.slice(0, -3)
                   : compressedSizeDiff.toFixed(2)}

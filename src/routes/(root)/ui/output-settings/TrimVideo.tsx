@@ -28,14 +28,15 @@ function TrimVideo({ videoIndex }: TrimVideoProps) {
         isSelected={shouldTrimVideo}
         onValueChange={() => {
           if (appProxy.state.videos[videoIndex]?.config) {
+            const videoSnapshot = appProxy.state.videos[videoIndex]
             const currentConfig = appProxy.state.videos[videoIndex].config
             const newState = !shouldTrimVideo
 
             currentConfig.shouldTrimVideo = newState
 
             if (newState) {
-              const duration = video?.videoDurationMilliseconds
-                ? video.videoDurationMilliseconds / 1000
+              const duration = videoSnapshot?.videoDurationMilliseconds
+                ? videoSnapshot.videoDurationMilliseconds / 1000
                 : 0
               currentConfig.trimConfig = {
                 startTime: 0,
