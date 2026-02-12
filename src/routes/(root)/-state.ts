@@ -9,6 +9,8 @@ export const videoMetadataConfigInitialState: VideoMetadataConfig = {
   album: '',
   artist: '',
   comment: '',
+  description: '',
+  synopsis: '',
   year: '',
   genre: '',
   creationTime: '',

@@ -312,6 +312,14 @@ impl FFMPEG {
                 metadata_args.push("-metadata".to_string());
                 metadata_args.push(format!("comment={}", comment.trim()));
             }
+            if let Some(ref description) = metadata.description {
+                metadata_args.push("-metadata".to_string());
+                metadata_args.push(format!("description={}", description.trim()));
+            }
+            if let Some(ref synopsis) = metadata.synopsis {
+                metadata_args.push("-metadata".to_string());
+                metadata_args.push(format!("synopsis={}", synopsis.trim()));
+            }
             if let Some(ref genre) = metadata.genre {
                 metadata_args.push("-metadata".to_string());
                 metadata_args.push(format!("genre={}", genre.trim()));

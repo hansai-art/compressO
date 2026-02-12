@@ -203,8 +203,36 @@ function Metadata({ videoIndex }: MetadataProps) {
               <div>
                 <TextInput
                   type="text"
-                  label="Comment/Description"
-                  placeholder="Enter comment or description"
+                  label="Description"
+                  placeholder="Enter description"
+                  defaultValue={metadataConfig?.description ?? ''}
+                  isDisabled={shouldDisableInput}
+                  classNames={{ mainWrapper: 'my-3' }}
+                  onValueChange={(value) =>
+                    updateMetadataField('description', value)
+                  }
+                />
+                <Divider className="mb-6" />
+              </div>
+              <div>
+                <TextInput
+                  type="text"
+                  label="Synopsis"
+                  placeholder="Enter synopsis"
+                  defaultValue={metadataConfig?.synopsis ?? ''}
+                  isDisabled={shouldDisableInput}
+                  classNames={{ mainWrapper: 'my-3' }}
+                  onValueChange={(value) =>
+                    updateMetadataField('synopsis', value)
+                  }
+                />
+                <Divider className="mb-6" />
+              </div>
+              <div>
+                <TextInput
+                  type="text"
+                  label="Comment"
+                  placeholder="Enter comment"
                   defaultValue={metadataConfig?.comment ?? ''}
                   isDisabled={shouldDisableInput}
                   classNames={{ mainWrapper: 'my-3' }}

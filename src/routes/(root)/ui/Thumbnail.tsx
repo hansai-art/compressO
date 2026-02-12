@@ -184,12 +184,12 @@ function VideoThumbnail({ videoIndex }: VideoThumbnailProps) {
             }
             progressInterval={10}
             controls={false}
-            playPauseOnSpaceKeydown
+            playPauseOnSpaceKeydown={!showTransformerLayout}
             autoFocus
             containerClassName="w-full h-full mx-auto"
             style={{
               width: '100%',
-              minWidth: '65vw',
+              minWidth: '50vw',
               maxHeight: '65vh',
               aspectRatio:
                 (video?.dimensions?.width ?? 1) /

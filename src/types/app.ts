@@ -14,6 +14,8 @@ export type VideoMetadataConfig = {
   album?: string | null
   year?: string | null
   comment?: string | null
+  description?: string | null
+  synopsis?: string | null
   genre?: string | null
   creationTime?: string | null
   creationTimeRaw?: DateValue | null
