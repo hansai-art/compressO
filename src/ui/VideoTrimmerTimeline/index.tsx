@@ -19,6 +19,7 @@ import {
   useState,
 } from 'react'
 
+import { BoundaryRowActionRender } from '@/components/Timeline'
 import Button from '../../components/Button'
 import Code from '../../components/Code'
 import Icon from '../../components/Icon'
@@ -115,11 +116,11 @@ const getDefaultEditorData = ({
 
 export const scales: TimelineScales = {
   scale: 1,
-  scaleWidth: 50,
+  scaleWidth: 80,
   startLeft: 20,
 } as const
 
-export const TrimRow: FC<{
+export const TrimRowActionRenderer: FC<{
   action: TimelineAction
   row: TimelineRow
   onSplit?: (actionId: string, splitTime: number) => void
@@ -153,19 +154,6 @@ export const TrimRow: FC<{
           <div className="absolute inset-0 bg-white/20 rounded-lg pointer-events-none border-2 border-black1 dark:border-white1" />
         </>
       ) : null}
-    </div>
-  )
-}
-
-export const BoundaryRow: FC<{
-  action: TimelineAction
-  row: TimelineRow
-}> = ({ action }) => {
-  return (
-    <div className="flex justify-center items-center bg-primary h-[2px] mt-3 rounded-lg">
-      <p className="text-center text-white1">{`${(
-        action.end - action.start
-      ).toFixed(2)}s`}</p>
     </div>
   )
 }
@@ -405,10 +393,10 @@ const VideoTrimmerTimeline = forwardRef(
           }}
           getActionRender={(action, row) => {
             if (action.effectId === effects.effectVideoBoundary.id) {
-              return <BoundaryRow action={action} row={row} />
+              return <BoundaryRowActionRender action={action} row={row} />
             } else if (action.effectId === effects.effectVideoTrim.id) {
               return (
-                <TrimRow
+                <TrimRowActionRenderer
                   action={action}
                   row={row}
                   onSplit={handleSplitAction}

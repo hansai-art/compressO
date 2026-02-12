@@ -75,10 +75,16 @@ function CustomizeVideoOnBatchActions() {
             onPress={handleResetVideoConfig}
             color="danger"
             variant="flat"
+            radius="md"
           >
             Reset
           </Button>
-          <Button size="sm" variant="flat" onPress={handleApplyVideoConfig}>
+          <Button
+            size="sm"
+            variant="flat"
+            radius="md"
+            onPress={handleApplyVideoConfig}
+          >
             Apply
           </Button>
         </div>

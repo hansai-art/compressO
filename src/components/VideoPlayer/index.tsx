@@ -15,6 +15,7 @@ import { ClassNameValue } from 'tailwind-merge'
 import { cn } from '@/utils/tailwind'
 import Button from '../Button'
 import Icon from '../Icon'
+import { BoundaryRowActionRender } from '../Timeline'
 import useTimelineEngine, {
   TimelineScales,
 } from '../Timeline/useTimelineEngine'
@@ -42,7 +43,7 @@ export interface VideoPlayerProps extends BaseReactPlayerProps {
 
 const scales: TimelineScales = {
   scale: 1,
-  scaleWidth: 100,
+  scaleWidth: 80,
   startLeft: 20,
 } as const
 
@@ -288,6 +289,11 @@ const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(
               height: '75px',
               borderRadius: '10px',
               margin: '10px 0',
+            }}
+            getActionRender={(action, row) => {
+              if (action.effectId === 'videoPlayer') {
+                return <BoundaryRowActionRender action={action} row={row} />
+              }
             }}
             onCursorDrag={(time) => {
               if (playerRef.current) {

@@ -27,7 +27,7 @@ function VideoConfig() {
       <div className={cn(['h-full p-6', styles.videoConfigContainer])}>
         <section
           className={cn(
-            'relative px-4 py-6 rounded-xl border-2 border-zinc-200 dark:border-zinc-800 overflow-hidden',
+            'relative w-full h-full px-4 py-6 rounded-xl border-2 border-zinc-200 dark:border-zinc-800 overflow-hidden',
           )}
         >
           <AnimatePresence>
@@ -43,11 +43,13 @@ function VideoConfig() {
             )}
           </AnimatePresence>
         </section>
-        <OutputSettings
-          videoIndex={
-            videos.length === 1 ? 0 : selectedVideoIndexForCustomization
-          }
-        />
+        <section className="p-4 w-full h-full rounded-xl border-2 border-zinc-200 dark:border-zinc-800">
+          <OutputSettings
+            videoIndex={
+              videos.length === 1 ? 0 : selectedVideoIndexForCustomization
+            }
+          />
+        </section>
       </div>
       {isCompressing ? <CompressionProgress /> : null}
     </Layout>

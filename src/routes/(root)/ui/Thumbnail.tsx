@@ -166,7 +166,7 @@ function VideoThumbnail({ videoIndex }: VideoThumbnailProps) {
 
   return (
     <div className="relative w-full flex items-center justify-center">
-      <div className="relative">
+      <div className="relative w-full">
         {previewMode === 'video' && videoPath ? (
           <VideoPlayer
             ref={playerRef}
@@ -229,7 +229,7 @@ function VideoThumbnail({ videoIndex }: VideoThumbnailProps) {
           <Image
             alt="video to compress"
             src={thumbnailPath as string}
-            className="w-full h-full object-contain rounded-3xl max-w-[65vw] max-h-[65vh] xxl:max-w-[75vw]"
+            className="w-full h-full object-contain rounded-3xl max-h-[65vh]"
           />
         )}
         {showTrimmerLayout && videoDurationMilliseconds ? (

@@ -194,7 +194,7 @@ function OutputSettings({ videoIndex }: OutputSettingsProps) {
   }, [])
 
   return (
-    <section className="p-4 rounded-xl border-2 border-zinc-200 dark:border-zinc-800 h-full">
+    <>
       <div className="flex items-center justify-between w-full mb-2">
         <p className="text-xl font-bold">
           {videos.length === 1 || selectedVideoIndexForCustomization > -1
@@ -286,7 +286,7 @@ function OutputSettings({ videoIndex }: OutputSettingsProps) {
           )}
         </div>
       ) : null}
-    </section>
+    </>
   )
 }
 

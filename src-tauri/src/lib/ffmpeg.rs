@@ -282,7 +282,7 @@ impl FFMPEG {
         if map_audio {
             cmd_args.extend_from_slice(&["-map", "[outa]"]);
         } else if !should_mute_video {
-            cmd_args.extend_from_slice(&["-map", "0:a"]);
+            cmd_args.extend_from_slice(&["-map", "0:a?"]);
         }
 
         // Mute Audio (overrides everything if set)
