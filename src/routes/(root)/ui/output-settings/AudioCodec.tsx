@@ -50,6 +50,12 @@ const AUDIO_CODECS: readonly AudioCodecOption[] = [
     compatible_containers: ['mp4', 'mov', 'mkv', 'avi'] as VideoExtension[],
   },
   {
+    value: 'alac',
+    name: 'ALAC',
+    description: 'Lossless compression optimized for Apple devices',
+    compatible_containers: ['mp4', 'mov'] as VideoExtension[],
+  },
+  {
     value: 'flac',
     name: 'FLAC',
     description: 'Lossless compression',
@@ -59,7 +65,7 @@ const AUDIO_CODECS: readonly AudioCodecOption[] = [
     value: 'pcm_s16le',
     name: 'PCM',
     description: 'Uncompressed, best quality',
-    compatible_containers: ['avi'] as VideoExtension[],
+    compatible_containers: ['mov', 'avi'] as VideoExtension[],
   },
 ]
 
