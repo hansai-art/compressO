@@ -2,7 +2,7 @@ import { Divider, ScrollShadow, Tab } from '@heroui/react'
 import { core } from '@tauri-apps/api'
 import { TimelineAction } from '@xzdarcy/timeline-engine'
 import { motion } from 'framer-motion'
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { snapshot, useSnapshot } from 'valtio'
 
@@ -10,6 +10,7 @@ import Button from '@/components/Button'
 import Icon from '@/components/Icon'
 import Tabs from '@/components/Tabs'
 import { compressVideos } from '@/tauri/commands/ffmpeg'
+import { getAudioStreams } from '@/tauri/commands/ffprobe'
 import { VideoMetadataConfig } from '@/types/app'
 import {
   CompressionResult,
@@ -17,6 +18,7 @@ import {
   VideoTransformsHistory,
 } from '@/types/compression'
 import { formatBytes } from '@/utils/fs'
+import AudioChannels from './AudioChannels'
 import AudioVolume from './AudioVolume'
 import CompressionPreset from './CompressionPreset'
 import CompressionQuality from './CompressionQuality'
@@ -63,7 +65,7 @@ function OutputSettings({ videoIndex }: OutputSettingsProps) {
     },
   } = useSnapshot(appProxy)
   const video = videos.length && videoIndex >= 0 ? videos[videoIndex] : null
-  const { dimensions } = video ?? {}
+  const { dimensions, pathRaw: videoPathRaw, videoInfoRaw } = video ?? {}
 
   const [tab, setTab] = useState<keyof typeof TABS>('video')
 
@@ -112,6 +114,9 @@ function OutputSettings({ videoIndex }: OutputSettingsProps) {
             ? v.config.presetName
             : null,
           audioVolume: v.config?.audioVolume ?? 100,
+          ...((v.config?.audioVolume ?? 100) !== 0
+            ? { audioChannelConfig: v.config?.audioChannelConfig ?? null }
+            : {}),
           quality: v.config?.shouldEnableQuality
             ? (v.config?.quality as number)
             : 101,
@@ -198,6 +203,28 @@ function OutputSettings({ videoIndex }: OutputSettingsProps) {
     }
   }, [])
 
+  useEffect(() => {
+    tab === 'audio' &&
+      videoIndex > -1 &&
+      appProxy.state.videos[videoIndex] &&
+      !appProxy.state.videos[videoIndex]?.videoInfoRaw?.audioStreams &&
+      videoPathRaw &&
+      (async () => {
+        const streams = await getAudioStreams(videoPathRaw)
+        if (streams) {
+          const targetVideo = appProxy.state.videos[videoIndex]
+          if (!targetVideo?.videoInfoRaw) {
+            appProxy.state.videos[videoIndex].videoInfoRaw = {}
+          }
+          if (targetVideo.videoInfoRaw) {
+            targetVideo.videoInfoRaw.audioStreams = streams
+          }
+        }
+      })()
+  }, [videoPathRaw, videoIndex, tab])
+
+  const hasNoAudio = videoInfoRaw?.audioStreams?.length === 0
+
   return (
     <>
       <div className="flex items-center justify-between w-full mb-2">
@@ -264,7 +291,15 @@ function OutputSettings({ videoIndex }: OutputSettingsProps) {
           ) : null}
           {tab === 'audio' ? (
             <>
-              <AudioVolume videoIndex={videoIndex} />
+              <div className="mb-4">
+                <AudioVolume videoIndex={videoIndex} />
+                <Divider className="my-8" />
+              </div>
+              <div className="mt-10">
+                <AudioChannels videoIndex={videoIndex} />
+                <Divider className="my-3" />
+              </div>
+              {hasNoAudio ? <p className="text-xs">No audio found</p> : null}
             </>
           ) : null}
           {tab === 'metadata' ? (

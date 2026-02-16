@@ -149,6 +149,7 @@ pub struct VideoCompressionConfig {
     pub convert_to_extension: String,
     pub preset_name: Option<String>,
     pub audio_volume: u16,
+    pub audio_channel_config: Option<AudioChannelConfig>,
     pub quality: u16,
     pub dimensions: Option<(u32, u32)>,
     pub fps: Option<String>,
@@ -172,6 +173,21 @@ pub struct VideoMetadataConfig {
     pub synopsis: Option<String>,
     pub genre: Option<String>,
     pub creation_time: Option<String>,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct MonoSource {
+    pub left: bool,
+    pub right: bool,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct AudioChannelConfig {
+    pub channel_layout: Option<String>,
+    pub mono_source: Option<MonoSource>,
+    pub stereo_swap_channels: Option<bool>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]

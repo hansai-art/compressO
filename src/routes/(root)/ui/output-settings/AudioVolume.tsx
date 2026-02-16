@@ -3,7 +3,6 @@ import { snapshot, useSnapshot } from 'valtio'
 
 import Icon from '@/components/Icon'
 import Slider from '@/components/Slider/Slider'
-import { getAudioStreams } from '@/tauri/commands/ffprobe'
 import { appProxy, normalizeBatchVideosConfig } from '../../-state'
 
 type AudioVolumeProps = {
@@ -21,7 +20,7 @@ function AudioVolume({ videoIndex }: AudioVolumeProps) {
     },
   } = useSnapshot(appProxy)
   const video = videos.length > 0 && videoIndex >= 0 ? videos[videoIndex] : null
-  const { config, pathRaw, videoInfoRaw } = video ?? {}
+  const { config, videoInfoRaw } = video ?? {}
   const { audioVolume } = config ?? commonConfigForBatchCompression ?? {}
 
   const [volume, setVolume] = React.useState<number>(audioVolume ?? 100)
@@ -71,25 +70,6 @@ function AudioVolume({ videoIndex }: AudioVolumeProps) {
     }
   }, [audioVolume])
 
-  React.useEffect(() => {
-    videoIndex > -1 &&
-      appProxy.state.videos[videoIndex] &&
-      !appProxy.state.videos[videoIndex]?.videoInfoRaw?.audioStreams &&
-      pathRaw &&
-      (async () => {
-        const streams = await getAudioStreams(pathRaw)
-        if (streams) {
-          const targetVideo = appProxy.state.videos[videoIndex]
-          if (!targetVideo?.videoInfoRaw) {
-            appProxy.state.videos[videoIndex].videoInfoRaw = {}
-          }
-          if (targetVideo.videoInfoRaw) {
-            targetVideo.videoInfoRaw.audioStreams = streams
-          }
-        }
-      })()
-  }, [pathRaw, videoIndex])
-
   const handleVolumeChange = useCallback((value: number | number[]) => {
     if (typeof value === 'number') {
       setVolume(value)
@@ -124,7 +104,6 @@ function AudioVolume({ videoIndex }: AudioVolumeProps) {
             label: 'Full',
           },
         ]}
-        className="mb-8"
         classNames={{ mark: 'text-xs' }}
         getValue={(value) => {
           const val = Array.isArray(value) ? value?.[0] : +value
@@ -136,9 +115,9 @@ function AudioVolume({ videoIndex }: AudioVolumeProps) {
         value={volume}
         onChange={handleVolumeChange}
         isDisabled={shouldDisableInput}
-        startContent={<Icon name="muteAudio" size={20}></Icon>}
+        startContent={<Icon name="audioMuted" size={20}></Icon>}
+        endContent={<Icon name="audio" size={20}></Icon>}
       />
-      {hasNoAudio ? <p className="text-xs">No audio found</p> : null}
     </>
   )
 }

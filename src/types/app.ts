@@ -2,6 +2,7 @@ import { DateValue } from '@internationalized/date'
 import { TimelineAction } from '@xzdarcy/timeline-engine'
 
 import {
+  AudioChannelConfig,
   AudioStream,
   Chapter,
   ContainerInfo,
@@ -32,6 +33,7 @@ export type VideoConfig = {
   presetName: keyof typeof compressionPresets
   shouldDisableCompression: boolean
   audioVolume: number
+  audioChannelConfig?: AudioChannelConfig | null
   shouldEnableQuality?: boolean
   quality?: number | null
   shouldEnableCustomDimensions?: boolean

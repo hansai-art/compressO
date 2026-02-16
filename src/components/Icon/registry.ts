@@ -1,5 +1,7 @@
 import React from 'react'
 
+import Audio from '@/assets/icons/audio.svg?react'
+import AudioMuted from '@/assets/icons/audio-muted.svg?react'
 import Back from '@/assets/icons/back.svg?react'
 import Copy from '@/assets/icons/copy.svg?react'
 import Cross from '@/assets/icons/cross.svg?react'
@@ -16,7 +18,6 @@ import Info from '@/assets/icons/info.svg?react'
 import Logo from '@/assets/icons/logo.svg?react'
 import LowResHeart from '@/assets/icons/low-res-heart.svg?react'
 import Moon from '@/assets/icons/moon.svg?react'
-import MuteAudio from '@/assets/icons/mute-audio.svg?react'
 import Pause from '@/assets/icons/pause.svg?react'
 import Pencil from '@/assets/icons/pencil.svg?react'
 import Play from '@/assets/icons/play.svg?react'
@@ -73,7 +74,8 @@ const registry = asRegistry({
   back: Back,
   pause: Pause,
   image: Image,
-  muteAudio: MuteAudio,
+  audioMuted: AudioMuted,
+  audio: Audio,
 })
 
 export default registry

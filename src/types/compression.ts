@@ -177,6 +177,12 @@ export type TrimSegment = {
   end: number
 }
 
+export type AudioChannelConfig = {
+  channelLayout: 'mono' | 'stereo' | null
+  monoSource?: { left: boolean; right: boolean }
+  stereoSwapChannels?: boolean
+}
+
 export type VideoCompressionConfig = {
   videoPath: string
   convertToExtension: string
@@ -184,6 +190,7 @@ export type VideoCompressionConfig = {
   videoId: string
   batchId?: string | null
   audioVolume: number
+  audioChannelConfig?: AudioChannelConfig | null
   quality: number
   dimensions?: [number, number] | null
   fps?: string | null

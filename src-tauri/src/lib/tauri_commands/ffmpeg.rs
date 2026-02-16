@@ -1,6 +1,6 @@
 use crate::{
     domain::{
-        BatchCompressionResult, CompressionResult, TrimSegment, VideoCompressionConfig, VideoInfo,
+        AudioChannelConfig, BatchCompressionResult, CompressionResult, TrimSegment, VideoCompressionConfig, VideoInfo,
         VideoMetadataConfig, VideoThumbnail,
     },
     ffmpeg::{self},
@@ -17,6 +17,7 @@ pub async fn compress_video(
     preset_name: Option<&str>,
     video_id: &str,
     audio_volume: u16,
+    audio_channel_config: Option<AudioChannelConfig>,
     quality: u16,
     dimensions: Option<(u32, u32)>,
     fps: Option<&str>,
@@ -43,6 +44,7 @@ pub async fn compress_video(
             video_id,
             None,
             audio_volume,
+            audio_channel_config.as_ref(),
             quality,
             dimensions,
             fps,

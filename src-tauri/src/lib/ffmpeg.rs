@@ -1,7 +1,8 @@
 use crate::domain::{
-    BatchCompressionIndividualCompressionResult, BatchCompressionProgress, BatchCompressionResult,
-    CancelInProgressCompressionPayload, CompressionResult, CustomEvents, TauriEvents, TrimSegment,
-    VideoCompressionConfig, VideoCompressionProgress, VideoMetadataConfig, VideoThumbnail,
+    AudioChannelConfig, BatchCompressionIndividualCompressionResult, BatchCompressionProgress,
+    BatchCompressionResult, CancelInProgressCompressionPayload, CompressionResult, CustomEvents,
+    TauriEvents, TrimSegment, VideoCompressionConfig, VideoCompressionProgress,
+    VideoMetadataConfig, VideoThumbnail,
 };
 use crate::ffprobe::FFPROBE;
 use crate::fs::get_file_metadata;
@@ -63,6 +64,7 @@ impl FFMPEG {
         video_id: &str,
         batch_id: Option<&str>,
         audio_volume: u16,
+        audio_channel_config: Option<&AudioChannelConfig>,
         quality: u16,
         dimensions: Option<(u32, u32)>,
         fps: Option<&str>,
@@ -210,10 +212,57 @@ impl FFMPEG {
         let mut map_video = false;
         let mut map_audio = false;
 
-        // Prepare volume filter string if needed (to be injected into complex filter)
         let volume_filter_str = if audio_volume > 0 && audio_volume != 100 {
             let volume_value = audio_volume as f32 / 100.0;
-            format!(",volume={}", volume_value)
+            format!("volume={}", volume_value)
+        } else {
+            "".to_string()
+        };
+
+        let channel_filter_str = if let Some(channel_config) = audio_channel_config {
+            if let Some(ref layout) = channel_config.channel_layout {
+                match layout.as_str() {
+                    "mono" => {
+                        if let Some(ref mono_source) = channel_config.mono_source {
+                            match (mono_source.left, mono_source.right) {
+                                (true, true) => "aformat=channel_layouts=mono".to_string(),
+                                (true, false) => "pan=mono|c0=c0".to_string(),
+                                (false, true) => "pan=mono|c0=c1".to_string(),
+                                (false, false) => "aformat=channel_layouts=mono".to_string(),
+                            }
+                        } else {
+                            "aformat=channel_layouts=mono".to_string()
+                        }
+                    }
+                    "stereo" => {
+                        if channel_config.stereo_swap_channels == Some(true) {
+                            "pan=stereo|c0=c1|c1=c0".to_string()
+                        } else {
+                            "".to_string()
+                        }
+                    }
+                    _ => "".to_string(),
+                }
+            } else {
+                "".to_string()
+            }
+        } else {
+            "".to_string()
+        };
+
+        let combined_audio_filter =
+            if !channel_filter_str.is_empty() && !volume_filter_str.is_empty() {
+                format!("{},{}", channel_filter_str, volume_filter_str)
+            } else if !channel_filter_str.is_empty() {
+                channel_filter_str
+            } else if !volume_filter_str.is_empty() {
+                volume_filter_str
+            } else {
+                "".to_string()
+            };
+
+        let combined_audio_filter_with_comma = if !combined_audio_filter.is_empty() {
+            format!(",{}", combined_audio_filter)
         } else {
             "".to_string()
         };
@@ -266,7 +315,7 @@ impl FFMPEG {
                         let seg = &segments[0];
                         filter_complex_parts.push(format!(
                             "[0:a]atrim={}:{},asetpts=PTS-STARTPTS{}[outa]",
-                            seg.start, seg.end, volume_filter_str
+                            seg.start, seg.end, combined_audio_filter_with_comma
                         ));
                     } else {
                         let mut audio_parts = Vec::new();
@@ -284,7 +333,7 @@ impl FFMPEG {
                             audio_parts.join("; "),
                             audio_labels.join(""),
                             segments.len(),
-                            volume_filter_str
+                            combined_audio_filter_with_comma
                         ));
                     }
                 }
@@ -318,17 +367,19 @@ impl FFMPEG {
             cmd_args.extend_from_slice(&["-map", "0:a?"]);
         }
 
-        let volume_args: Vec<String> = {
-            if audio_volume > 0 && audio_volume != 100 && has_audio_stream && !map_audio {
-                let volume_value = audio_volume as f32 / 100.0;
-                vec!["-af".to_string(), format!("volume={}", volume_value)]
+        let audio_filter_args: Vec<String> = {
+            if has_audio_stream
+                && !map_audio
+                && (!combined_audio_filter.is_empty() || (audio_volume > 0 && audio_volume != 100))
+            {
+                vec!["-af".to_string(), combined_audio_filter]
             } else {
                 vec![]
             }
         };
-        if !volume_args.is_empty() {
+        if !audio_filter_args.is_empty() {
             cmd_args.extend_from_slice(
-                &(volume_args
+                &(audio_filter_args
                     .iter()
                     .map(|v| v.as_str())
                     .collect::<Vec<&str>>()),
@@ -669,6 +720,7 @@ impl FFMPEG {
             let preset_name = video_options.preset_name.as_deref();
             let batch_id_for_compression = batch_id;
             let audio_volume = video_options.audio_volume;
+            let audio_channel_config = video_options.audio_channel_config.as_ref();
             let quality = video_options.quality;
             let dimensions = video_options.dimensions;
             let fps = video_options.fps.as_deref();
@@ -689,6 +741,7 @@ impl FFMPEG {
                     video_id,
                     Some(batch_id_for_compression),
                     audio_volume,
+                    audio_channel_config,
                     quality,
                     dimensions,
                     fps,
