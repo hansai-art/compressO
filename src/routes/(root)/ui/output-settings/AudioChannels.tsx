@@ -262,7 +262,7 @@ function AudioChannels({ videoIndex }: AudioChannelsProps) {
         isDisabled={shouldDisableInput || hasNoAudio}
       >
         <p className="text-gray-600 dark:text-gray-400 text-sm mr-2 w-full">
-          Channel
+          Channels
         </p>
       </Switch>
       <AnimatePresence mode="wait">

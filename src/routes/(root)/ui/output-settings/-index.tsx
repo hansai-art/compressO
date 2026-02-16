@@ -20,6 +20,7 @@ import {
 import { formatBytes } from '@/utils/fs'
 import AudioBitrate from './AudioBitrate'
 import AudioChannels from './AudioChannels'
+import AudioCodec from './AudioCodec'
 import AudioVolume from './AudioVolume'
 import CompressionPreset from './CompressionPreset'
 import CompressionQuality from './CompressionQuality'
@@ -124,6 +125,9 @@ function OutputSettings({ videoIndex }: OutputSettingsProps) {
               (v.config?.audioConfig?.volume ?? 100) !== 0
                 ? (v.config?.audioConfig?.bitrate ?? null)
                 : null,
+            audioCodec: v.config?.shouldEnableCustomAudioCodec
+              ? (v.config?.customAudioCodec ?? null)
+              : null,
           },
           quality: v.config?.shouldEnableQuality
             ? (v.config?.quality as number)
@@ -304,6 +308,10 @@ function OutputSettings({ videoIndex }: OutputSettingsProps) {
                 <Divider className="mt-8" />
               </div>
               <>
+                <>
+                  <AudioCodec videoIndex={videoIndex} />
+                  <Divider className="my-3" />
+                </>
                 <AudioChannels videoIndex={videoIndex} />
                 <Divider className="my-3" />
               </>

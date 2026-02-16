@@ -394,6 +394,15 @@ impl FFMPEG {
             }
         }
 
+        // Audio codec
+        let mut audio_codec_args: Vec<String> = Vec::new();
+        if audio_config.volume > 0 && has_audio_stream {
+            if let Some(codec) = &audio_config.audio_codec {
+                audio_codec_args.push("-c:a".to_string());
+                audio_codec_args.push(codec.clone());
+            }
+        }
+
         if audio_config.volume == 0 {
             cmd_args.push("-an");
         }
@@ -450,6 +459,10 @@ impl FFMPEG {
         }
 
         for arg in audio_bitrate_args.iter().map(|s| s.as_str()) {
+            cmd_args.push(arg);
+        }
+
+        for arg in audio_codec_args.iter().map(|s| s.as_str()) {
             cmd_args.push(arg);
         }
 

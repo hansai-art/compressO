@@ -195,6 +195,7 @@ pub struct AudioConfig {
     pub volume: u16,
     pub audio_channel_config: Option<AudioChannelConfig>,
     pub bitrate: Option<u32>,
+    pub audio_codec: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]

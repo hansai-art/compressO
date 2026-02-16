@@ -32,6 +32,7 @@ export type AudioConfig = {
   volume: number
   audioChannelConfig?: AudioChannelConfig | null
   bitrate?: number | null
+  audioCodec?: string | null
 }
 
 export type VideoConfig = {
@@ -63,6 +64,8 @@ export type VideoConfig = {
   shouldEnableCustomThumbnail?: boolean
   shouldEnableCustomChannel?: boolean
   shouldEnableCustomBitrate?: boolean
+  shouldEnableCustomAudioCodec?: boolean
+  customAudioCodec?: string
 }
 
 export type Video = {
