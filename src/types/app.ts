@@ -28,12 +28,17 @@ export type VideoMetadataConfig = {
   shouldEnableCreationTime?: boolean
 }
 
+export type AudioConfig = {
+  volume: number
+  audioChannelConfig?: AudioChannelConfig | null
+  bitrate?: number | null
+}
+
 export type VideoConfig = {
   convertToExtension: keyof typeof extensions.video
   presetName: keyof typeof compressionPresets
   shouldDisableCompression: boolean
-  audioVolume: number
-  audioChannelConfig?: AudioChannelConfig | null
+  audioConfig: AudioConfig
   shouldEnableQuality?: boolean
   quality?: number | null
   shouldEnableCustomDimensions?: boolean

@@ -1,5 +1,5 @@
 use crate::domain::{
-    AudioChannelConfig, BatchCompressionIndividualCompressionResult, BatchCompressionProgress,
+    AudioConfig, BatchCompressionIndividualCompressionResult, BatchCompressionProgress,
     BatchCompressionResult, CancelInProgressCompressionPayload, CompressionResult, CustomEvents,
     TauriEvents, TrimSegment, VideoCompressionConfig, VideoCompressionProgress,
     VideoMetadataConfig, VideoThumbnail,
@@ -63,8 +63,7 @@ impl FFMPEG {
         preset_name: Option<&str>,
         video_id: &str,
         batch_id: Option<&str>,
-        audio_volume: u16,
-        audio_channel_config: Option<&AudioChannelConfig>,
+        audio_config: &AudioConfig,
         quality: u16,
         dimensions: Option<(u32, u32)>,
         fps: Option<&str>,
@@ -212,14 +211,14 @@ impl FFMPEG {
         let mut map_video = false;
         let mut map_audio = false;
 
-        let volume_filter_str = if audio_volume > 0 && audio_volume != 100 {
-            let volume_value = audio_volume as f32 / 100.0;
+        let volume_filter_str = if audio_config.volume > 0 && audio_config.volume != 100 {
+            let volume_value = audio_config.volume as f32 / 100.0;
             format!("volume={}", volume_value)
         } else {
             "".to_string()
         };
 
-        let channel_filter_str = if let Some(channel_config) = audio_channel_config {
+        let channel_filter_str = if let Some(channel_config) = audio_config.audio_channel_config.as_ref() {
             if let Some(ref layout) = channel_config.channel_layout {
                 match layout.as_str() {
                     "mono" => {
@@ -307,7 +306,7 @@ impl FFMPEG {
             map_video = true;
         }
 
-        if audio_volume > 0 && has_audio_stream {
+        if audio_config.volume > 0 && has_audio_stream {
             if let Some(segments) = trim_segments {
                 if !segments.is_empty() {
                     map_audio = true;
@@ -363,14 +362,14 @@ impl FFMPEG {
         // Map output audio
         if map_audio {
             cmd_args.extend_from_slice(&["-map", "[outa]"]);
-        } else if audio_volume > 0 && has_audio_stream {
+        } else if audio_config.volume > 0 && has_audio_stream {
             cmd_args.extend_from_slice(&["-map", "0:a?"]);
         }
 
         let audio_filter_args: Vec<String> = {
             if has_audio_stream
                 && !map_audio
-                && (!combined_audio_filter.is_empty() || (audio_volume > 0 && audio_volume != 100))
+                && (!combined_audio_filter.is_empty() || (audio_config.volume > 0 && audio_config.volume != 100))
             {
                 vec!["-af".to_string(), combined_audio_filter]
             } else {
@@ -386,7 +385,16 @@ impl FFMPEG {
             );
         }
 
-        if audio_volume == 0 {
+        // Audio bitrate
+        let mut audio_bitrate_args: Vec<String> = Vec::new();
+        if audio_config.volume > 0 && has_audio_stream {
+            if let Some(bitrate) = audio_config.bitrate {
+                audio_bitrate_args.push("-b:a".to_string());
+                audio_bitrate_args.push(format!("{}k", bitrate));
+            }
+        }
+
+        if audio_config.volume == 0 {
             cmd_args.push("-an");
         }
 
@@ -438,6 +446,10 @@ impl FFMPEG {
         }
 
         for arg in metadata_args.iter().map(|s| s.as_str()) {
+            cmd_args.push(arg);
+        }
+
+        for arg in audio_bitrate_args.iter().map(|s| s.as_str()) {
             cmd_args.push(arg);
         }
 
@@ -719,8 +731,7 @@ impl FFMPEG {
             let convert_to_extension = &video_options.convert_to_extension;
             let preset_name = video_options.preset_name.as_deref();
             let batch_id_for_compression = batch_id;
-            let audio_volume = video_options.audio_volume;
-            let audio_channel_config = video_options.audio_channel_config.as_ref();
+            let audio_config = &video_options.audio_config;
             let quality = video_options.quality;
             let dimensions = video_options.dimensions;
             let fps = video_options.fps.as_deref();
@@ -740,8 +751,7 @@ impl FFMPEG {
                     preset_name,
                     video_id,
                     Some(batch_id_for_compression),
-                    audio_volume,
-                    audio_channel_config,
+                    audio_config,
                     quality,
                     dimensions,
                     fps,

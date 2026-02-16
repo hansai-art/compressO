@@ -21,9 +21,9 @@ function AudioVolume({ videoIndex }: AudioVolumeProps) {
   } = useSnapshot(appProxy)
   const video = videos.length > 0 && videoIndex >= 0 ? videos[videoIndex] : null
   const { config, videoInfoRaw } = video ?? {}
-  const { audioVolume } = config ?? commonConfigForBatchCompression ?? {}
+  const { audioConfig } = config ?? commonConfigForBatchCompression ?? {}
 
-  const [volume, setVolume] = React.useState<number>(audioVolume ?? 100)
+  const [volume, setVolume] = React.useState<number>(audioConfig?.volume ?? 100)
   const debounceRef = React.useRef<NodeJS.Timeout>()
   const volumeRef = React.useRef<number>(volume)
 
@@ -37,9 +37,10 @@ function AudioVolume({ videoIndex }: AudioVolumeProps) {
       appSnapshot.state.videos.length &&
       volume !==
         (videoIndex >= 0
-          ? appSnapshot.state.videos[videoIndex]?.config?.audioVolume
+          ? appSnapshot.state.videos[videoIndex]?.config?.audioConfig?.volume
           : appSnapshot.state.videos.length > 1
-            ? appSnapshot.state.commonConfigForBatchCompression?.audioVolume
+            ? appSnapshot.state.commonConfigForBatchCompression?.audioConfig
+                ?.volume
             : undefined)
     ) {
       if (debounceRef.current) {
@@ -47,11 +48,22 @@ function AudioVolume({ videoIndex }: AudioVolumeProps) {
       }
       debounceRef.current = setTimeout(() => {
         if (videoIndex >= 0 && appProxy.state.videos[videoIndex]?.config) {
-          appProxy.state.videos[videoIndex].config.audioVolume = volume
+          if (!appProxy.state.videos[videoIndex].config.audioConfig) {
+            appProxy.state.videos[videoIndex].config.audioConfig = {
+              volume: 100,
+            }
+          }
+          appProxy.state.videos[videoIndex].config.audioConfig.volume = volume
           appProxy.state.videos[videoIndex].isConfigDirty = true
         } else {
           if (appProxy.state.videos.length > 1) {
-            appProxy.state.commonConfigForBatchCompression.audioVolume = volume
+            if (!appProxy.state.commonConfigForBatchCompression.audioConfig) {
+              appProxy.state.commonConfigForBatchCompression.audioConfig = {
+                volume: 100,
+              }
+            }
+            appProxy.state.commonConfigForBatchCompression.audioConfig.volume =
+              volume
             normalizeBatchVideosConfig()
           }
         }
@@ -63,12 +75,15 @@ function AudioVolume({ videoIndex }: AudioVolumeProps) {
   }, [volume, videoIndex])
 
   React.useEffect(() => {
-    if (audioVolume !== volumeRef.current) {
-      if (typeof audioVolume === 'number' && !Number.isNaN(+audioVolume)) {
-        setVolume(audioVolume)
+    if (audioConfig?.volume !== volumeRef.current) {
+      if (
+        typeof audioConfig?.volume === 'number' &&
+        !Number.isNaN(+audioConfig.volume)
+      ) {
+        setVolume(audioConfig.volume)
       }
     }
-  }, [audioVolume])
+  }, [audioConfig?.volume])
 
   const handleVolumeChange = useCallback((value: number | number[]) => {
     if (typeof value === 'number') {

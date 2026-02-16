@@ -1,4 +1,4 @@
-import { VideoMetadataConfig } from './app'
+import { AudioConfig, VideoMetadataConfig } from './app'
 import { FileMetadata } from './fs'
 
 export const extensions = {
@@ -189,8 +189,7 @@ export type VideoCompressionConfig = {
   presetName?: string | null
   videoId: string
   batchId?: string | null
-  audioVolume: number
-  audioChannelConfig?: AudioChannelConfig | null
+  audioConfig: AudioConfig
   quality: number
   dimensions?: [number, number] | null
   fps?: string | null

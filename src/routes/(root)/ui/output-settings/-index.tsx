@@ -18,6 +18,7 @@ import {
   VideoTransformsHistory,
 } from '@/types/compression'
 import { formatBytes } from '@/utils/fs'
+import AudioBitrate from './AudioBitrate'
 import AudioChannels from './AudioChannels'
 import AudioVolume from './AudioVolume'
 import CompressionPreset from './CompressionPreset'
@@ -113,10 +114,17 @@ function OutputSettings({ videoIndex }: OutputSettingsProps) {
           presetName: !v.config?.shouldDisableCompression
             ? v.config.presetName
             : null,
-          audioVolume: v.config?.audioVolume ?? 100,
-          ...((v.config?.audioVolume ?? 100) !== 0
-            ? { audioChannelConfig: v.config?.audioChannelConfig ?? null }
-            : {}),
+          audioConfig: {
+            volume: v.config?.audioConfig?.volume ?? 100,
+            audioChannelConfig:
+              (v.config?.audioConfig?.volume ?? 100) !== 0
+                ? (v.config?.audioConfig?.audioChannelConfig ?? null)
+                : null,
+            bitrate:
+              (v.config?.audioConfig?.volume ?? 100) !== 0
+                ? (v.config?.audioConfig?.bitrate ?? null)
+                : null,
+          },
           quality: v.config?.shouldEnableQuality
             ? (v.config?.quality as number)
             : 101,
@@ -298,6 +306,9 @@ function OutputSettings({ videoIndex }: OutputSettingsProps) {
               <div className="mt-10">
                 <AudioChannels videoIndex={videoIndex} />
                 <Divider className="my-3" />
+              </div>
+              <div className="mt-10">
+                <AudioBitrate videoIndex={videoIndex} />
               </div>
               {hasNoAudio ? <p className="text-xs">No audio found</p> : null}
             </>
