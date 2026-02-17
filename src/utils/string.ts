@@ -17,3 +17,22 @@ export function convertDurationToMilliseconds(duration: string) {
     return 0
   }
 }
+
+/**
+ *  Converts duration in seconds to HH:MM:SS.mm
+ *
+ * @param {number} totalSeconds: Time duration in seconds
+ * @returns {string}: Formatted duration in HH:MM::SS.mm
+ */
+export function formatDuration(totalSeconds: number): string {
+  const hours = Math.floor(totalSeconds / 3600)
+  const minutes = Math.floor((totalSeconds % 3600) / 60)
+  const seconds = Math.floor(totalSeconds % 60)
+  const milliseconds = Math.floor(
+    (totalSeconds - Math.floor(totalSeconds)) * 100,
+  )
+
+  const pad = (n: number, size = 2) => n.toString().padStart(size, '0')
+
+  return `${pad(hours)}:${pad(minutes)}:${pad(seconds)}.${pad(milliseconds)}`
+}

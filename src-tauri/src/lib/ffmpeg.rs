@@ -1,14 +1,18 @@
 use crate::domain::{
-    CancelInProgressCompressionPayload, CompressionResult, CustomEvents, TauriEvents,
-    VideoCompressionProgress, VideoInfo, VideoThumbnail,
+    AudioConfig, BatchCompressionIndividualCompressionResult, BatchCompressionProgress,
+    BatchCompressionResult, CancelInProgressCompressionPayload, CompressionResult, CustomEvents,
+    TauriEvents, TrimSegment, VideoCompressionConfig, VideoCompressionProgress,
+    VideoMetadataConfig, VideoThumbnail,
 };
+use crate::ffprobe::FFPROBE;
+use crate::fs::get_file_metadata;
 use crossbeam_channel::{Receiver, Sender};
 use nanoid::nanoid;
 use regex::Regex;
 use serde_json::Value;
 use shared_child::SharedChild;
 use std::{
-    io::{BufRead, BufReader},
+    io::BufReader,
     path::{Path, PathBuf},
     process::{Command, Stdio},
     sync::{Arc, Mutex},
@@ -57,35 +61,121 @@ impl FFMPEG {
         video_path: &str,
         convert_to_extension: &str,
         preset_name: Option<&str>,
-        video_id: Option<&str>,
-        should_mute_video: bool,
+        video_id: &str,
+        batch_id: Option<&str>,
+        audio_config: &AudioConfig,
         quality: u16,
         dimensions: Option<(u32, u32)>,
         fps: Option<&str>,
+        video_codec: Option<&str>,
         transforms_history: Option<&Vec<Value>>,
+        metadata_config: Option<&VideoMetadataConfig>,
+        custom_thumbnail_path: Option<&str>,
+        trim_segments: Option<&Vec<TrimSegment>>,
     ) -> Result<CompressionResult, String> {
         if !EXTENSIONS.contains(&convert_to_extension) {
             return Err(String::from("Invalid convert to extension."));
         }
 
-        let id = match video_id {
+        let audio_streams = {
+            let mut ffprobe = FFPROBE::new(&self.app)?;
+            ffprobe.get_audio_streams(video_path).await?
+        };
+        let has_audio_stream = !audio_streams.is_empty();
+
+        let video_id_clone1 = video_id.to_owned();
+        let video_id_clone2 = video_id.to_owned();
+
+        let batch_id = match batch_id {
             Some(id) => String::from(id),
             None => nanoid!(),
         };
-        let id_clone1 = id.clone();
-        let id_clone2 = id.clone();
+        let batch_id_clone1 = batch_id.clone();
+        let batch_id_clone2 = batch_id.clone();
 
-        let file_name = format!("{}.{}", id, convert_to_extension);
+        let file_name = format!("{}.{}", video_id, convert_to_extension);
         let file_name_clone = file_name.clone();
 
         let output_file: PathBuf = [self.assets_dir.clone(), PathBuf::from(&file_name)]
             .iter()
             .collect();
 
-        let output_path = &output_file.display().to_string();
+        let mut cmd_args: Vec<&str> = Vec::new();
 
+        cmd_args.push("-i");
+        cmd_args.push(video_path);
+
+        if convert_to_extension != "webm" {
+            if let Some(thumb_path) = custom_thumbnail_path {
+                if thumb_path.len() > 0 {
+                    cmd_args.extend_from_slice(&["-i", thumb_path]);
+                }
+            }
+        }
+
+        // Preserve existing metadata
+        cmd_args.extend_from_slice(&["-map_metadata", "0"]);
+
+        cmd_args.extend_from_slice(&[
+            "-hide_banner",
+            "-progress",
+            "-",
+            "-nostats",
+            "-loglevel",
+            "error",
+        ]);
+
+        let mut cmd_args = match preset_name {
+            Some(preset) => match preset {
+                "thunderbolt" => cmd_args,
+                _ => {
+                    cmd_args.extend_from_slice(&[
+                        "-pix_fmt:v:0",
+                        "yuv420p",
+                        "-b:v:0",
+                        "0",
+                        "-movflags",
+                        "+faststart",
+                        "-preset",
+                        "slow",
+                    ]);
+                    cmd_args
+                }
+            },
+            None => cmd_args,
+        };
+
+        // Codec
+        let output_codec: String = {
+            fn default_codec(convert_to_extension: &str) -> String {
+                match convert_to_extension {
+                    "webm" => "libvpx-vp9".to_string(),
+                    _ => "libx264".to_string(),
+                }
+            }
+            if let Some(codec) = video_codec {
+                codec.to_string()
+            } else {
+                if preset_name.is_none() {
+                    let source_streams = {
+                        let mut ffprobe = FFPROBE::new(&self.app)?;
+                        ffprobe.get_video_streams(video_path).await?
+                    };
+
+                    match source_streams.first() {
+                        Some(stream) => stream.codec.clone(),
+                        None => default_codec(convert_to_extension),
+                    }
+                } else {
+                    default_codec(convert_to_extension)
+                }
+            }
+        };
+        cmd_args.extend_from_slice(&["-c:v:0", output_codec.as_str()]);
+
+        // Quality
         let max_crf: u16 = 36;
-        let min_crf: u16 = 24; // Lower the CRF, higher the quality
+        let min_crf: u16 = 24;
         let default_crf: u16 = 28;
         let compression_quality = if (0..=100).contains(&quality) {
             let diff = (max_crf - min_crf) - ((max_crf - min_crf) * quality) / 100;
@@ -93,75 +183,10 @@ impl FFMPEG {
         } else {
             format!("{default_crf}")
         };
-        let compression_quality_str = compression_quality.as_str();
+        if preset_name.is_some() || (0..=100).contains(&quality) {
+            cmd_args.extend_from_slice(&["-crf", compression_quality.as_str()]);
+        }
 
-        let codec = "libx264";
-
-        let mut preset = match preset_name {
-            Some(preset) => match preset {
-                "thunderbolt" => {
-                    let args = vec![
-                        "-i",
-                        &video_path,
-                        "-hide_banner",
-                        "-progress",
-                        "-",
-                        "-nostats",
-                        "-loglevel",
-                        "error",
-                        "-c:v",
-                        codec,
-                        "-crf",
-                        compression_quality_str,
-                    ];
-                    args
-                }
-                _ => {
-                    let args = vec![
-                        "-i",
-                        &video_path,
-                        "-hide_banner",
-                        "-progress",
-                        "-",
-                        "-nostats",
-                        "-loglevel",
-                        "error",
-                        "-pix_fmt",
-                        "yuv420p",
-                        "-c:v",
-                        codec,
-                        "-b:v",
-                        "0",
-                        "-movflags",
-                        "+faststart",
-                        "-preset",
-                        "slow",
-                        "-qp",
-                        "0",
-                        "-crf",
-                        compression_quality_str,
-                    ];
-                    args
-                }
-            },
-            None => {
-                let args = vec![
-                    "-i",
-                    &video_path,
-                    "-hide_banner",
-                    "-progress",
-                    "-",
-                    "-nostats",
-                    "-loglevel",
-                    "error",
-                    "-c:v",
-                    codec,
-                    "-crf",
-                    compression_quality_str,
-                ];
-                args
-            }
-        };
         // Transforms
         let transform_filters = if let Some(transforms) = transforms_history {
             self.build_ffmpeg_filters(transforms)
@@ -171,49 +196,348 @@ impl FFMPEG {
 
         // Dimensions
         let padding = "pad=ceil(iw/2)*2:ceil(ih/2)*2";
-        let pad_filter = if let Some((width, height)) = dimensions {
-            format!("scale={}:{},{}", width, height, padding)
+
+        // Build the post-processing chain for video (transforms + scale + pad)
+        let mut video_post_chain: Vec<String> = Vec::new();
+        if !transform_filters.is_empty() {
+            video_post_chain.push(transform_filters.clone());
+        }
+        if let Some((width, height)) = dimensions {
+            video_post_chain.push(format!("scale={}:{}", width, height));
+        }
+        video_post_chain.push(String::from(padding));
+        let video_post_process = video_post_chain.join(",");
+
+        let mut filter_complex_parts: Vec<String> = Vec::new();
+        let mut map_video = false;
+        let mut map_audio = false;
+
+        let volume_filter_str = if audio_config.volume > 0 && audio_config.volume != 100 {
+            let volume_value = audio_config.volume as f32 / 100.0;
+            format!("volume={}", volume_value)
         } else {
-            format!("{}", padding)
+            "".to_string()
         };
 
-        let mut vf_filter = String::new();
+        let channel_filter_str =
+            if let Some(channel_config) = audio_config.audio_channel_config.as_ref() {
+                if let Some(ref layout) = channel_config.channel_layout {
+                    match layout.as_str() {
+                        "mono" => {
+                            if let Some(ref mono_source) = channel_config.mono_source {
+                                match (mono_source.left, mono_source.right) {
+                                    (true, true) => "aformat=channel_layouts=mono".to_string(),
+                                    (true, false) => "pan=mono|c0=c0".to_string(),
+                                    (false, true) => "pan=mono|c0=c1".to_string(),
+                                    (false, false) => "aformat=channel_layouts=mono".to_string(),
+                                }
+                            } else {
+                                "aformat=channel_layouts=mono".to_string()
+                            }
+                        }
+                        "stereo" => {
+                            if channel_config.stereo_swap_channels == Some(true) {
+                                "pan=stereo|c0=c1|c1=c0".to_string()
+                            } else {
+                                "".to_string()
+                            }
+                        }
+                        _ => "".to_string(),
+                    }
+                } else {
+                    "".to_string()
+                }
+            } else {
+                "".to_string()
+            };
 
-        if !transform_filters.is_empty() {
-            vf_filter.push_str(&transform_filters);
-            vf_filter.push_str(",")
+        let combined_audio_filter =
+            if !channel_filter_str.is_empty() && !volume_filter_str.is_empty() {
+                format!("{},{}", channel_filter_str, volume_filter_str)
+            } else if !channel_filter_str.is_empty() {
+                channel_filter_str
+            } else if !volume_filter_str.is_empty() {
+                volume_filter_str
+            } else {
+                "".to_string()
+            };
+
+        let combined_audio_filter_with_comma = if !combined_audio_filter.is_empty() {
+            format!(",{}", combined_audio_filter)
+        } else {
+            "".to_string()
+        };
+
+        if let Some(segments) = trim_segments {
+            if !segments.is_empty() {
+                map_video = true;
+                if segments.len() == 1 {
+                    let seg = &segments[0];
+                    // Single trim: trim -> post_process -> [outv]
+                    filter_complex_parts.push(format!(
+                        "[0:v]trim={}:{},setpts=PTS-STARTPTS,{}[outv]",
+                        seg.start, seg.end, video_post_process
+                    ));
+                } else {
+                    // Multi trim: trim segments -> concat -> post process -> [outv]
+                    let mut video_parts = Vec::new();
+                    let mut video_labels = Vec::new();
+                    for (i, seg) in segments.iter().enumerate() {
+                        let label = format!("v{}", i);
+                        video_labels.push(format!("[{}]", label));
+                        video_parts.push(format!(
+                            "[0:v]trim={}:{},setpts=PTS-STARTPTS[{}]",
+                            seg.start, seg.end, label
+                        ));
+                    }
+                    filter_complex_parts.push(video_parts.join("; "));
+
+                    filter_complex_parts.push(format!(
+                        "{} concat=n={}:v=1:a=0,{}[outv]",
+                        video_labels.join(""),
+                        segments.len(),
+                        video_post_process
+                    ));
+                }
+            }
         }
 
-        vf_filter.push_str(&pad_filter);
+        // If no trimming, just apply post-processing to input
+        if !map_video {
+            filter_complex_parts.push(format!("[0:v]{}[outv]", video_post_process));
+            map_video = true;
+        }
 
-        println!(">>>>>Final vf filter {}", vf_filter);
+        if audio_config.volume > 0 && has_audio_stream {
+            if let Some(segments) = trim_segments {
+                if !segments.is_empty() {
+                    map_audio = true;
 
-        preset.push("-vf");
-        preset.push(&vf_filter);
+                    let audio_tracks_to_process: Vec<usize> =
+                        if let Some(ref selected_tracks) = audio_config.selected_audio_tracks {
+                            selected_tracks.clone()
+                        } else {
+                            (0..audio_streams.len()).collect()
+                        };
+
+                    for (track_idx, track_index) in audio_tracks_to_process.iter().enumerate() {
+                        let out_label = if audio_tracks_to_process.len() == 1 {
+                            "outa".to_string()
+                        } else {
+                            format!("outa{}", track_idx)
+                        };
+
+                        if segments.len() == 1 {
+                            let seg = &segments[0];
+                            filter_complex_parts.push(format!(
+                                "[0:a:{}]atrim={}:{},asetpts=PTS-STARTPTS{}[{}]",
+                                track_index,
+                                seg.start,
+                                seg.end,
+                                combined_audio_filter_with_comma,
+                                out_label
+                            ));
+                        } else {
+                            let mut audio_parts = Vec::new();
+                            let mut audio_labels = Vec::new();
+                            for (i, seg) in segments.iter().enumerate() {
+                                let label = format!("a{}t{}", track_idx, i);
+                                audio_labels.push(format!("[{}]", label));
+                                audio_parts.push(format!(
+                                    "[0:a:{}]atrim={}:{},asetpts=PTS-STARTPTS[{}]",
+                                    track_index, seg.start, seg.end, label
+                                ));
+                            }
+                            filter_complex_parts.push(format!(
+                                "{}; {} concat=n={}:v=0:a=1{}[{}]",
+                                audio_parts.join("; "),
+                                audio_labels.join(""),
+                                segments.len(),
+                                combined_audio_filter_with_comma,
+                                out_label
+                            ));
+                        }
+                    }
+                }
+            }
+        }
+
+        let fc = match filter_complex_parts.len() {
+            0 => "".to_string(),
+            _ => filter_complex_parts.join(";").to_string(),
+        };
+
+        if !fc.is_empty() {
+            cmd_args.extend_from_slice(&["-filter_complex", &fc]);
+        }
 
         // FPS
         if let Some(fps_val) = fps {
-            preset.push("-r");
-            preset.push(fps_val);
+            cmd_args.push("-r");
+            cmd_args.push(fps_val);
         }
 
-        // Webm
-        if convert_to_extension == "webm" {
-            preset.push("-c:v");
-            preset.push("libvpx-vp9");
+        // Map output video
+        if map_video {
+            cmd_args.extend_from_slice(&["-map", "[outv]"]);
         }
 
-        // Mute Audio
-        if should_mute_video {
-            preset.push("-an")
+        let mut audio_args_owned: Vec<String> = Vec::new();
+
+        // Map output audio
+        if map_audio {
+            let processed_tracks: Vec<usize> =
+                if let Some(ref selected_tracks) = audio_config.selected_audio_tracks {
+                    selected_tracks.clone()
+                } else {
+                    (0..audio_streams.len()).collect()
+                };
+
+            for (track_idx, _) in processed_tracks.iter().enumerate() {
+                audio_args_owned.push("-map".to_string());
+
+                let out_label = if processed_tracks.len() == 1 {
+                    "[outa]".to_string()
+                } else {
+                    format!("[outa{}]", track_idx)
+                };
+
+                audio_args_owned.push(out_label);
+            }
+        } else if audio_config.volume > 0 && has_audio_stream {
+            if let Some(ref selected_tracks) = audio_config.selected_audio_tracks {
+                for &track_index in selected_tracks {
+                    audio_args_owned.push("-map".to_string());
+                    audio_args_owned.push(format!("0:a:{}", track_index));
+                }
+            } else {
+                cmd_args.extend_from_slice(&["-map", "0:a?"]);
+            }
         }
 
-        preset.push(output_path);
-        preset.push("-y");
+        // Audio filter
+        let audio_filter_args: Vec<String> = {
+            if has_audio_stream
+                && !map_audio
+                && (!combined_audio_filter.is_empty()
+                    || (audio_config.volume > 0 && audio_config.volume != 100))
+            {
+                let mut args = vec![];
+                if let Some(ref selected_tracks) = audio_config.selected_audio_tracks {
+                    for &track_index in selected_tracks {
+                        args.push(format!("-filter:a:{}", track_index));
+                        args.push(combined_audio_filter.clone());
+                    }
+                } else {
+                    for track_index in 0..audio_streams.len() {
+                        args.push(format!("-filter:a:{}", track_index));
+                        args.push(combined_audio_filter.clone());
+                    }
+                }
+                args
+            } else {
+                vec![]
+            }
+        };
+        audio_args_owned.extend(audio_filter_args);
+
+        // Audio bitrate
+        if audio_config.volume > 0 && has_audio_stream {
+            if let Some(bitrate) = audio_config.bitrate {
+                audio_args_owned.push("-b:a".to_string());
+                audio_args_owned.push(format!("{}k", bitrate));
+            }
+        }
+
+        // Audio codec
+        if audio_config.volume > 0 && has_audio_stream {
+            if let Some(codec) = &audio_config.audio_codec {
+                audio_args_owned.push("-c:a".to_string());
+                audio_args_owned.push(codec.clone());
+            }
+        }
+
+        cmd_args.extend(audio_args_owned.iter().map(|s| s.as_str()));
+
+        if audio_config.volume == 0 {
+            cmd_args.push("-an");
+        }
+
+        let mut metadata_args: Vec<String> = Vec::new();
+        if let Some(metadata) = metadata_config {
+            if let Some(ref title) = metadata.title {
+                metadata_args.push("-metadata".to_string());
+                metadata_args.push(format!("title={}", title.trim()));
+            }
+            if let Some(ref artist) = metadata.artist {
+                metadata_args.push("-metadata".to_string());
+                metadata_args.push(format!("artist={}", artist.trim()));
+            }
+            if let Some(ref album) = metadata.album {
+                metadata_args.push("-metadata".to_string());
+                metadata_args.push(format!("album={}", album.trim()));
+            }
+            if let Some(ref year) = metadata.year {
+                metadata_args.push("-metadata".to_string());
+                metadata_args.push(format!("date={}", year.trim()));
+            }
+            if let Some(ref comment) = metadata.comment {
+                metadata_args.push("-metadata".to_string());
+                metadata_args.push(format!("comment={}", comment.trim()));
+            }
+            if let Some(ref description) = metadata.description {
+                metadata_args.push("-metadata".to_string());
+                metadata_args.push(format!("description={}", description.trim()));
+            }
+            if let Some(ref synopsis) = metadata.synopsis {
+                metadata_args.push("-metadata".to_string());
+                metadata_args.push(format!("synopsis={}", synopsis.trim()));
+            }
+            if let Some(ref genre) = metadata.genre {
+                metadata_args.push("-metadata".to_string());
+                metadata_args.push(format!("genre={}", genre.trim()));
+            }
+            if let Some(ref creation_time) = metadata.creation_time {
+                metadata_args.push("-metadata".to_string());
+                metadata_args.push(format!("creation_time={}", creation_time.trim()));
+            }
+        }
+
+        // Remove the `Chapters` metadata forcefully if video has been trimmed
+        if let Some(segments) = trim_segments {
+            if !segments.is_empty() {
+                metadata_args.extend_from_slice(&["-map_chapters".to_string(), "-1".to_string()]);
+            }
+        }
+
+        for arg in metadata_args.iter().map(|s| s.as_str()) {
+            cmd_args.push(arg);
+        }
+
+        if custom_thumbnail_path.is_some() && convert_to_extension != "webm" {
+            if let Some(thumb_path) = custom_thumbnail_path {
+                if thumb_path.len() > 0 {
+                    cmd_args.push("-c:v:1");
+                    if thumb_path.to_lowercase().ends_with(".webp") {
+                        cmd_args.push("png");
+                    } else {
+                        cmd_args.push("copy");
+                    }
+                    cmd_args.extend_from_slice(&["-map", "1"]);
+                    cmd_args.extend_from_slice(&["-disposition:v:1", "attached_pic"]);
+                }
+            }
+        }
+
+        // Output path
+        let output_path = output_file.display().to_string();
+        cmd_args.extend_from_slice(&["-y", &output_path]);
+
+        log::info!("[ffmpeg] final command{:?}", cmd_args);
 
         let command = self
             .ffmpeg
-            .args(preset)
+            .args(cmd_args)
             .stdout(Stdio::piped())
             .stderr(Stdio::piped());
 
@@ -234,11 +558,11 @@ impl FFMPEG {
                         log::info!("[tauri] window destroyed");
                         match cp.kill() {
                             Ok(_) => {
-                                log::info!("child process killed.");
+                                log::info!("[ffmpeg-sidecar] child process killed.");
                             }
                             Err(err) => {
                                 log::error!(
-                                    "child process could not be killed {}",
+                                    "[ffmpeg-sidecar] child process could not be killed {}",
                                     err.to_string()
                                 );
                             }
@@ -255,16 +579,19 @@ impl FFMPEG {
                         let payload_opt: Option<CancelInProgressCompressionPayload> =
                             serde_json::from_str(payload_str).ok();
                         if let Some(payload) = payload_opt {
-                            let video_id = id_clone2.as_str();
-                            if payload.video_id == video_id {
+                            let batch_id = batch_id_clone1.as_str();
+                            if payload.video_id == video_id_clone1
+                                || (payload.batch_id.is_some()
+                                    && payload.batch_id.unwrap() == batch_id)
+                            {
                                 log::info!("compression requested to cancel.");
                                 match cp_clone4.kill() {
                                     Ok(_) => {
-                                        log::info!("child process killed.");
+                                        log::info!("[ffmpeg-sidecar] child process killed.");
                                     }
                                     Err(err) => {
                                         log::error!(
-                                            "child process could not be killed {}",
+                                            "[ffmpeg-sidecar] child process could not be killed {}",
                                             err.to_string()
                                         );
                                     }
@@ -331,20 +658,20 @@ impl FFMPEG {
                         }
                     }
 
-                    if cp_clone2.wait().is_ok() {
-                        return 0;
+                    match cp_clone2.wait() {
+                        Ok(status) if status.success() => 0,
+                        _ => 1,
                     }
-                    1
                 });
 
                 let app_clone = self.app.clone();
                 tokio::spawn(async move {
                     let file_name_clone_str = file_name_clone.as_str();
-                    let id_clone_str = id_clone1.as_str();
 
                     while let Ok(current_duration) = rx.recv() {
                         let video_progress = VideoCompressionProgress {
-                            video_id: String::from(id_clone_str),
+                            video_id: String::from(video_id_clone2.clone()),
+                            batch_id: batch_id_clone2.clone(),
                             file_name: String::from(file_name_clone_str),
                             current_duration,
                         };
@@ -375,15 +702,20 @@ impl FFMPEG {
                 window.unlisten(cancel_event_id);
                 match cp_clone3.kill() {
                     Ok(_) => {
-                        log::info!("child process killed.");
+                        log::info!("[ffmpeg-sidecar] child process killed.");
                     }
                     Err(err) => {
-                        log::error!("child process could not be killed {}", err.to_string());
+                        log::error!(
+                            "[ffmpeg-sidecar] child process could not be killed {}",
+                            err.to_string()
+                        );
                     }
                 }
 
                 let is_cancelled = should_cancel.lock().unwrap();
                 if *is_cancelled {
+                    // Delete the partial output file
+                    std::fs::remove_file(&output_file).ok();
                     return Err(String::from("CANCELLED"));
                 }
 
@@ -396,16 +728,138 @@ impl FFMPEG {
             }
         };
 
+        let file_metadata = get_file_metadata(&output_file.to_string_lossy().to_string());
         Ok(CompressionResult {
+            video_id: video_id.to_owned(),
             file_name,
             file_path: output_file.display().to_string(),
+            file_metadata: file_metadata.ok(),
         })
+    }
+
+    /// Compressed videos in batch
+    pub async fn compress_videos_batch(
+        &mut self,
+        batch_id: &str,
+        videos: Vec<VideoCompressionConfig>,
+    ) -> Result<BatchCompressionResult, String> {
+        let mut results: std::collections::HashMap<String, CompressionResult> =
+            std::collections::HashMap::new();
+        let total_count = videos.len();
+
+        for (index, video_options) in videos.iter().enumerate() {
+            let video_path = &video_options.video_path;
+            let video_id = &video_options.video_id;
+
+            let app_clone = self.app.clone();
+            let batch_id_clone = batch_id.to_string();
+            let video_id_clone = video_id.clone();
+
+            tokio::spawn(async move {
+                if let Some(window) = app_clone.get_webview_window("main") {
+                    let _ = window.clone().listen(
+                        CustomEvents::VideoCompressionProgress.as_ref(),
+                        move |evt| {
+                            if let Ok(progress) =
+                                serde_json::from_str::<VideoCompressionProgress>(evt.payload())
+                            {
+                                if progress.video_id == video_id_clone {
+                                    let batch_progress = BatchCompressionProgress {
+                                        batch_id: batch_id_clone.to_owned(),
+                                        current_index: index,
+                                        total_count,
+                                        video_progress: progress,
+                                    };
+                                    let _ = window.emit(
+                                        CustomEvents::BatchCompressionProgress.as_ref(),
+                                        batch_progress,
+                                    );
+                                }
+                            }
+                        },
+                    );
+                }
+            });
+
+            let mut ffmpeg_instance = match FFMPEG::new(&self.app) {
+                Ok(f) => f,
+                Err(e) => return Err(format!("Failed to create ffmpeg instance: {}", e)),
+            };
+
+            let app_clone2 = self.app.clone();
+            let batch_id_clone2 = batch_id.to_string();
+
+            let convert_to_extension = &video_options.convert_to_extension;
+            let preset_name = video_options.preset_name.as_deref();
+            let batch_id_for_compression = batch_id;
+            let audio_config = &video_options.audio_config;
+            let quality = video_options.quality;
+            let dimensions = video_options.dimensions;
+            let fps = video_options.fps.as_deref();
+            let video_codec = video_options.video_codec.as_deref();
+            let transforms_history = video_options
+                .transforms_history
+                .as_ref()
+                .map(|v| v.as_ref());
+            let metadata_config = video_options.metadata_config.as_ref();
+            let thumbnail_path = video_options.custom_thumbnail_path.as_deref();
+            let trim_segments = video_options.trim_segments.as_ref();
+
+            match ffmpeg_instance
+                .compress_video(
+                    video_path,
+                    convert_to_extension,
+                    preset_name,
+                    video_id,
+                    Some(batch_id_for_compression),
+                    audio_config,
+                    quality,
+                    dimensions,
+                    fps,
+                    video_codec,
+                    transforms_history,
+                    metadata_config,
+                    thumbnail_path,
+                    trim_segments,
+                )
+                .await
+            {
+                Ok(result) => {
+                    let video_id = result.video_id.clone();
+                    results.insert(video_id, result.clone());
+
+                    tokio::spawn(async move {
+                        if let Some(window) = app_clone2.get_webview_window("main") {
+                            let individual_compression_result: BatchCompressionIndividualCompressionResult =
+                                BatchCompressionIndividualCompressionResult {
+                                    batch_id: batch_id_clone2,
+                                    result: result,
+                                };
+                            let _ = window.emit(
+                                CustomEvents::BatchCompressionIndividualCompressionCompletion
+                                    .as_ref(),
+                                individual_compression_result,
+                            );
+                        }
+                    });
+                }
+                Err(e) => {
+                    if e == "CANCELLED" {
+                        return Err(String::from("CANCELLED"));
+                    }
+                    log::error!("Failed to compress video at index {}: {}", index, e);
+                }
+            }
+        }
+
+        Ok(BatchCompressionResult { results })
     }
 
     /// Generates a .jpeg thumbnail image from a video path
     pub async fn generate_video_thumbnail(
         &mut self,
         video_path: &str,
+        timestamp: Option<&str>,
     ) -> Result<VideoThumbnail, String> {
         if !Path::exists(Path::new(video_path)) {
             return Err(String::from("File does not exist in given path."));
@@ -416,13 +870,17 @@ impl FFMPEG {
             .iter()
             .collect();
 
+        let timestamp_value = timestamp.unwrap_or("00:00:01.00");
+
         let command = self.ffmpeg.args([
+            "-ss",
+            timestamp_value,
             "-i",
             video_path,
-            "-ss",
-            "00:00:01.00",
-            "-vframes",
+            "-frames:v",
             "1",
+            "-an",
+            "-sn",
             &output_path.display().to_string(),
             "-y",
         ]);
@@ -441,10 +899,13 @@ impl FFMPEG {
                     TauriEvents::Destroyed.get_str("key").unwrap(),
                     move |_| match cp.kill() {
                         Ok(_) => {
-                            log::info!("child process killed.");
+                            log::info!("[ffmpeg-sidecar] child process killed.");
                         }
                         Err(err) => {
-                            log::error!("child process could not be killed {}", err.to_string());
+                            log::error!(
+                                "[ffmpeg-sidecar] child process could not be killed {}",
+                                err.to_string()
+                            );
                         }
                     },
                 );
@@ -471,10 +932,13 @@ impl FFMPEG {
                 window.unlisten(destroy_event_id);
                 match cp_clone2.kill() {
                     Ok(_) => {
-                        log::info!("child process killed.");
+                        log::info!("[ffmpeg-sidecar] child process killed.");
                     }
                     Err(err) => {
-                        log::error!("child process could not be killed {}", err.to_string());
+                        log::error!(
+                            "[ffmpeg-sidecar] child process could not be killed {}",
+                            err.to_string()
+                        );
                     }
                 }
                 if !message.is_empty() {
@@ -492,120 +956,6 @@ impl FFMPEG {
 
     pub fn get_asset_dir(&self) -> String {
         self.assets_dir.display().to_string()
-    }
-
-    pub async fn get_video_info(&mut self, video_path: &str) -> Result<VideoInfo, String> {
-        if !Path::exists(Path::new(video_path)) {
-            return Err(String::from("File does not exist in given path."));
-        }
-
-        let command = self
-            .ffmpeg
-            .args(["-i", video_path, "-hide_banner"])
-            .stderr(Stdio::piped()); // Capture stderr for metadata parsing
-
-        match SharedChild::spawn(command) {
-            Ok(child) => {
-                let cp = Arc::new(child);
-                let cp_clone1 = cp.clone();
-                let cp_clone2 = cp.clone();
-
-                let window = match self.app.get_webview_window("main") {
-                    Some(window) => window,
-                    None => return Err(String::from("Could not attach to main window")),
-                };
-
-                let destroy_event_id = window.listen(
-                    TauriEvents::Destroyed.get_str("key").unwrap(),
-                    move |_| match cp.kill() {
-                        Ok(_) => log::info!("child process killed."),
-                        Err(err) => log::error!("child process could not be killed {}", err),
-                    },
-                );
-
-                let thread: tokio::task::JoinHandle<(
-                    u8,
-                    Option<String>,
-                    Option<(u32, u32)>,
-                    Option<f32>,
-                )> = tokio::task::spawn(async move {
-                    let mut duration: Option<String> = None;
-                    let mut dimensions: Option<(u32, u32)> = None;
-                    let mut fps: Option<f32> = None;
-
-                    if let Some(stderr) = cp_clone1.take_stderr() {
-                        let reader = BufReader::new(stderr);
-                        let duration_re = Regex::new(r"Duration: (?P<duration>.*?),").unwrap();
-                        let dimension_re =
-                            Regex::new(r"Video:.*?,.*? (?P<width>\d{2,5})x(?P<height>\d{2,5})")
-                                .unwrap();
-                        let fps_re = Regex::new(r"(?P<fps>\d+(\.\d+)?) fps").unwrap();
-
-                        for line_res in reader.lines() {
-                            if let Ok(line) = line_res {
-                                if duration.is_none() {
-                                    if let Some(cap) = duration_re.captures(&line) {
-                                        duration = Some(cap["duration"].to_string());
-                                    }
-                                }
-                                if dimensions.is_none() {
-                                    if let Some(cap) = dimension_re.captures(&line) {
-                                        if let (Ok(w), Ok(h)) = (
-                                            cap["width"].parse::<u32>(),
-                                            cap["height"].parse::<u32>(),
-                                        ) {
-                                            dimensions = Some((w, h));
-                                        }
-                                    }
-                                }
-                                if fps.is_none() {
-                                    if let Some(cap) = fps_re.captures(&line) {
-                                        if let Ok(parsed_fps) = cap["fps"].parse::<f32>() {
-                                            fps = Some(parsed_fps);
-                                        }
-                                    }
-                                }
-                                if duration.is_some() && dimensions.is_some() && fps.is_some() {
-                                    break;
-                                }
-                            } else {
-                                break;
-                            }
-                        }
-                    }
-
-                    if cp_clone1.wait().is_ok() {
-                        (0, duration, dimensions, fps)
-                    } else {
-                        (1, duration, dimensions, fps)
-                    }
-                });
-
-                let result = match thread.await {
-                    Ok((exit_status, duration, dimensions, fps)) => {
-                        if exit_status == 1 {
-                            Err("Video file is corrupted".to_string())
-                        } else {
-                            Ok(VideoInfo {
-                                duration,
-                                dimensions,
-                                fps,
-                            })
-                        }
-                    }
-                    Err(err) => Err(err.to_string()),
-                };
-
-                // Cleanup
-                window.unlisten(destroy_event_id);
-                if let Err(err) = cp_clone2.kill() {
-                    log::error!("child process could not be killed {}", err);
-                }
-
-                result
-            }
-            Err(err) => Err(err.to_string()),
-        }
     }
 
     fn build_ffmpeg_filters(&self, actions: &Vec<Value>) -> String {

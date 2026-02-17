@@ -20,8 +20,12 @@
         {
           "args": false,
           "cmd": "",
-          "name": "./bin/ffmpeg",
-          "sidecar": true
+          "name": "./bin/ffmpeg"
+        },
+        {
+          "args": false,
+          "cmd": "",
+          "name": "./bin/ffprobe"
         }
       ]
     },
@@ -47,6 +51,8 @@
     },
     "shell:allow-open",
     "log:default",
-    "os:allow-platform"
+    "os:allow-platform",
+    "core:window:allow-start-dragging",
+    "core:window:allow-toggle-maximize"
   ]
 }

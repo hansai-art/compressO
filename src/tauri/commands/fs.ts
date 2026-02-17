@@ -27,3 +27,12 @@ export function showItemInFileManager(path: string) {
 export function deleteCache() {
   return core.invoke('delete_cache')
 }
+
+export function copyFileToClipboard(filePath: string) {
+  return core.invoke('copy_file_to_clipboard', {
+    filePath,
+  })
+}
+export function readFilesFromClipboard() {
+  return core.invoke<string[]>('read_files_from_clipboard')
+}

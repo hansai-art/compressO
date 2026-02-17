@@ -1,62 +1,138 @@
-'use client'
-
-import { save } from '@tauri-apps/plugin-dialog'
-import React from 'react'
+import { open, save } from '@tauri-apps/plugin-dialog'
+import React, { useCallback } from 'react'
 import { snapshot, useSnapshot } from 'valtio'
 
 import Button from '@/components/Button'
 import Icon from '@/components/Icon'
 import { toast } from '@/components/Toast'
 import Tooltip from '@/components/Tooltip'
-import { moveFile, showItemInFileManager } from '@/tauri/commands/fs'
-import { videoProxy } from '../-state'
+import {
+  copyFileToClipboard,
+  moveFile,
+  showItemInFileManager,
+} from '@/tauri/commands/fs'
+import { appProxy } from '../-state'
 
-function Success() {
+function SaveVideo() {
   const {
-    state: { compressedVideo, isCompressionSuccessful, fileName },
-  } = useSnapshot(videoProxy)
+    state: { videos, isSaving, isSaved, isCompressing },
+  } = useSnapshot(appProxy)
+  const singleVideo = videos.length === 1 ? videos[0] : null
 
-  const fileNameDisplay =
-    (isCompressionSuccessful ? compressedVideo?.fileNameToDisplay : fileName) ??
-    ''
+  const handleCompressedVideoSave = useCallback(async () => {
+    if (appProxy.state.videos.length) {
+      const { videos } = appProxy.state
+      const isBatch = videos.length > 1
+      const singleVideo = videos.length > 0 ? videos[0] : null
+      const { compressedVideo, fileName } = singleVideo ?? {}
 
-  const handleCompressedVideoSave = async () => {
-    try {
-      const pathToSave = await save({
-        title: 'Choose location to save the compressed video.',
-        defaultPath: `compressO-${fileNameDisplay}`,
-      })
-      if (pathToSave) {
-        videoProxy.state.compressedVideo = {
-          ...(snapshot(videoProxy).state.compressedVideo ?? {}),
-          isSaving: true,
-          isSaved: false,
+      try {
+        let pathToSave: string | string[] | null = null
+
+        if (isBatch) {
+          const selectedDirectory = await open({
+            directory: true,
+            title: 'Choose directory to save the compressed videos.',
+          })
+          if (selectedDirectory) {
+            pathToSave = selectedDirectory as string
+          }
+        } else {
+          pathToSave = await save({
+            title: 'Choose location to save the compressed video.',
+            defaultPath: `compressO-${compressedVideo?.fileNameToDisplay ?? fileName ?? ''}`,
+          })
         }
-        await moveFile(compressedVideo?.pathRaw as string, pathToSave)
-        videoProxy.state.compressedVideo = {
-          ...(snapshot(videoProxy).state.compressedVideo ?? {}),
-          savedPath: pathToSave,
-          isSaving: false,
-          isSaved: true,
+
+        if (pathToSave) {
+          appProxy.state.isSaving = true
+          appProxy.state.isSaved = false
+          appProxy.state.savedPath = pathToSave
+
+          if (isBatch) {
+            const directory = pathToSave as string
+
+            for (let i = 0; i < videos.length; i++) {
+              const video = videos[i]
+              if (video.compressedVideo?.pathRaw) {
+                appProxy.state.videos[i].compressedVideo = {
+                  ...(snapshot(appProxy).state.videos[i].compressedVideo ?? {}),
+                  isSaving: true,
+                  isSaved: false,
+                }
+
+                const destinationPath = `${directory}/compressO-${video?.compressedVideo?.fileNameToDisplay || video?.fileName}`
+
+                await moveFile(video.compressedVideo.pathRaw, destinationPath)
+                appProxy.state.videos[i].compressedVideo = {
+                  ...(snapshot(appProxy).state.videos[i].compressedVideo ?? {}),
+                  savedPath: destinationPath,
+                  isSaving: false,
+                  isSaved: true,
+                }
+              }
+            }
+            appProxy.state.isSaved = true
+          } else {
+            appProxy.state.videos[0].compressedVideo = {
+              ...(snapshot(appProxy).state.videos[0].compressedVideo ?? {}),
+              isSaving: true,
+              isSaved: false,
+            }
+            await moveFile(
+              compressedVideo?.pathRaw as string,
+              pathToSave as string,
+            )
+            appProxy.state.videos[0].compressedVideo = {
+              ...(snapshot(appProxy).state.videos[0].compressedVideo ?? {}),
+              savedPath: pathToSave as string,
+              isSaving: false,
+              isSaved: true,
+            }
+            appProxy.state.isSaved = true
+          }
+        }
+      } catch (_) {
+        toast.error('Could not save video(s) to the given path.')
+        for (let i = 0; i < videos.length; i++) {
+          appProxy.state.videos[i].compressedVideo = {
+            ...(snapshot(appProxy).state.videos[i].compressedVideo ?? {}),
+            isSaving: false,
+            isSaved: false,
+          }
         }
       }
-    } catch (_) {
-      toast.error('Could not save video to the given path.')
-      videoProxy.state.compressedVideo = {
-        ...(snapshot(videoProxy).state.compressedVideo ?? {}),
-        isSaving: false,
-        isSaved: false,
-      }
+      appProxy.state.isSaving = false
     }
-  }
+  }, [])
 
   const openInFileManager = async () => {
-    if (!compressedVideo?.savedPath) return
+    const { videos } = appProxy.state
+    const singleVideo = videos.length > 0 ? videos[0] : null
+    const { compressedVideo } = singleVideo ?? {}
+
+    const savedPath = appProxy.state.savedPath ?? compressedVideo?.savedPath
+    if (!savedPath) return
     try {
-      await showItemInFileManager(compressedVideo?.savedPath)
-    } catch {
-      //
-    }
+      await showItemInFileManager(savedPath)
+    } catch {}
+  }
+
+  const copyToClipboard = async () => {
+    const { videos } = appProxy.state
+    const singleVideo = videos.length > 0 ? videos[0] : null
+    const { compressedVideo } = singleVideo ?? {}
+
+    const savedPath =
+      appProxy.state.savedPath ??
+      compressedVideo?.savedPath ??
+      compressedVideo?.pathRaw
+    if (!savedPath) return
+
+    try {
+      await copyFileToClipboard(savedPath)
+      toast.success('Copied to clipboard.')
+    } catch {}
   }
 
   return (
@@ -65,28 +141,45 @@ function Success() {
         className="flex justify-center items-center"
         color="success"
         onPress={handleCompressedVideoSave}
-        isLoading={compressedVideo?.isSaving}
-        isDisabled={compressedVideo?.isSaving || compressedVideo?.isSaved}
+        isLoading={isSaving}
+        isDisabled={isSaving || isSaved}
         fullWidth
-        size="lg"
       >
-        {compressedVideo?.isSaved ? 'Saved' : 'Save Video'}
-        <Icon
-          name={compressedVideo?.isSaved ? 'tick' : 'save'}
-          className="text-green-300"
-        />
+        {isSaving
+          ? 'Saving...'
+          : isSaved
+            ? 'Saved'
+            : `Save Video${videos.length > 1 ? 's' : ''}`}
+        {!isSaving ? (
+          <Icon name={isSaved ? 'tick' : 'save'} className="text-green-300" />
+        ) : null}
       </Button>
-      {compressedVideo?.isSaved && compressedVideo?.savedPath ? (
-        <Tooltip
-          content="Show in File Explorer"
-          aria-label="Show in File Explorer"
-        >
+      {isSaved ? (
+        <>
+          <Tooltip
+            content="Show in File Explorer"
+            aria-label="Show in File Explorer"
+          >
+            <Button
+              isIconOnly
+              className="ml-2 text-green-500"
+              onPress={openInFileManager}
+            >
+              <Icon name="fileExplorer" />
+            </Button>
+          </Tooltip>
+        </>
+      ) : null}
+      {!isCompressing &&
+      singleVideo?.isProcessCompleted &&
+      singleVideo?.compressedVideo?.isSuccessful ? (
+        <Tooltip content="Copy to clipboard" aria-label="Copy to clipboard">
           <Button
             isIconOnly
             className="ml-2 text-green-500"
-            onPress={openInFileManager}
+            onPress={copyToClipboard}
           >
-            <Icon name="fileExplorer" />
+            <Icon name="copy" size={28} />
           </Button>
         </Tooltip>
       ) : null}
@@ -94,4 +187,4 @@ function Success() {
   )
 }
 
-export default React.memo(Success)
+export default React.memo(SaveVideo)

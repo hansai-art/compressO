@@ -1,0 +1,506 @@
+import { AnimatePresence, motion } from 'framer-motion'
+import { useCallback, useMemo } from 'react'
+import { useSnapshot } from 'valtio'
+
+import Button from '@/components/Button'
+import Card from '@/components/Card'
+import Divider from '@/components/Divider'
+import Icon from '@/components/Icon'
+import Image from '@/components/Image'
+import Progress, { CircularProgress } from '@/components/Progress'
+import ScrollShadow from '@/components/ScrollShadow'
+import { toast } from '@/components/Toast'
+import Tooltip from '@/components/Tooltip'
+import { copyFileToClipboard, showItemInFileManager } from '@/tauri/commands/fs'
+import { zoomInStaggerAnimation } from '@/utils/animation'
+import { formatBytes } from '@/utils/fs'
+import { formatDuration } from '@/utils/string'
+import { cn } from '@/utils/tailwind'
+import { appProxy } from '../-state'
+
+function PreviewBatchVideos() {
+  const {
+    state: {
+      videos,
+      isCompressing,
+      isProcessCompleted,
+      currentVideoIndex,
+      totalSelectedFilesCount,
+      isLoadingFiles,
+      isBatchCompressionCancelled,
+    },
+  } = useSnapshot(appProxy)
+
+  const compressionStats = useMemo(() => {
+    const totalVideos = videos.length
+    const totalSize = videos.reduce((sum, v) => sum + (v.sizeInBytes ?? 0), 0)
+
+    const completedVideos = videos.filter(
+      (v) => v.isProcessCompleted && v.compressedVideo?.sizeInBytes,
+    )
+    const compressedCount = completedVideos.length
+    const cancelledCount = isBatchCompressionCancelled
+      ? totalVideos - compressedCount
+      : 0
+
+    const originalSize = completedVideos.reduce(
+      (sum, v) => sum + (v.sizeInBytes ?? 0),
+      0,
+    )
+    const compressedSize = completedVideos.reduce((sum, v) => {
+      const cs = v.compressedVideo?.sizeInBytes
+      const os = v.sizeInBytes ?? 0
+
+      return sum + (cs != null && cs < os ? cs : 0)
+    }, 0)
+    const sizeSaved = originalSize - compressedSize
+    const percentageSaved =
+      originalSize > 0 ? (sizeSaved / originalSize) * 100 : 0
+
+    const totalProgress = videos.reduce(
+      (a, c) => a + (c?.compressionProgress ?? 0) / videos.length,
+      0,
+    )
+
+    const displayTotalVideos = isBatchCompressionCancelled
+      ? compressedCount
+      : totalVideos
+    const displayTotalSize = isBatchCompressionCancelled
+      ? completedVideos.reduce((sum, v) => sum + (v.sizeInBytes ?? 0), 0)
+      : totalSize
+
+    return {
+      totalVideos,
+      totalSize,
+      compressedCount,
+      compressedSize,
+      sizeSaved,
+      percentageSaved,
+      totalProgress,
+      cancelledCount,
+      displayTotalVideos,
+      displayTotalSize,
+      isPositiveCompression:
+        (compressedSize ?? Number.MAX_SAFE_INTEGER) < (totalSize ?? 0),
+    }
+  }, [videos, isBatchCompressionCancelled])
+
+  const handleRemoveVideo = useCallback(
+    (index: number) => {
+      if (isCompressing) return
+      appProxy.state.videos = appProxy.state.videos.filter(
+        (_, i) => i !== index,
+      )
+    },
+    [isCompressing],
+  )
+
+  const handleOpenInFileManager = useCallback(async (savedPath: string) => {
+    try {
+      await showItemInFileManager(savedPath)
+    } catch {}
+  }, [])
+
+  const handleCopyToClipboard = useCallback(async (savedPath: string) => {
+    try {
+      await copyFileToClipboard(savedPath)
+      toast.success('Copied to clipboard.')
+    } catch {}
+  }, [])
+
+  return (
+    <>
+      <ScrollShadow
+        className="h-[75vh] hlg:h-[80vh] overflow-hidden overflow-y-auto"
+        hideScrollBar
+      >
+        <AnimatePresence mode="wait">
+          <motion.div
+            variants={zoomInStaggerAnimation.container}
+            initial="hidden"
+            animate="show"
+            exit="hidden"
+            className="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 3xl:grid-cols-4 gap-4"
+          >
+            {videos.map((video, index) => {
+              const compressedSizeDiff =
+                typeof video?.compressedVideo?.sizeInBytes === 'number' &&
+                typeof video?.sizeInBytes === 'number' &&
+                !Number.isNaN(video?.sizeInBytes)
+                  ? (((video?.sizeInBytes ?? 0) -
+                      (video?.compressedVideo?.sizeInBytes ?? 0)) *
+                      100) /
+                    video?.sizeInBytes
+                  : 0
+
+              return (
+                <motion.div
+                  key={video.id}
+                  layout
+                  variants={zoomInStaggerAnimation.item}
+                  className={cn([
+                    'relative rounded-xl border-2 overflow-hidden',
+                    currentVideoIndex > index || video.isProcessCompleted
+                      ? 'border-green-400'
+                      : 'border-primary',
+                  ])}
+                >
+                  <Card
+                    className={cn(
+                      'bg-zinc-100/5 dark:bg-zinc-900 rounded-none overflow-hidden',
+                    )}
+                    radius="lg"
+                  >
+                    <div className="relative w-full overflow-hidden">
+                      {video.thumbnailPath ? (
+                        <Image
+                          src={video.thumbnailPath as string}
+                          alt={video.fileName ?? ''}
+                          className="w-full max-w-[unset] h-[180px] hlg:h-[220px] object-cover drop-shadow-xl rounded-lg"
+                          removeWrapper
+                        />
+                      ) : (
+                        <div className="w-full aspect-video bg-zinc-200 dark:bg-zinc-800 flex items-center justify-center">
+                          <Icon
+                            name="videoFile"
+                            size={40}
+                            className="text-zinc-400"
+                          />
+                        </div>
+                      )}
+
+                      <div className="absolute top-2 left-2 z-10 flex gap-2 items-center">
+                        {!isCompressing &&
+                        video?.isProcessCompleted &&
+                        video?.compressedVideo?.isSuccessful ? (
+                          <Tooltip
+                            content="Copy to clipboard"
+                            aria-label="Copy to clipboard"
+                          >
+                            <Button
+                              size="sm"
+                              isIconOnly
+                              onPress={() =>
+                                handleCopyToClipboard(
+                                  (video?.compressedVideo?.savedPath ??
+                                    video?.compressedVideo?.pathRaw) as string,
+                                )
+                              }
+                              className="rounded-full text-white"
+                            >
+                              <Icon
+                                name="copy"
+                                size={28}
+                                className="text-green-400"
+                              />
+                            </Button>
+                          </Tooltip>
+                        ) : null}
+                        {video.isProcessCompleted &&
+                        video?.compressedVideo?.isSaved &&
+                        video?.compressedVideo?.savedPath ? (
+                          <Tooltip
+                            content="Show in File Explorer"
+                            aria-label="Show in File Explorer"
+                          >
+                            <Button
+                              size="sm"
+                              isIconOnly
+                              onPress={() =>
+                                handleOpenInFileManager(
+                                  video.compressedVideo!.savedPath!,
+                                )
+                              }
+                              className="p-2 rounded-full text-white"
+                            >
+                              <Icon
+                                name="fileExplorer"
+                                size={20}
+                                className="text-green-400"
+                              />
+                            </Button>
+                          </Tooltip>
+                        ) : null}
+                      </div>
+                      {!isCompressing &&
+                      !isProcessCompleted &&
+                      !isLoadingFiles ? (
+                        <>
+                          <Button
+                            size="sm"
+                            isIconOnly
+                            onPress={() => handleRemoveVideo(index)}
+                            className="absolute top-2 right-2 z-10 p-2 rounded-full bg-zinc-800/80 text-white hover:bg-zinc-700 transition-colors"
+                          >
+                            <Icon name="cross" size={18} />
+                          </Button>
+                          <Button
+                            size="sm"
+                            isIconOnly
+                            onPress={() => {
+                              appProxy.state.selectedVideoIndexForCustomization =
+                                index
+                            }}
+                            className={cn(
+                              'absolute bottom-2 left-2 z-10 rounded-full text-white hover:bg-zinc-700 transition-colors',
+                              video.isConfigDirty
+                                ? 'bg-primary'
+                                : 'bg-zinc-800/80',
+                            )}
+                          >
+                            <Icon name="pencil" size={20} />
+                          </Button>
+                        </>
+                      ) : null}
+                      {isCompressing && currentVideoIndex === index ? (
+                        <>
+                          <CircularProgress
+                            size="lg"
+                            showValueLabel
+                            className="absolute left-1/2 top-1/2 z-20 -translate-x-1/2 -translate-y-1/2"
+                            value={video.compressionProgress ?? 0}
+                            strokeWidth={3}
+                            classNames={{
+                              svg: 'w-20 h-20 drop-shadow-md',
+                              track: 'dark:stroke-white/50',
+                              value: 'font-bold text-sm text-white1',
+                            }}
+                            aria-label="Processing"
+                          />
+                          <div className="absolute inset-0 bg-black/70 z-10 rounded-lg"></div>
+                        </>
+                      ) : null}
+                    </div>
+                    <section className="px-3 py-2">
+                      <p className={cn(['font-medium text-sm truncate block'])}>
+                        {video.fileName ?? ''}
+                      </p>
+                      <section
+                        className={cn(
+                          'flex items-center gap-2 text-[12px] min-h-[55px]',
+                          !video?.compressedVideo?.isSuccessful
+                            ? 'justify-between'
+                            : '',
+                        )}
+                      >
+                        {video.isProcessCompleted &&
+                        video?.compressedVideo?.isSuccessful ? (
+                          <section className="animate-appearance-in w-full flex items-center justify-center gap-4">
+                            <div className="flex justify-center items-center">
+                              <p className="text-[16px] font-bold">
+                                {video.size ?? ''}
+                              </p>
+                              <Icon
+                                name="curvedArrow"
+                                className="text-black dark:text-white rotate-[-65deg] translate-y-[-2px] mx-2"
+                                size={40}
+                              />
+                              <p className="text-[16px] font-bold text-primary">
+                                {video?.compressedVideo?.size ?? ''}
+                              </p>
+                            </div>
+                            {!(compressedSizeDiff <= 0) ? (
+                              <>
+                                <Divider
+                                  orientation="vertical"
+                                  className="h-5"
+                                />
+                                <p className="block text-center text-[16px] text-green-500">
+                                  {compressedSizeDiff
+                                    .toFixed(2)
+                                    ?.endsWith('.00')
+                                    ? compressedSizeDiff
+                                        .toFixed(2)
+                                        ?.slice(0, -3)
+                                    : compressedSizeDiff.toFixed(2)}
+                                  %<span> smaller</span>
+                                </p>
+                              </>
+                            ) : null}
+                          </section>
+                        ) : (
+                          <>
+                            <div className="text-[11px] xl:text-[12px] xxl:text-[12px] 3xl:text-[12.5px]">
+                              <p className="italic text-gray-600 dark:text-gray-400 mb-1">
+                                Size
+                              </p>
+                              <span className="block font-black">
+                                {video.size}
+                              </span>
+                            </div>{' '}
+                            <Divider orientation="vertical" className="h-5" />
+                            <div className="text-[11px] xxl:text-[12px] 3xl:text-[12.5px]">
+                              <p className="italic text-gray-600 dark:text-gray-400 mb-1">
+                                Extension
+                              </p>
+                              <span className="block font-black">
+                                {video.extension ?? '-'}
+                              </span>
+                            </div>
+                            {video.videoDuration ? (
+                              <>
+                                <Divider
+                                  orientation="vertical"
+                                  className="h-5"
+                                />
+                                <div className="text-[11px] xxl:text-[12px] 3xl:text-[12.5px]">
+                                  <p className="italic text-gray-600 dark:text-gray-400 mb-1">
+                                    Duration
+                                  </p>
+                                  <span className="block font-black">
+                                    {formatDuration(video.videoDuration) ?? '-'}
+                                  </span>
+                                </div>
+                              </>
+                            ) : null}
+                            {video.dimensions ? (
+                              <>
+                                <Divider
+                                  orientation="vertical"
+                                  className="h-5"
+                                />
+                                <div className="text-[11px] xxl:text-[12px] 3xl:text-[12.5px]">
+                                  <p className="italic text-gray-600 dark:text-gray-400 mb-1">
+                                    Dimensions
+                                  </p>
+                                  <span className="block font-black">
+                                    {video.dimensions.width ?? '-'} x{' '}
+                                    {video.dimensions.height ?? '-'}
+                                  </span>
+                                </div>
+                              </>
+                            ) : null}
+                          </>
+                        )}
+                      </section>
+                    </section>
+                  </Card>
+                </motion.div>
+              )
+            })}
+          </motion.div>
+        </AnimatePresence>
+      </ScrollShadow>
+      <section className="relative px-4 py-6 flex flex-col items-center">
+        {isLoadingFiles ? (
+          <Progress
+            size="sm"
+            isIndeterminate={totalSelectedFilesCount == null}
+            className="w-[100px] mb-2 absolute top-2 right-1/2 translate-x-1/2"
+            value={(videos.length * 100) / (totalSelectedFilesCount || 1)}
+          />
+        ) : null}
+        <div className="max-w-7xl mx-auto">
+          {isCompressing ? (
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div className="flex items-center gap-6">
+                <div>
+                  <p className="italic text-gray-600 dark:text-gray-400">
+                    Compressed
+                  </p>
+                  <p className="font-black text-lg">
+                    {compressionStats?.compressedCount ?? 0} /{' '}
+                    {compressionStats?.totalVideos}
+                  </p>
+                </div>
+                <Divider orientation="vertical" className="h-8" />
+                <div>
+                  <p className="italic text-gray-600 dark:text-gray-400">
+                    Saved
+                  </p>
+                  <p className="font-black text-lg text-green-600 dark:text-green-400">
+                    {formatBytes(compressionStats.sizeSaved ?? 0) || '...'}
+                    {compressionStats.percentageSaved
+                      ? `(${(compressionStats.percentageSaved ?? 0).toFixed(0)}%)`
+                      : null}
+                  </p>
+                </div>
+              </div>
+              <Divider orientation="vertical" className="h-8" />
+              <div className="flex-1">
+                <CircularProgress
+                  showValueLabel
+                  size="lg"
+                  value={compressionStats.totalProgress ?? 0}
+                  strokeWidth={4}
+                />
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-center gap-6">
+              <div>
+                <p className="italic text-gray-600 dark:text-gray-400">
+                  Videos
+                </p>
+                <p
+                  className={cn(
+                    'font-black text-lg',
+                    isLoadingFiles ? 'animate-pulse' : '',
+                  )}
+                >
+                  {compressionStats.displayTotalVideos}
+                  {compressionStats.cancelledCount > 0 ? (
+                    <span className="text-xs italic text-warning-400 ml-2">
+                      ({compressionStats.cancelledCount} cancelled)
+                    </span>
+                  ) : null}
+                </p>
+              </div>
+              <Divider orientation="vertical" className="h-8" />
+              <div>
+                <p className="italic text-gray-600 dark:text-gray-400">Size</p>
+                <p
+                  className={cn(
+                    'font-black text-lg',
+                    isLoadingFiles ? 'animate-pulse' : '',
+                  )}
+                >
+                  {formatBytes(compressionStats.displayTotalSize)}
+                </p>
+              </div>
+              {isProcessCompleted ? (
+                <>
+                  <Divider orientation="vertical" className="h-8" />
+                  <div>
+                    <p className="italic text-gray-600 dark:text-gray-400">
+                      Output Size
+                    </p>
+                    <p
+                      className={cn(
+                        'font-black text-lg',
+                        compressionStats.isPositiveCompression
+                          ? 'text-green-600 dark:text-green-400'
+                          : '',
+                      )}
+                    >
+                      {formatBytes(compressionStats.compressedSize ?? 0) || '-'}
+                    </p>
+                  </div>
+                  <Divider orientation="vertical" className="h-8" />
+                  <div>
+                    <p className="italic text-gray-600 dark:text-gray-400">
+                      Saved
+                    </p>
+                    <p
+                      className={cn(
+                        'font-black text-lg',
+                        compressionStats.isPositiveCompression
+                          ? 'text-green-600 dark:text-green-400'
+                          : '',
+                      )}
+                    >
+                      {formatBytes(compressionStats.sizeSaved ?? 0) || '-'} (
+                      {(compressionStats.percentageSaved ?? 0).toFixed(2)}%)
+                    </p>
+                  </div>
+                </>
+              ) : null}
+            </div>
+          )}
+        </div>
+      </section>
+    </>
+  )
+}
+
+export default PreviewBatchVideos

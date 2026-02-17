@@ -1,5 +1,9 @@
 import React from 'react'
 
+import Audio from '@/assets/icons/audio.svg?react'
+import AudioMuted from '@/assets/icons/audio-muted.svg?react'
+import Back from '@/assets/icons/back.svg?react'
+import Copy from '@/assets/icons/copy.svg?react'
 import Cross from '@/assets/icons/cross.svg?react'
 import CurvedArrow from '@/assets/icons/curved-arrow.svg?react'
 import DragAndDrop from '@/assets/icons/drag-and-drop.svg?react'
@@ -9,10 +13,13 @@ import FileExplorer from '@/assets/icons/file-explorer.svg?react'
 import FlipHorizontal from '@/assets/icons/flip-horizontal.svg?react'
 import FlipVertical from '@/assets/icons/flip-vertical.svg?react'
 import Github from '@/assets/icons/github.svg?react'
+import Image from '@/assets/icons/image.svg?react'
 import Info from '@/assets/icons/info.svg?react'
 import Logo from '@/assets/icons/logo.svg?react'
 import LowResHeart from '@/assets/icons/low-res-heart.svg?react'
 import Moon from '@/assets/icons/moon.svg?react'
+import Pause from '@/assets/icons/pause.svg?react'
+import Pencil from '@/assets/icons/pencil.svg?react'
 import Play from '@/assets/icons/play.svg?react'
 import Question from '@/assets/icons/question.svg?react'
 import Redo from '@/assets/icons/redo.svg?react'
@@ -41,6 +48,7 @@ const registry = asRegistry({
   sun: Sun,
   videoFile: VideoFile,
   star: Star,
+  copy: Copy,
   cross: Cross,
   curvedArrow: CurvedArrow,
   save: Save,
@@ -62,6 +70,12 @@ const registry = asRegistry({
   flipHorizontal: FlipHorizontal,
   expand: Expand,
   resetZoom: ResetZoom,
+  pencil: Pencil,
+  back: Back,
+  pause: Pause,
+  image: Image,
+  audioMuted: AudioMuted,
+  audio: Audio,
 })
 
 export default registry

@@ -1,3 +1,4 @@
 pub mod ffmpeg;
+pub mod ffprobe;
 pub mod file_manager;
 pub mod fs;

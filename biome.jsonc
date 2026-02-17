@@ -26,7 +26,8 @@
         "noInvalidUseBeforeDeclaration": "off",
         "noUndeclaredDependencies": "error",
         "noUnusedImports": "error",
-        "noUnusedVariables": "error"
+        "noUnusedVariables": "error",
+        "useExhaustiveDependencies": "error"
       },
       "style": {
         "noNestedTernary": "off",

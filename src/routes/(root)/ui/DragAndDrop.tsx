@@ -1,6 +1,6 @@
 import { event } from '@tauri-apps/api'
 import { AnimatePresence, motion } from 'framer-motion'
-import React from 'react'
+import React, { useEffect } from 'react'
 import ReactDOM from 'react-dom'
 
 import Icon from '@/components/Icon'
@@ -12,10 +12,15 @@ const videoExtensions = Object.keys(extensions?.video)
 
 type DragAndDropProps = {
   disable?: boolean
-  onFile?: (filePath: string) => void
+  onFile?: (filePath: string | string[]) => void
+  multiple?: boolean
 }
 
-function DragAndDrop({ disable = false, onFile }: DragAndDropProps) {
+function DragAndDrop({
+  disable = false,
+  onFile,
+  multiple = false,
+}: DragAndDropProps) {
   const [dragAndDropState, setDragAndDropState] = React.useState<
     'idle' | 'dragging' | 'dropped'
   >('idle')
@@ -38,7 +43,7 @@ function DragAndDrop({ disable = false, onFile }: DragAndDropProps) {
     dragAndDropListenerRef.current?.drop?.()
   }, [])
 
-  React.useEffect(() => {
+  useEffect(() => {
     ;(async function iife() {
       cancelDragAndDropEvents()
 
@@ -55,15 +60,36 @@ function DragAndDrop({ disable = false, onFile }: DragAndDropProps) {
             toast.dismiss()
             const paths = evt?.payload?.paths
             if (paths.length > 0) {
-              const filePath = paths?.[0]
-              const filePathSplitted = filePath?.split('.')
-              if (filePathSplitted.length) {
-                const fileExtension =
-                  filePathSplitted?.[filePathSplitted.length - 1].toLowerCase()
-                if (!videoExtensions?.includes(fileExtension)) {
-                  toast.error('Invalid video file.')
+              if (multiple) {
+                const validPaths = paths.filter((filePath) => {
+                  const filePathSplitted = filePath?.split('.')
+                  if (filePathSplitted.length) {
+                    const fileExtension =
+                      filePathSplitted?.[
+                        filePathSplitted.length - 1
+                      ].toLowerCase()
+                    return videoExtensions?.includes(fileExtension)
+                  }
+                  return false
+                })
+                if (validPaths.length === 0) {
+                  toast.error('Invalid video files.')
                 } else {
-                  onFile?.(filePath)
+                  onFile?.(validPaths)
+                }
+              } else {
+                const filePath = paths?.[0]
+                const filePathSplitted = filePath?.split('.')
+                if (filePathSplitted.length) {
+                  const fileExtension =
+                    filePathSplitted?.[
+                      filePathSplitted.length - 1
+                    ].toLowerCase()
+                  if (!videoExtensions?.includes(fileExtension)) {
+                    toast.error('Invalid video file.')
+                  } else {
+                    onFile?.(filePath)
+                  }
                 }
               }
             }
@@ -89,7 +115,7 @@ function DragAndDrop({ disable = false, onFile }: DragAndDropProps) {
     return () => {
       cancelDragAndDropEvents()
     }
-  }, [onFile, disable, cancelDragAndDropEvents])
+  }, [onFile, disable, cancelDragAndDropEvents, multiple])
 
   return (
     <>

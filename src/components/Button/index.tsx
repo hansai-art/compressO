@@ -1,7 +1,7 @@
 import {
   Button as NextButton,
   type ButtonProps as NextButtonProps,
-} from '@heroui/button'
+} from '@heroui/react'
 import React from 'react'
 
 import { cn } from '@/utils/tailwind'
@@ -21,7 +21,7 @@ const Button = React.forwardRef(
         disableRipple
         color={color ?? 'default'}
         variant={variant ?? 'flat'}
-        size="md"
+        radius="md"
         {...nextButtonProps}
         className={cn(['font-medium', nextButtonProps.className])}
       />

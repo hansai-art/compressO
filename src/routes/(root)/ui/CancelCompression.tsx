@@ -1,4 +1,3 @@
-import { event } from '@tauri-apps/api'
 import { emitTo } from '@tauri-apps/api/event'
 import { AnimatePresence, motion } from 'framer-motion'
 import React from 'react'
@@ -6,66 +5,53 @@ import { snapshot, useSnapshot } from 'valtio'
 
 import Button from '@/components/Button'
 import { toast } from '@/components/Toast'
-import { CustomEvents, VideoCompressionProgress } from '@/types/compression'
-import { convertDurationToMilliseconds } from '@/utils/string'
-import { videoProxy } from '../-state'
+import { CustomEvents } from '@/types/compression'
+import { appProxy } from '../-state'
 
 function CancelCompression() {
   const {
-    state: { isCompressing, videoDurationMilliseconds, id: videoId },
-  } = useSnapshot(videoProxy)
+    state: { isCompressing },
+  } = useSnapshot(appProxy)
 
   const [confirmCancellation, setConfirmCancellation] = React.useState(false)
   const [isCancelling, setIsCancelling] = React.useState(false)
-
-  const compressionProgressRef = React.useRef<event.UnlistenFn>()
+  const confirmTimeoutRef = React.useRef<NodeJS.Timeout | null>(null)
 
   React.useEffect(() => {
-    if (videoDurationMilliseconds) {
-      ;(async function iife() {
-        if (compressionProgressRef.current) {
-          compressionProgressRef.current?.()
-        }
-        compressionProgressRef.current =
-          await event.listen<VideoCompressionProgress>(
-            CustomEvents.VideoCompressionProgress,
-            (evt) => {
-              const payload = evt?.payload
-              if (videoId === payload?.videoId) {
-                const currentDurationInMilliseconds =
-                  convertDurationToMilliseconds(payload?.currentDuration)
-                if (
-                  currentDurationInMilliseconds > 0 &&
-                  videoDurationMilliseconds >= currentDurationInMilliseconds
-                ) {
-                  videoProxy.state.compressionProgress =
-                    (currentDurationInMilliseconds * 100) /
-                    videoDurationMilliseconds
-                }
-              }
-            },
-          )
-      })()
+    if (confirmCancellation) {
+      confirmTimeoutRef.current = setTimeout(() => {
+        setConfirmCancellation(false)
+      }, 5000)
     }
 
     return () => {
-      compressionProgressRef.current?.()
+      if (confirmTimeoutRef.current) {
+        clearTimeout(confirmTimeoutRef.current)
+        confirmTimeoutRef.current = null
+      }
     }
-  }, [videoDurationMilliseconds, videoId])
-
-  React.useEffect(() => {
-    if (isCancelling) {
-      compressionProgressRef.current?.()
-    }
-  }, [isCancelling])
+  }, [confirmCancellation])
 
   const cancelOngoingCompression = async () => {
     try {
+      const appSnapShot = snapshot(appProxy)
       setIsCancelling(true)
       await emitTo('main', CustomEvents.CancelInProgressCompression, {
-        videoId: snapshot(videoProxy).state.id,
+        videoId: appSnapShot.state.videos[0]?.id, // for single-video mode
+        batchId: appSnapShot.state.batchId,
       })
-      videoProxy.timeTravel('beforeCompressionStarted')
+      if (
+        appProxy.state.videos.length > 1 &&
+        appProxy.state.currentVideoIndex > 0
+      ) {
+        appProxy.timeTravel('batchCompressionStep')
+        appProxy.state.isProcessCompleted = true
+        appProxy.state.isCompressing = false
+        appProxy.state.totalProgress = 100
+        appProxy.state.isBatchCompressionCancelled = true
+      } else {
+        appProxy.timeTravel('beforeCompressionStarted')
+      }
     } catch {
       toast.error('Cannot cancel compression at this point.')
     }
@@ -75,7 +61,6 @@ function CancelCompression() {
   return isCompressing ? (
     <Button
       color="danger"
-      size="lg"
       variant={confirmCancellation ? 'solid' : 'flat'}
       onPress={() => {
         if (!confirmCancellation) {

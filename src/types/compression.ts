@@ -1,3 +1,6 @@
+import { AudioConfig, VideoMetadataConfig } from './app'
+import { FileMetadata } from './fs'
+
 export const extensions = {
   video: { mp4: 'mp4', mov: 'mov', mkv: 'mkv', webm: 'webm', avi: 'avi' },
 } as const
@@ -8,19 +11,28 @@ export const compressionPresets = {
 } as const
 
 export type CompressionResult = {
+  videoId: string
   fileName: string
   filePath: string
+  fileMetadata: FileMetadata
 }
 
 export enum CustomEvents {
   VideoCompressionProgress = 'VideoCompressionProgress',
   CancelInProgressCompression = 'CancelInProgressCompression',
+  BatchCompressionProgress = 'BatchCompressionProgress',
+  BatchCompressionIndividualCompressionCompletion = 'BatchCompressionIndividualCompressionCompletion',
 }
 
 export type VideoCompressionProgress = {
   videoId: string
+  batchId: string
   fileName: string
   currentDuration: string
+}
+export type BatchCompressionIndividualCompressionResult = {
+  batchId: string
+  result: CompressionResult
 }
 
 export type VideoThumbnail = {
@@ -30,9 +42,98 @@ export type VideoThumbnail = {
 }
 
 export type VideoInfo = {
-  duration: string
+  duration: number
   dimensions: [number, number]
   fps: number
+}
+
+export type VideoStream = {
+  codec: string
+  codecLongName: string
+  profile: string
+  codecType: string
+
+  width: number
+  height: number
+  codedWidth: number
+  codedHeight: number
+
+  rFrameRate: string
+  avgFrameRate: string
+
+  pixFmt: string
+  colorSpace: string | null
+  colorRange: string | null
+  colorPrimaries: string | null
+  colorTransfer: string | null
+  chromaLocation: string | null
+
+  bitRate: string | null
+  duration: string | null
+
+  nbFrames: string | null
+  refs: number | null
+
+  gopSize: number | null
+  level: number | null
+
+  fieldOrder: string
+  timeBase: string
+  rotation: number | null
+}
+
+export type AudioStream = {
+  codec: string
+  codecLongName: string
+  codecType: string
+  profile: string | null
+
+  channels: string
+  channelLayout: string
+
+  sampleRate: string
+  sampleFmt: string | null
+  bitsPerSample: number | null
+
+  bitRate: string | null
+  duration: string | null
+
+  tags: readonly (readonly [string, string])[] | null
+}
+
+export type SubtitleStream = {
+  codec: string
+  codecLongName: string
+  codecType: string
+  language: string | null
+  title: string | null
+  disposition: {
+    default: boolean
+    forced: boolean
+    attached_pic: boolean
+    comment: boolean
+    karaoke: boolean
+    lyrics: boolean
+  }
+}
+
+export type Chapter = {
+  id: number
+  timeBase: string
+  start: number
+  end: number
+  title: string | null
+}
+
+export type ContainerInfo = {
+  filename: string
+  formatName: string
+  formatLongName: string
+  duration: number | null
+  size: number
+  bitRate: number | null
+  nbStreams: number
+  tags: [string, string][] | null
 }
 
 export type VideoTransforms = {
@@ -48,3 +149,53 @@ export type VideoTransformsHistory =
     }
   | { type: 'rotate'; value: number }
   | { type: 'flip'; value: { horizontal: boolean; vertical: boolean } }
+
+export type BatchCompressionResult = {
+  results: Record<string, CompressionResult>
+}
+
+export type BatchCompressionProgress = {
+  batchId: string
+  currentIndex: number
+  totalCount: number
+  videoProgress: VideoCompressionProgress
+}
+
+export type VideoFileMetadata = {
+  id: string
+  fileName: string
+  path: string
+  size: number
+  thumbnailPath?: string
+  duration?: string
+  dimensions?: [number, number]
+  fps?: number
+}
+
+export type TrimSegment = {
+  start: number
+  end: number
+}
+
+export type AudioChannelConfig = {
+  channelLayout: 'mono' | 'stereo' | null
+  monoSource?: { left: boolean; right: boolean }
+  stereoSwapChannels?: boolean
+}
+
+export type VideoCompressionConfig = {
+  videoPath: string
+  convertToExtension: string
+  presetName?: string | null
+  videoId: string
+  batchId?: string | null
+  audioConfig: AudioConfig
+  quality: number
+  dimensions?: [number, number] | null
+  fps?: string | null
+  videoCodec?: string | null
+  transformsHistory?: VideoTransformsHistory[] | null
+  metadataConfig?: VideoMetadataConfig | null
+  customThumbnailPath?: string | null
+  trimSegments?: TrimSegment[] | null
+}
