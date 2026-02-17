@@ -64,6 +64,7 @@ function VideoThumbnail({ videoIndex }: VideoThumbnailProps) {
   const trimmerRef = useRef<VideoTrimmerTimelineRef | null>(null)
   const trimConfigSetDebounceRef = useRef<NodeJS.Timeout | null>(null)
   const [isThumbnailRegenerating, setIsThumbnailRegenerating] = useState(false)
+  const thumbnailCacheRef = useRef<Record<string, string>>({})
 
   const handleRegenerateThumbnail = useCallback(
     async (timeStamp?: string, retries = 2, forced = false) => {
@@ -133,36 +134,42 @@ function VideoThumbnail({ videoIndex }: VideoThumbnailProps) {
         appProxy.state.videos[videoIndex].config,
         'isVideoTransformEditMode',
         async () => {
+          const videoSnapshot = appProxy.state.videos[videoIndex]
           if (
             playerRef.current &&
-            appProxy.state.videos[videoIndex].config.isVideoTransformEditMode
+            videoSnapshot.config.isVideoTransformEditMode
           ) {
-            const videoSnapshot = appProxy.state.videos[videoIndex]
-            const originalThumbnail = core.convertFileSrc(
-              videoSnapshot.thumbnailPathRaw!,
-            )
+            const { pathRaw: videoPathRaw } = videoSnapshot
 
-            playerRef.current.pauseVideo()
+            const currentTime = playerRef.current.playerRef?.getCurrentTime?.()
+            if (currentTime && videoPathRaw) {
+              try {
+                const targetDuration =
+                  currentTime >= videoSnapshot.videoDuration!
+                    ? currentTime - 0.05
+                    : currentTime <= 0
+                      ? 0.05
+                      : currentTime
+                const timestamp = formatDuration(targetDuration)
 
-            // Wait a bit for the pause to take effect and frame to stabilize
-            await new Promise((resolve) => setTimeout(resolve, 100))
+                let thumbnailPath = thumbnailCacheRef.current[timestamp]
 
-            let url: string | null = null
-            let attempts = 0
-            const maxAttempts = 3
+                if (!thumbnailPath) {
+                  const result = await generateVideoThumbnail(
+                    videoPathRaw,
+                    timestamp,
+                  )
 
-            while (!url && attempts < maxAttempts) {
-              url = await playerRef.current.captureVideoFrame()
-              if (!url) {
-                attempts++
-                if (attempts < maxAttempts) {
-                  await new Promise((resolve) => setTimeout(resolve, 100))
+                  thumbnailPath = result.filePath
+                  thumbnailCacheRef.current[timestamp] = thumbnailPath
                 }
-              }
-            }
 
-            appProxy.state.videos[videoIndex].thumbnailPath =
-              url ?? originalThumbnail
+                appProxy.state.videos[videoIndex].thumbnailPathRaw =
+                  thumbnailPath
+                appProxy.state.videos[videoIndex].thumbnailPath =
+                  core.convertFileSrc(thumbnailPath)
+              } catch {}
+            }
           }
         },
       )
@@ -170,6 +177,11 @@ function VideoThumbnail({ videoIndex }: VideoThumbnailProps) {
     return () => {
       unsubscribeTransform?.()
     }
+  }, [videoIndex])
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: <Clear thumbnail cache when video changes>
+  useEffect(() => {
+    thumbnailCacheRef.current = {}
   }, [videoIndex])
 
   useEffect(() => {
@@ -239,6 +251,13 @@ function VideoThumbnail({ videoIndex }: VideoThumbnailProps) {
               aspectRatio:
                 (video?.dimensions?.width ?? 1) /
                 (video?.dimensions?.height ?? 1),
+            }}
+            config={{
+              file: {
+                attributes: {
+                  crossorigin: 'anonymous',
+                },
+              },
             }}
             onError={() => {
               toast.warning('Switching to image thumbnail...')

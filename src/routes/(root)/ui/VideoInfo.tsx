@@ -568,7 +568,7 @@ function AudioStreamsDisplay({ streams }: { streams: AudioStream[] }) {
                       {startCase(key)}:
                     </span>{' '}
                     <span className="text-zinc-800 dark:text-zinc-200 text-[13px]">
-                      {value}
+                      {value ?? '-'}
                     </span>
                   </div>
                 ))}

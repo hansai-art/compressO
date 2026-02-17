@@ -187,7 +187,7 @@ function VideoDimensions({ videoIndex }: VideoDimensionsProps) {
                   radius="md"
                   key={preset.label}
                   onPress={() => handleChange(preset.width, 'width')}
-                  disabled={shouldDisableInput}
+                  isDisabled={shouldDisableInput}
                   className="min-w-[unset]"
                 >
                   {preset.label}

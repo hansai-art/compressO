@@ -62,7 +62,7 @@ function CustomizeVideoOnBatchActions() {
 
   return (
     <>
-      <div className="absolute top-0 right-0 bottom-0 left-0 w-full h-full z-[10] flex flex-col justify-center items-center bg-white1 dark:bg-black1">
+      <div className="absolute top-0 right-0 bottom-0 left-0 w-full h-full z-[10] flex flex-col justify-center bg-white1 dark:bg-black1">
         <motion.div
           className="flex flex-col justify-center items-center"
           {...zoomInTransition}

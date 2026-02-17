@@ -22,7 +22,7 @@ function VideoTransformer({ videoIndex }: VideoTransformerProps) {
     state: { videos },
   } = useSnapshot(appProxy)
   const video = videos.length > 0 ? videos[videoIndex] : null
-  const { config, thumbnailPath, thumbnailPathRaw } = video ?? {}
+  const { config, thumbnailPathRaw } = video ?? {}
   const { shouldTransformVideo } = config ?? {}
 
   const cropperRef = useRef<CropperRef>(null)
@@ -164,7 +164,7 @@ function VideoTransformer({ videoIndex }: VideoTransformerProps) {
     <>
       <Cropper
         ref={cropperRef}
-        src={thumbnailPath ?? core.convertFileSrc(thumbnailPathRaw!)}
+        src={core.convertFileSrc(thumbnailPathRaw!)}
         stencilProps={{
           grid: true,
         }}

@@ -100,7 +100,6 @@ const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(
         internalPlayer.videoHeight === 0 ||
         internalPlayer.readyState < 2
       ) {
-        // Wait for the video to be ready
         await new Promise<void>((resolve) => {
           const checkReady = () => {
             if (
@@ -120,7 +119,7 @@ const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(
       }
 
       // Small delay to ensure frame is actually rendered
-      await new Promise((resolve) => setTimeout(resolve, 50))
+      await new Promise((resolve) => setTimeout(resolve, 100))
 
       const canvas = document.createElement('canvas')
       canvas.width = internalPlayer.videoWidth
@@ -132,7 +131,7 @@ const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(
       ctx.drawImage(internalPlayer, 0, 0, canvas.width, canvas.height)
 
       const blob = await new Promise<Blob | null>((resolve) =>
-        canvas.toBlob(resolve, 'image/png'),
+        canvas.toBlob(resolve, 'image/jpg'),
       )
 
       if (!blob) {
