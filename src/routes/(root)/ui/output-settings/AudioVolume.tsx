@@ -130,7 +130,7 @@ function AudioVolume({ videoIndex }: AudioVolumeProps) {
         value={volume}
         onChange={handleVolumeChange}
         isDisabled={shouldDisableInput}
-        startContent={<Icon name="audioMuted" size={20}></Icon>}
+        startContent={<Icon name="audioMuted" size={25}></Icon>}
         endContent={<Icon name="audio" size={20}></Icon>}
       />
     </>

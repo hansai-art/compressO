@@ -637,7 +637,7 @@ impl FFPROBE {
                 "-select_streams",
                 "a",
                 "-show_entries",
-                "stream=codec_name,codec_long_name,codec_type,profile,channels,channel_layout,sample_rate,sample_fmt,bits_per_sample,bit_rate,duration,tags",
+                "stream=codec_name,codec_long_name,codec_type,profile,channels,channel_layout,sample_rate,sample_fmt,bits_per_sample,bit_rate,duration:stream_tags=language,title",
                 "-of",
                 "json",
                 path,
@@ -751,6 +751,12 @@ impl FFPROBE {
                                         .and_then(|d| d.as_str())
                                         .map(|s| s.to_string());
 
+                                    let language = stream
+                                        .get("tags")
+                                        .and_then(|t| t.get("language"))
+                                        .and_then(|l| l.as_str())
+                                        .map(|s| s.to_string());
+
                                     // Tags (language, title, etc.)
                                     let tags = if let Some(tags_obj) = stream.get("tags") {
                                         if let Some(tags_map) = tags_obj.as_object() {
@@ -781,6 +787,7 @@ impl FFPROBE {
                                         bits_per_sample,
                                         bit_rate,
                                         duration,
+                                        language,
                                         tags,
                                     });
                                 }

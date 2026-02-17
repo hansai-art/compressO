@@ -196,6 +196,7 @@ pub struct AudioConfig {
     pub audio_channel_config: Option<AudioChannelConfig>,
     pub bitrate: Option<u32>,
     pub audio_codec: Option<String>,
+    pub selected_audio_tracks: Option<Vec<usize>>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -265,7 +266,9 @@ pub struct AudioStream {
     pub bit_rate: Option<String>,
     pub duration: Option<String>,
 
-    // Tags (language, title, etc.)
+    pub language: Option<String>,
+
+    // Tags (language(sometimes language is in tags), title, etc.)
     pub tags: Option<Vec<(String, String)>>,
 }
 

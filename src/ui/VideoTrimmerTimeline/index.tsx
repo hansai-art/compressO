@@ -426,19 +426,19 @@ const VideoTrimmerTimeline = forwardRef(
               <PopoverContent>
                 <div className="p-2">
                   <p className="text-md mb-1">Timeline Controls:</p>
-                  <p className="text-xs">- Click to select an action</p>
+                  <p className="text-xs">- Click to select a track</p>
                   <p className="text-xs">
-                    - Double click on the action to split
+                    - Double click on the track to split
                   </p>
                   <p className="text-xs">
-                    - Double click on a free area to add a new action
+                    - Double click on a free area to add a new track
                   </p>
                   <p className="text-xs">
                     - Select and press{' '}
                     <Code size="sm" className="text-xs py-0 px-1">
                       Delete
                     </Code>{' '}
-                    to delete an action
+                    to delete a track
                   </p>
                   <Button
                     size="sm"

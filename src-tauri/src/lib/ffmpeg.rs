@@ -77,10 +77,11 @@ impl FFMPEG {
             return Err(String::from("Invalid convert to extension."));
         }
 
-        let has_audio_stream = {
+        let audio_streams = {
             let mut ffprobe = FFPROBE::new(&self.app)?;
-            !ffprobe.get_audio_streams(video_path).await?.is_empty()
+            ffprobe.get_audio_streams(video_path).await?
         };
+        let has_audio_stream = !audio_streams.is_empty();
 
         let video_id_clone1 = video_id.to_owned();
         let video_id_clone2 = video_id.to_owned();
@@ -218,36 +219,37 @@ impl FFMPEG {
             "".to_string()
         };
 
-        let channel_filter_str = if let Some(channel_config) = audio_config.audio_channel_config.as_ref() {
-            if let Some(ref layout) = channel_config.channel_layout {
-                match layout.as_str() {
-                    "mono" => {
-                        if let Some(ref mono_source) = channel_config.mono_source {
-                            match (mono_source.left, mono_source.right) {
-                                (true, true) => "aformat=channel_layouts=mono".to_string(),
-                                (true, false) => "pan=mono|c0=c0".to_string(),
-                                (false, true) => "pan=mono|c0=c1".to_string(),
-                                (false, false) => "aformat=channel_layouts=mono".to_string(),
+        let channel_filter_str =
+            if let Some(channel_config) = audio_config.audio_channel_config.as_ref() {
+                if let Some(ref layout) = channel_config.channel_layout {
+                    match layout.as_str() {
+                        "mono" => {
+                            if let Some(ref mono_source) = channel_config.mono_source {
+                                match (mono_source.left, mono_source.right) {
+                                    (true, true) => "aformat=channel_layouts=mono".to_string(),
+                                    (true, false) => "pan=mono|c0=c0".to_string(),
+                                    (false, true) => "pan=mono|c0=c1".to_string(),
+                                    (false, false) => "aformat=channel_layouts=mono".to_string(),
+                                }
+                            } else {
+                                "aformat=channel_layouts=mono".to_string()
                             }
-                        } else {
-                            "aformat=channel_layouts=mono".to_string()
                         }
-                    }
-                    "stereo" => {
-                        if channel_config.stereo_swap_channels == Some(true) {
-                            "pan=stereo|c0=c1|c1=c0".to_string()
-                        } else {
-                            "".to_string()
+                        "stereo" => {
+                            if channel_config.stereo_swap_channels == Some(true) {
+                                "pan=stereo|c0=c1|c1=c0".to_string()
+                            } else {
+                                "".to_string()
+                            }
                         }
+                        _ => "".to_string(),
                     }
-                    _ => "".to_string(),
+                } else {
+                    "".to_string()
                 }
             } else {
                 "".to_string()
-            }
-        } else {
-            "".to_string()
-        };
+            };
 
         let combined_audio_filter =
             if !channel_filter_str.is_empty() && !volume_filter_str.is_empty() {
@@ -310,30 +312,51 @@ impl FFMPEG {
             if let Some(segments) = trim_segments {
                 if !segments.is_empty() {
                     map_audio = true;
-                    if segments.len() == 1 {
-                        let seg = &segments[0];
-                        filter_complex_parts.push(format!(
-                            "[0:a]atrim={}:{},asetpts=PTS-STARTPTS{}[outa]",
-                            seg.start, seg.end, combined_audio_filter_with_comma
-                        ));
-                    } else {
-                        let mut audio_parts = Vec::new();
-                        let mut audio_labels = Vec::new();
-                        for (i, seg) in segments.iter().enumerate() {
-                            let label = format!("a{}", i);
-                            audio_labels.push(format!("[{}]", label));
-                            audio_parts.push(format!(
-                                "[0:a]atrim={}:{},asetpts=PTS-STARTPTS[{}]",
-                                seg.start, seg.end, label
+
+                    let audio_tracks_to_process: Vec<usize> =
+                        if let Some(ref selected_tracks) = audio_config.selected_audio_tracks {
+                            selected_tracks.clone()
+                        } else {
+                            (0..audio_streams.len()).collect()
+                        };
+
+                    for (track_idx, track_index) in audio_tracks_to_process.iter().enumerate() {
+                        let out_label = if audio_tracks_to_process.len() == 1 {
+                            "outa".to_string()
+                        } else {
+                            format!("outa{}", track_idx)
+                        };
+
+                        if segments.len() == 1 {
+                            let seg = &segments[0];
+                            filter_complex_parts.push(format!(
+                                "[0:a:{}]atrim={}:{},asetpts=PTS-STARTPTS{}[{}]",
+                                track_index,
+                                seg.start,
+                                seg.end,
+                                combined_audio_filter_with_comma,
+                                out_label
+                            ));
+                        } else {
+                            let mut audio_parts = Vec::new();
+                            let mut audio_labels = Vec::new();
+                            for (i, seg) in segments.iter().enumerate() {
+                                let label = format!("a{}t{}", track_idx, i);
+                                audio_labels.push(format!("[{}]", label));
+                                audio_parts.push(format!(
+                                    "[0:a:{}]atrim={}:{},asetpts=PTS-STARTPTS[{}]",
+                                    track_index, seg.start, seg.end, label
+                                ));
+                            }
+                            filter_complex_parts.push(format!(
+                                "{}; {} concat=n={}:v=0:a=1{}[{}]",
+                                audio_parts.join("; "),
+                                audio_labels.join(""),
+                                segments.len(),
+                                combined_audio_filter_with_comma,
+                                out_label
                             ));
                         }
-                        filter_complex_parts.push(format!(
-                            "{}; {} concat=n={}:v=0:a=1{}[outa]",
-                            audio_parts.join("; "),
-                            audio_labels.join(""),
-                            segments.len(),
-                            combined_audio_filter_with_comma
-                        ));
                     }
                 }
             }
@@ -359,49 +382,82 @@ impl FFMPEG {
             cmd_args.extend_from_slice(&["-map", "[outv]"]);
         }
 
+        let mut audio_args_owned: Vec<String> = Vec::new();
+
         // Map output audio
         if map_audio {
-            cmd_args.extend_from_slice(&["-map", "[outa]"]);
+            let processed_tracks: Vec<usize> =
+                if let Some(ref selected_tracks) = audio_config.selected_audio_tracks {
+                    selected_tracks.clone()
+                } else {
+                    (0..audio_streams.len()).collect()
+                };
+
+            for (track_idx, _) in processed_tracks.iter().enumerate() {
+                audio_args_owned.push("-map".to_string());
+
+                let out_label = if processed_tracks.len() == 1 {
+                    "[outa]".to_string()
+                } else {
+                    format!("[outa{}]", track_idx)
+                };
+
+                audio_args_owned.push(out_label);
+            }
         } else if audio_config.volume > 0 && has_audio_stream {
-            cmd_args.extend_from_slice(&["-map", "0:a?"]);
+            if let Some(ref selected_tracks) = audio_config.selected_audio_tracks {
+                for &track_index in selected_tracks {
+                    audio_args_owned.push("-map".to_string());
+                    audio_args_owned.push(format!("0:a:{}", track_index));
+                }
+            } else {
+                cmd_args.extend_from_slice(&["-map", "0:a?"]);
+            }
         }
 
+        // Audio filter
         let audio_filter_args: Vec<String> = {
             if has_audio_stream
                 && !map_audio
-                && (!combined_audio_filter.is_empty() || (audio_config.volume > 0 && audio_config.volume != 100))
+                && (!combined_audio_filter.is_empty()
+                    || (audio_config.volume > 0 && audio_config.volume != 100))
             {
-                vec!["-af".to_string(), combined_audio_filter]
+                let mut args = vec![];
+                if let Some(ref selected_tracks) = audio_config.selected_audio_tracks {
+                    for &track_index in selected_tracks {
+                        args.push(format!("-filter:a:{}", track_index));
+                        args.push(combined_audio_filter.clone());
+                    }
+                } else {
+                    for track_index in 0..audio_streams.len() {
+                        args.push(format!("-filter:a:{}", track_index));
+                        args.push(combined_audio_filter.clone());
+                    }
+                }
+                args
             } else {
                 vec![]
             }
         };
-        if !audio_filter_args.is_empty() {
-            cmd_args.extend_from_slice(
-                &(audio_filter_args
-                    .iter()
-                    .map(|v| v.as_str())
-                    .collect::<Vec<&str>>()),
-            );
-        }
+        audio_args_owned.extend(audio_filter_args);
 
         // Audio bitrate
-        let mut audio_bitrate_args: Vec<String> = Vec::new();
         if audio_config.volume > 0 && has_audio_stream {
             if let Some(bitrate) = audio_config.bitrate {
-                audio_bitrate_args.push("-b:a".to_string());
-                audio_bitrate_args.push(format!("{}k", bitrate));
+                audio_args_owned.push("-b:a".to_string());
+                audio_args_owned.push(format!("{}k", bitrate));
             }
         }
 
         // Audio codec
-        let mut audio_codec_args: Vec<String> = Vec::new();
         if audio_config.volume > 0 && has_audio_stream {
             if let Some(codec) = &audio_config.audio_codec {
-                audio_codec_args.push("-c:a".to_string());
-                audio_codec_args.push(codec.clone());
+                audio_args_owned.push("-c:a".to_string());
+                audio_args_owned.push(codec.clone());
             }
         }
+
+        cmd_args.extend(audio_args_owned.iter().map(|s| s.as_str()));
 
         if audio_config.volume == 0 {
             cmd_args.push("-an");
@@ -455,14 +511,6 @@ impl FFMPEG {
         }
 
         for arg in metadata_args.iter().map(|s| s.as_str()) {
-            cmd_args.push(arg);
-        }
-
-        for arg in audio_bitrate_args.iter().map(|s| s.as_str()) {
-            cmd_args.push(arg);
-        }
-
-        for arg in audio_codec_args.iter().map(|s| s.as_str()) {
             cmd_args.push(arg);
         }
 

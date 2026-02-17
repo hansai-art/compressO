@@ -560,14 +560,14 @@ function AudioStreamsDisplay({ streams }: { streams: AudioStream[] }) {
 
           {stream.tags && stream.tags.length > 0 ? (
             <div>
-              <InfoItem label="Tags" value="" />
-              <div className="mt-2 space-y-2 ml-4">
+              <InfoItem label="Tags" value=" " />
+              <div className="mt-2 space-y-2 mx-10">
                 {stream.tags.map(([key, value]) => (
                   <div key={key}>
-                    <span className="font-medium text-zinc-600 dark:text-zinc-400">
-                      {key}:
+                    <span className="font-medium text-zinc-600 dark:text-zinc-400 text-[13px]">
+                      {startCase(key)}:
                     </span>{' '}
-                    <span className="text-zinc-800 dark:text-zinc-200">
+                    <span className="text-zinc-800 dark:text-zinc-200 text-[13px]">
                       {value}
                     </span>
                   </div>

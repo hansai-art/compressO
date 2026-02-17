@@ -98,7 +98,7 @@ export type AudioStream = {
   bitRate: string | null
   duration: string | null
 
-  tags: [string, string][] | null
+  tags: readonly (readonly [string, string])[] | null
 }
 
 export type SubtitleStream = {

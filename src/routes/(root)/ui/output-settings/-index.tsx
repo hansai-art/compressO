@@ -21,6 +21,7 @@ import { formatBytes } from '@/utils/fs'
 import AudioBitrate from './AudioBitrate'
 import AudioChannels from './AudioChannels'
 import AudioCodec from './AudioCodec'
+import AudioTracks from './AudioTracks'
 import AudioVolume from './AudioVolume'
 import CompressionPreset from './CompressionPreset'
 import CompressionQuality from './CompressionQuality'
@@ -128,6 +129,11 @@ function OutputSettings({ videoIndex }: OutputSettingsProps) {
             audioCodec: v.config?.shouldEnableCustomAudioCodec
               ? (v.config?.customAudioCodec ?? null)
               : null,
+            selectedAudioTracks:
+              v.config?.shouldEnableAudioTrackSelection &&
+              (v.config?.audioConfig?.volume ?? 100) !== 0
+                ? (v.config?.selectedAudioTracks ?? null)
+                : null,
           },
           quality: v.config?.shouldEnableQuality
             ? (v.config?.quality as number)
@@ -317,6 +323,10 @@ function OutputSettings({ videoIndex }: OutputSettingsProps) {
               </>
               <>
                 <AudioBitrate videoIndex={videoIndex} />
+                <Divider className="my-3" />
+              </>
+              <>
+                <AudioTracks videoIndex={videoIndex} />
               </>
               {hasNoAudio ? <p className="text-xs">No audio found</p> : null}
             </>

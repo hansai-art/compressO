@@ -33,6 +33,7 @@ export type AudioConfig = {
   audioChannelConfig?: AudioChannelConfig | null
   bitrate?: number | null
   audioCodec?: string | null
+  selectedAudioTracks?: readonly number[] | null
 }
 
 export type VideoConfig = {
@@ -66,6 +67,8 @@ export type VideoConfig = {
   shouldEnableCustomBitrate?: boolean
   shouldEnableCustomAudioCodec?: boolean
   customAudioCodec?: string
+  shouldEnableAudioTrackSelection?: boolean
+  selectedAudioTracks?: number[]
 }
 
 export type Video = {
