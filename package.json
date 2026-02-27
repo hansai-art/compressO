@@ -10,7 +10,7 @@
   "type": "module",
   "scripts": {
     "vite:dev": "vite --port=3001",
-    "vite:build": "vite build",
+    "vite:build": "vite build --outDir ./dist-tauri",
     "vite:preview": "vite preview",
     "vite:start": "vite",
     "tauri:dev": "tauri dev",

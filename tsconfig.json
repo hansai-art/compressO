@@ -23,5 +23,5 @@
     }
   },
   "include": ["**/*.ts", "**/*.tsx", "./dist/types/**/*.ts"],
-  "exclude": ["node_modules"]
+  "exclude": ["node_modules", "website"]
 }

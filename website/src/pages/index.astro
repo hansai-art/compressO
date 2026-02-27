@@ -1,0 +1,1226 @@
+---
+import BaseHead from "../components/BaseHead.astro";
+import Header from "../components/Header.astro";
+import Footer from "../components/Footer.astro";
+import { SITE_TITLE, SITE_DESCRIPTION } from "../consts";
+import { getLatestRelease, getDownloadAssets } from "../utils/github";
+import OGImage from "../assets/og.jpg";
+import compressoLogo from "../assets/compresso.png";
+import aboutImage from "../assets/about.jpg";
+import privateImage from "../assets/private.jpg";
+import featuresImage from "../assets/features.jpg";
+import heroImage from "../assets/hero.jpg";
+
+// Fetch latest release at build time
+const latestRelease = await getLatestRelease();
+const downloads = getDownloadAssets(latestRelease.tag_name);
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <BaseHead
+      title={SITE_TITLE}
+      description={SITE_DESCRIPTION}
+      image={OGImage}
+    />
+    <style is:global>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      html {
+        scroll-behavior: smooth;
+      }
+
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu,
+          Cantarell, sans-serif;
+        line-height: 1.6;
+      }
+
+      .gradient-text {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+
+      .hero {
+        min-height: 100vh;
+        max-width: 1920px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        padding: 120px 20px 80px;
+        position: relative;
+        overflow: hidden;
+        margin: auto;
+      }
+
+      .hero::before {
+        content: "";
+        position: absolute;
+        top: -50%;
+        left: -50%;
+        width: 200%;
+        height: 200%;
+        animation: pulse 15s ease-in-out infinite;
+      }
+
+      @keyframes pulse {
+        0%,
+        100% {
+          transform: scale(1);
+        }
+        50% {
+          transform: scale(1.1);
+        }
+      }
+
+      .hero-content {
+        position: relative;
+        z-index: 1;
+        max-width: 1500px;
+      }
+
+      .compresso-logo {
+        width: 100px;
+        height: auto;
+        display: block;
+        margin: 0 auto;
+        margin-bottom: 25px;
+      }
+      .compresso-logo:hover {
+        transform: scale(0.8);
+        transition: all 300ms ease-in-out;
+      }
+
+      .badge {
+        display: inline-block;
+        padding: 4px 10px;
+        background: rgba(102, 126, 234, 0.2);
+        border: 1px solid rgba(102, 126, 234, 0.3);
+        border-radius: 50px;
+        font-size: 12px;
+        font-weight: 500;
+        backdrop-filter: blur(10px);
+      }
+
+      .hero h1 {
+        font-size: clamp(48px, 8vw, 80px);
+        line-height: 1.1;
+        margin-bottom: 24px;
+        letter-spacing: -0.02em;
+        font-weight: 700;
+      }
+
+      .hero p {
+        font-size: clamp(14px, 2.5vw, 20px);
+        color: rgba(255, 255, 255, 0.7);
+        margin-bottom: 40px;
+        max-width: 700px;
+        margin-left: auto;
+        margin-right: auto;
+      }
+
+      .cta-group {
+        display: flex;
+        gap: 16px;
+        justify-content: center;
+        flex-wrap: wrap;
+        margin-bottom: 60px;
+      }
+
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 16px;
+        border-radius: 12px;
+        font-size: 14px;
+        font-weight: 600;
+        text-decoration: none;
+        transition: all 0.3s ease;
+        cursor: pointer;
+      }
+
+      .btn-primary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: #fff;
+        border: none;
+      }
+
+      .btn-primary:hover {
+        transform: translateY(-2px);
+        color: #fff;
+      }
+
+      .btn-secondary {
+        background: rgba(255, 255, 255, 0.1);
+        color: #fff;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        backdrop-filter: blur(10px);
+      }
+
+      .btn-secondary:hover {
+        color: #fff;
+        background: rgba(255, 255, 255, 0.15);
+        border-color: rgba(255, 255, 255, 0.3);
+        transform: translateY(-2px);
+      }
+
+      .hero-image {
+        margin-top: 60px;
+        border-radius: 20px;
+        overflow: hidden;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+      }
+
+      .hero-image img {
+        width: 100%;
+        height: auto;
+        display: block;
+      }
+
+      .section {
+        padding: 80px 20px;
+        position: relative;
+      }
+
+      .section-divider {
+        height: 1px;
+        background: linear-gradient(
+          90deg,
+          transparent,
+          rgba(255, 255, 255, 0.1),
+          transparent
+        );
+        margin: 0;
+      }
+
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+      }
+
+      .section-header {
+        text-align: center;
+        margin-bottom: 80px;
+      }
+
+      .section-tag {
+        display: inline-block;
+        padding: 6px 16px;
+        background: rgba(102, 126, 234, 0.15);
+        border-radius: 20px;
+        font-size: 13px;
+        font-weight: 500;
+        color: #667eea;
+        margin-bottom: 20px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+      }
+
+      .section-title {
+        font-size: clamp(36px, 5vw, 56px);
+        font-weight: 800;
+        margin-bottom: 20px;
+        line-height: 1.2;
+      }
+
+      .section-subtitle {
+        font-size: clamp(16px, 2vw, 20px);
+        color: rgba(255, 255, 255, 0.6);
+        max-width: 700px;
+        margin: 0 auto;
+      }
+
+      .feature-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+        gap: 40px;
+        margin-top: 80px;
+      }
+
+      .feature-card {
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 20px;
+        padding: 40px;
+        transition: all 0.3s ease;
+      }
+
+      .feature-card:hover {
+        background: rgba(255, 255, 255, 0.05);
+        border-color: rgba(102, 126, 234, 0.3);
+        transform: translateY(-4px);
+      }
+
+      .feature-icon {
+        width: 60px;
+        height: 60px;
+        background: linear-gradient(
+          135deg,
+          rgba(102, 126, 234, 0.2),
+          rgba(118, 75, 162, 0.2)
+        );
+        border-radius: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 28px;
+        margin-bottom: 24px;
+      }
+
+      .feature-card h3 {
+        font-size: 24px;
+        font-weight: 700;
+        margin-bottom: 12px;
+      }
+
+      .feature-card p {
+        color: rgba(255, 255, 255, 0.6);
+        line-height: 1.7;
+        font-size: 16px;
+      }
+
+      .showcase-section {
+        background: linear-gradient(
+          180deg,
+          transparent,
+          rgba(102, 126, 234, 0.05),
+          transparent
+        );
+      }
+
+      .showcase-content {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 80px;
+        align-items: center;
+      }
+
+      .showcase-text h2 {
+        font-size: clamp(32px, 4vw, 48px);
+        font-weight: 800;
+        margin-bottom: 24px;
+        line-height: 1.2;
+      }
+
+      .showcase-text p {
+        font-size: 18px;
+        color: rgba(255, 255, 255, 0.6);
+        margin-bottom: 32px;
+        line-height: 1.7;
+      }
+
+      .feature-list {
+        list-style: none;
+      }
+
+      .feature-list li {
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+        padding: 16px 0;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        font-size: 17px;
+        color: rgba(255, 255, 255, 0.8);
+      }
+
+      .feature-list li:last-child {
+        border-bottom: none;
+      }
+
+      .feature-list li::before {
+        content: "✓";
+        flex-shrink: 0;
+        width: 24px;
+        height: 24px;
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 14px;
+        font-weight: bold;
+      }
+
+      .feature-list-vertical li {
+        align-items: flex-start;
+      }
+
+      .feature-list-vertical li::before {
+        align-self: flex-start;
+        margin-top: 2px;
+      }
+
+      .feature-item-content {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+
+      .feature-list-vertical li strong {
+        font-size: 16px;
+        color: #fff;
+        font-weight: 600;
+      }
+
+      .feature-list-vertical li span {
+        font-size: 15px;
+        color: rgba(255, 255, 255, 0.6);
+        line-height: 1.5;
+      }
+
+      .feature-list li.feature-hidden {
+        display: none !important;
+      }
+
+      .show-all-btn {
+        margin-top: 16px;
+        padding: 4px 10px;
+        background: transparent;
+        border: 1px solid rgba(102, 126, 234, 0.5);
+        border-radius: 8px;
+        color: #667eea;
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.3s ease;
+      }
+
+      .show-all-btn:hover {
+        background: rgba(102, 126, 234, 0.1);
+        border-color: #667eea;
+      }
+
+      .showcase-visual {
+        position: relative;
+      }
+
+      .showcase-visual video,
+      .showcase-visual img {
+        width: 100%;
+        border-radius: 20px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+      }
+
+      .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 40px;
+        margin-top: 80px;
+      }
+
+      .stat-card {
+        text-align: center;
+        padding: 40px 20px;
+        background: rgba(255, 255, 255, 0.02);
+        border-radius: 16px;
+        border: 1px solid rgba(255, 255, 255, 0.05);
+      }
+
+      .stat-number {
+        font-size: 48px;
+        font-weight: 800;
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        margin-bottom: 8px;
+      }
+
+      .stat-label {
+        font-size: 14px;
+        color: rgba(255, 255, 255, 0.5);
+        text-transform: uppercase;
+        letter-spacing: 1px;
+      }
+
+      .cta-section {
+        text-align: center;
+        background: linear-gradient(
+          180deg,
+          rgba(102, 126, 234, 0.1),
+          transparent
+        );
+      }
+
+      .cta-section h2 {
+        font-size: clamp(36px, 5vw, 56px);
+        font-weight: 800;
+        margin-bottom: 20px;
+      }
+
+      .cta-section p {
+        font-size: 20px;
+        color: rgba(255, 255, 255, 0.6);
+        margin-bottom: 40px;
+        max-width: 600px;
+        margin-left: auto;
+        margin-right: auto;
+      }
+
+      .github-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 12px;
+        padding: 8px 12px;
+        background: rgba(255, 255, 255, 0.05);
+        border: 2px solid rgba(255, 255, 255, 0.2);
+        border-radius: 16px;
+        color: #fff;
+        text-decoration: none;
+        font-size: 16px;
+        font-weight: 600;
+        transition: all 0.3s ease;
+      }
+
+      .github-link:hover {
+        background: rgba(255, 255, 255, 0.1);
+        border-color: rgba(255, 255, 255, 0.4);
+        transform: translateY(-2px);
+      }
+
+      .downloads-section {
+        margin-top: 60px;
+        text-align: center;
+        scroll-margin-top: 80px;
+      }
+
+      .downloads-section h3 {
+        font-size: 20px;
+        font-weight: 600;
+        margin-bottom: 32px;
+        color: rgba(255, 255, 255, 0.9);
+      }
+
+      .downloads-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 24px;
+        max-width: 900px;
+        margin: 0 auto;
+      }
+
+      .download-column {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+
+      .download-os-header {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        font-size: 16px;
+        font-weight: 600;
+        color: rgba(255, 255, 255, 0.8);
+        margin-bottom: 8px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+      }
+
+      .download-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        padding: 14px 20px;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        border-radius: 12px;
+        color: #fff;
+        text-decoration: none;
+        font-size: 14px;
+        font-weight: 500;
+        transition: all 0.3s ease;
+      }
+
+      .download-btn:hover {
+        background: rgba(102, 126, 234, 0.2);
+        border-color: rgba(102, 126, 234, 0.5);
+        transform: translateY(-2px);
+      }
+
+      .download-btn svg {
+        flex-shrink: 0;
+      }
+
+      .arch-badge {
+        font-size: 11px;
+        padding: 2px 6px;
+        background: rgba(102, 126, 234, 0.2);
+        border-radius: 4px;
+        margin-left: 6px;
+      }
+
+      .version-badge {
+        display: inline-block;
+        margin-top: 24px;
+        padding: 6px 14px;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 20px;
+        font-size: 13px;
+        color: rgba(255, 255, 255, 0.6);
+      }
+
+      .copy-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 6px;
+        background: rgba(102, 126, 234, 0.2);
+        border: 1px solid rgba(102, 126, 234, 0.4);
+        border-radius: 6px;
+        color: #fff;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        flex-shrink: 0;
+      }
+
+      .copy-btn:hover {
+        background: rgba(102, 126, 234, 0.3);
+        border-color: rgba(102, 126, 234, 0.6);
+      }
+
+      .copy-btn.copied {
+        background: rgba(34, 197, 94, 0.3);
+        border-color: rgba(34, 197, 94, 0.5);
+      }
+
+      .copy-btn.copied svg {
+        stroke: #22c55e;
+      }
+
+      @media (max-width: 768px) {
+        .downloads-grid {
+          grid-template-columns: 1fr;
+          gap: 32px;
+        }
+      }
+
+      @media (max-width: 968px) {
+        .showcase-content {
+          grid-template-columns: 1fr;
+          gap: 60px;
+        }
+
+        .stats-grid {
+          grid-template-columns: repeat(2, 1fr);
+        }
+      }
+
+      @media (max-width: 640px) {
+        .hero {
+          padding: 80px 20px 60px;
+        }
+
+        .feature-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .stats-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .cta-group {
+          flex-direction: column;
+          width: 100%;
+        }
+
+        .btn {
+          width: 100%;
+          justify-content: center;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <Header />
+
+    <!-- Hero Section -->
+    <section class="hero">
+      <div class="hero-content">
+        <img
+          src={compressoLogo.src}
+          alt="Compresso Logo"
+          class="compresso-logo"
+        />
+        <span class="badge">✨ 100% Free & Open Source</span>
+        <h1>
+          Compress any videos.<br />
+          <span class="gradient-text">Completely private.</span>
+        </h1>
+        <p>
+          CompressO is a completely free, offline, & open-source video
+          compression app available for Mac , Windows ⊞ & Linux 🐧.
+          <br />
+          No cloud uploads, no tracking. Just powerful compression that runs entirely
+          on your machine.
+        </p>
+        <div class="cta-group">
+          <a href="#downloads" class="btn btn-primary">
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="7 10 12 15 17 10"></polyline>
+              <line x1="12" y1="15" x2="12" y2="3"></line>
+            </svg>
+            Download
+          </a>
+          <a
+            href="https://github.com/codeforreal1/compressO"
+            class="btn btn-secondary"
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+              <path
+                d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"
+              ></path>
+            </svg>
+            View on GitHub
+          </a>
+        </div>
+        <div class="hero-image">
+          <img src={heroImage.src} alt="CompressO Interface" />
+        </div>
+      </div>
+    </section>
+
+    <div class="section-divider"></div>
+
+    <!-- Features Section -->
+    <section class="section">
+      <div class="container">
+        <div class="section-header">
+          <h2 class="section-title">
+            Powerful compression.<br />Zero compromise.
+          </h2>
+          <p class="section-subtitle">
+            CompressO combines industry-leading compression algorithms with a
+            focus on privacy and simplicity.
+          </p>
+        </div>
+
+        <div class="feature-grid">
+          <div class="feature-card">
+            <div class="feature-icon">🔒</div>
+            <h3>100% Offline</h3>
+            <p>
+              Your videos never leave your device. All compression happens
+              locally on your machine, ensuring complete privacy and security.
+            </p>
+          </div>
+
+          <div class="feature-card">
+            <div class="feature-icon">⚡</div>
+            <h3>Lightning Fast</h3>
+            <p>Powered by latest FFmpeg. Compress videos within seconds.</p>
+          </div>
+
+          <div class="feature-card">
+            <div class="feature-icon">🎯</div>
+            <h3>Smart Compression</h3>
+            <p>
+              Advanced algorithms maintain visual quality while dramatically
+              reducing file size. Perfect for sharing and storage.
+            </p>
+          </div>
+
+          <div class="feature-card">
+            <div class="feature-icon">🎨</div>
+            <h3>Simple Interface</h3>
+            <p>
+              Drag & drop, copy-paste or select videos, compress. No complicated
+              settings or technical knowledge required. Just results that work.
+            </p>
+          </div>
+
+          <div class="feature-card">
+            <div class="feature-icon">🌐</div>
+            <h3>Universal Format</h3>
+            <p>
+              Support for all major video formats including MP4, MOV, AVI, and
+              more. Export to any format you need.
+            </p>
+          </div>
+
+          <div class="feature-card">
+            <div class="feature-icon">💎</div>
+            <h3>Quality Control</h3>
+            <p>
+              Fine-tune compression settings to balance file size and quality.
+              Preview results before saving.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="section-divider"></div>
+
+    <!-- Feature Showcase Section -->
+    <section class="section showcase-section">
+      <div class="container">
+        <div class="showcase-content">
+          <div class="showcase-text">
+            <span class="section-tag">Powerful Features</span>
+            <h2>Packed with everything<br />you need.</h2>
+            <p>
+              CompressO goes beyond simple compression. It's a comprehensive
+              video processing tool designed for power users and casual users
+              alike.
+            </p>
+            <ul class="feature-list feature-list-vertical" id="featureList">
+              <li>
+                <div class="feature-item-content">
+                  <strong>Batch Compression</strong>
+                  <span
+                    >Process multiple videos at once with smart queue management</span
+                  >
+                </div>
+              </li>
+              <li>
+                <div class="feature-item-content">
+                  <strong>Video Editing</strong>
+                  <span
+                    >Trim, split, crop, rotate, flip, and zoom videos before
+                    compression</span
+                  >
+                </div>
+              </li>
+              <li>
+                <div class="feature-item-content">
+                  <strong>Video Controls</strong>
+                  <span
+                    >Customize codec, quality, dimensions, resolution, FPS, and
+                    output format</span
+                  >
+                </div>
+              </li>
+              <li>
+                <div class="feature-item-content">
+                  <strong>Audio Controls</strong>
+                  <span
+                    >Adjust codec, volume, channels, bitrate, and select audio
+                    tracks</span
+                  >
+                </div>
+              </li>
+              <li>
+                <div class="feature-item-content">
+                  <strong>Clipboard Support</strong>
+                  <span
+                    >Paste video files or directories directly from clipboard
+                    for instant batch processing</span
+                  >
+                </div>
+              </li>
+              <li class="feature-hidden">
+                <div class="feature-item-content">
+                  <strong>Drag & Drop</strong>
+                  <span
+                    >Drop entire folders containing videos for automatic batch
+                    compression</span
+                  >
+                </div>
+              </li>
+              <li class="feature-hidden">
+                <div class="feature-item-content">
+                  <strong>System Integration</strong>
+                  <span
+                    >Right-click any video in your file manager and "Open with
+                    CompressO"</span
+                  >
+                </div>
+              </li>
+              <li class="feature-hidden">
+                <div class="feature-item-content">
+                  <strong>Complete Info</strong>
+                  <span
+                    >View full video metadata including container, streams,
+                    subtitles, and chapters</span
+                  >
+                </div>
+              </li>
+              <li class="feature-hidden">
+                <div class="feature-item-content">
+                  <strong>Copy to Clipboard</strong>
+                  <span
+                    >Copy compressed videos directly to clipboard for easy
+                    pasting</span
+                  >
+                </div>
+              </li>
+              <li class="feature-hidden">
+                <div class="feature-item-content">
+                  <strong>Metadata Editing</strong>
+                  <span
+                    >Edit title, artist, album, year, genre, description,
+                    copyright, and more</span
+                  >
+                </div>
+              </li>
+              <li class="feature-hidden">
+                <div class="feature-item-content">
+                  <strong>Custom Thumbnails</strong>
+                  <span
+                    >Set custom thumbnails that display as video previews in
+                    file managers</span
+                  >
+                </div>
+              </li>
+            </ul>
+            <button class="show-all-btn" id="showAllBtn"
+              >See More Features</button
+            >
+          </div>
+          <div class="showcase-visual">
+            <img src={featuresImage.src} alt="CompressO Features" />
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="section-divider"></div>
+
+    <!-- Privacy First Section -->
+    <section class="section showcase-section">
+      <div class="container">
+        <div class="showcase-content">
+          <div class="showcase-visual">
+            <img src={privateImage.src} alt="Privacy First" />
+          </div>
+          <div class="showcase-text">
+            <span class="section-tag">Privacy First</span>
+            <h2>Your videos stay yours.<br />Always.</h2>
+            <p>
+              Unlike online compression services, CompressO never uploads your
+              files. No account required. No tracking. No data collection. Just
+              pure, local compression that respects your privacy.
+            </p>
+            <ul class="feature-list">
+              <li>No internet connection required</li>
+              <li>No user accounts or sign-ups</li>
+              <li>No telemetry or analytics</li>
+              <li>No file size limits</li>
+              <li>No watermarks or expiration dates</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="section-divider"></div>
+
+    <!-- Open Source Section -->
+    <section class="section showcase-section">
+      <div class="container">
+        <div class="showcase-content">
+          <div class="showcase-text">
+            <span class="section-tag">Open Source</span>
+            <h2>Free & Open Source.<br />Forever!</h2>
+            <p>
+              CompressO is fully open-source software. The code is available on
+              GitHub, so you can audit it, contribute to it, or even fork it for
+              your own projects.
+            </p>
+            <ul class="feature-list">
+              <li>MIT License - use it anywhere</li>
+              <li>Transparent development on GitHub</li>
+              <li>Community-driven features</li>
+              <li>Regular updates and improvements</li>
+              <li>No hidden costs or premium tiers</li>
+            </ul>
+            <a
+              href="https://github.com/codeforreal1/compressO"
+              class="github-link"
+              style="margin-top: 24px;"
+            >
+              <svg
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+              >
+                <path
+                  d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"
+                ></path>
+              </svg>
+              Star on GitHub
+            </a>
+          </div>
+          <div class="showcase-visual">
+            <img src={aboutImage.src} alt="Open Source" />
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="section-divider"></div>
+
+    <!-- CTA Section -->
+    <section class="section cta-section">
+      <div class="container">
+        <h2>Ready to compress your videos?</h2>
+        <p>
+          Download CompressO today and start compressing videos locally,
+          privately, and for free.
+        </p>
+        <div class="cta-group" style="justify-content: center;">
+          <a
+            href="https://github.com/codeforreal1/compressO/releases"
+            class="btn btn-secondary"
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+              <path
+                d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"
+              ></path>
+            </svg>
+            View Latest Release
+          </a>
+          <a
+            href="https://github.com/codeforreal1/compressO"
+            class="btn btn-secondary"
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+              <path
+                d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"
+              ></path>
+            </svg>
+            View Source Code
+          </a>
+        </div>
+
+        <!-- Download install files directly -->
+        <div id="downloads" class="downloads-section">
+          <h3>Direct Downloads</h3>
+          <div class="downloads-grid">
+            <!-- macOS -->
+            <div class="download-column">
+              <div class="download-os-header"> macOS</div>
+              <div class="download-btn" style="cursor: default; background: rgba(255, 255, 255, 0.03); border-style: dashed;">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  xmlns:xlink="http://www.w3.org/1999/xlink"
+                  width="20"
+                  height="100%"
+                  viewBox="0 0 180 271"
+                  version="1.1"
+                  xml:space="preserve"
+                  style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;"
+                >
+                  <g id="Group" transform="matrix(1,0,0,1,5.782,3.414)">
+                    <g id="Path" transform="matrix(1,0,0,1,13,0)">
+                      <g transform="matrix(1,0,0,1,24,0)">
+                        <path
+                          d="M31.758,46.916C32.498,23.429 24.586,9.582 1.841,0.435C-4.624,23.049 22.066,43.9 31.758,46.916Z"
+                          style="fill:rgb(209,211,212);stroke:black;stroke-width:4.79px;"
+                        ></path>
+                      </g>
+                      <path
+                        d="M117.441,86.72C118.181,67.434 113.31,59.65 109.654,54.084C105.945,48.892 97.045,40.732 86.11,40.39C75.769,40.066 73.282,45.782 63.742,46.127C62.178,28.755 75.289,19.222 75.289,19.222C75.289,19.222 71.704,14.155 68.738,12.917C64.472,16.708 52.73,29.353 55.447,45.625C46.669,43.947 40.473,38.923 31.252,40.737C18.69,43.209 8.335,50.804 2.433,67.47C-3.468,84.137 4.516,103.581 6.252,109.134C7.989,114.692 20.836,138.298 30.905,141.772C40.972,145.247 40.975,143.681 46.357,141.599C51.74,139.516 59.897,135.697 71.879,140.038C83.854,144.377 85.416,145.417 92.879,140.557C100.348,135.698 110.067,120.595 112.322,116.254C114.579,111.915 115.795,109.657 116.492,107.401C123.748,103.78 116.775,104.004 117.441,86.72Z"
+                        style="fill:rgb(209,211,212);stroke:black;stroke-width:4.79px;"
+                      ></path>
+                    </g>
+                    <g transform="matrix(1,0,0,1,4,112)">
+                      <path
+                        id="Shape"
+                        d="M145.932,115.67C150.717,115.687 155.312,113.799 158.701,110.422C162.091,107.045 163.996,102.457 163.996,97.672C163.998,79.399 163.998,51.162 163.998,32.839C163.998,28.065 162.102,23.487 158.726,20.111C155.35,16.735 150.772,14.839 145.998,14.839L131.16,14.839C128.951,14.839 127.16,13.048 127.16,10.839L127.16,1.409L10.13,1.409C10.13,1.409 10.388,121.948 10.425,139.622C10.428,140.985 11.125,142.254 12.275,142.987C17.487,146.005 34.196,151.737 69.279,151.737C105.104,151.737 121.118,144.063 125.703,140.598C126.614,139.842 127.141,138.72 127.141,137.536C127.16,133.711 127.16,124.848 127.16,119.612C127.16,118.537 127.593,117.507 128.361,116.755C129.129,116.002 130.168,115.591 131.243,115.613C135.644,115.675 140.917,115.684 145.932,115.67ZM127.16,35.864C127.16,34.538 127.687,33.266 128.624,32.328C129.562,31.391 130.834,30.864 132.16,30.864L144.898,30.864C146.224,30.864 147.496,31.391 148.434,32.328C149.371,33.266 149.898,34.538 149.898,35.864L149.898,94.049C149.898,95.375 149.371,96.647 148.434,97.585C147.496,98.522 146.224,99.049 144.898,99.049L132.16,99.049C130.834,99.049 129.562,98.522 128.624,97.585C127.687,96.647 127.16,95.375 127.16,94.049L127.16,35.864Z"
+                        style="fill:white;fill-rule:nonzero;stroke:black;stroke-width:4.79px;"
+                      ></path>
+                      <path
+                        id="Path1"
+                        d="M21.667,0.249L21.667,124.235C21.667,125.666 22.431,126.988 23.67,127.702C28.731,130.114 43.413,135.871 69.154,135.871C95.066,135.871 109.312,128.876 114.082,125.993C115.221,125.259 115.909,123.996 115.909,122.642C115.92,106.201 115.92,0.249 115.92,0.249L21.667,0.249Z"
+                        style="fill:rgb(251,176,64);"></path>
+                      <g
+                        id="Path2"
+                        transform="matrix(1,0,0,0.849312,0,21.0375)"
+                      >
+                        <path
+                          d="M35.521,0.249L35.521,113.065"
+                          style="fill:none;stroke:rgb(255,219,150);stroke-width:11.96px;stroke-linecap:round;stroke-linejoin:miter;"
+                        ></path>
+                      </g>
+                    </g>
+                    <g id="Path3" transform="matrix(1,0,0,1,-2,-2)">
+                      <path
+                        d="M94.773,139.692C94.773,137.692 93.596,135.304 91.663,134.105C88.518,132.202 86.059,129.283 84.721,125.805C59.13,126.666 35.772,122.172 24.005,118.999C20.984,118.143 17.924,117.432 14.834,116.869C7.791,115.472 2.438,109.287 2.438,101.851C2.438,93.666 8.932,87.015 17.046,86.724C18.611,78.067 26.167,71.495 35.275,71.495C45.517,71.495 53.819,79.799 53.819,90.04C53.819,92.195 53.43,94.258 52.755,96.184L52.81,96.193C55.097,89.04 61.793,83.857 69.706,83.857C77.568,83.857 84.228,88.979 86.554,96.065C86.487,95.426 86.453,94.776 86.453,94.118C86.453,83.466 95.087,74.832 105.737,74.832C114.359,74.832 121.656,80.491 124.125,88.294L125.806,87.856C128.004,86.617 130.535,85.901 133.238,85.901C141.607,85.901 148.392,92.686 148.389,101.053C148.389,108.719 142.698,115.054 135.31,116.065C133.637,116.302 131.996,116.728 130.419,117.335C126.028,118.99 121.538,120.362 117.002,121.494C116.776,123.73 116.11,125.836 115.093,127.725C113.253,131.177 112.428,135.08 112.713,138.982C112.711,139.218 112.72,140.454 112.72,140.692C112.72,145.648 108.704,148.664 103.744,148.664C98.791,148.664 94.773,144.649 94.773,139.692Z"
+                        style="fill:white;stroke:black;stroke-width:4.79px;stroke-linecap:round;"
+                      ></path>
+                    </g>
+                  </g>
+                  <style id="squircle-everything-style">
+                    * {
+                      corner-shape: superellipse(1.333);
+                    }
+                  </style></svg
+                >
+                <code
+                  id="brew-command"
+                  style="font-size: 12px; padding: 2px 6px; border-radius: 3px; text-align: left; flex: 1;"
+                  >brew install codeforreal1/tap/compresso</code
+                >
+                <button
+                  id="copy-brew-btn"
+                  class="copy-btn"
+                  aria-label="Copy Homebrew command"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                  </svg>
+                </button>
+              </div>
+              <a href={downloads.mac.aarch64} class="download-btn">
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                  <polyline points="7 10 12 15 17 10"></polyline>
+                  <line x1="12" y1="15" x2="12" y2="3"></line>
+                </svg>
+                Apple Silicon <span class="arch-badge">aarch64</span>
+              </a>
+              <a href={downloads.mac.x64} class="download-btn">
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                  <polyline points="7 10 12 15 17 10"></polyline>
+                  <line x1="12" y1="15" x2="12" y2="3"></line>
+                </svg>
+                Intel <span class="arch-badge">x64</span>
+              </a>
+            </div>
+
+            <!-- Linux -->
+            <div class="download-column">
+              <div class="download-os-header">🐧 Linux</div>
+              <a href={downloads.linux.appImage} class="download-btn">
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                  <polyline points="7 10 12 15 17 10"></polyline>
+                  <line x1="12" y1="15" x2="12" y2="3"></line>
+                </svg>
+                AppImage <span class="arch-badge">amd64</span>
+              </a>
+              <a href={downloads.linux.deb} class="download-btn">
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                  <polyline points="7 10 12 15 17 10"></polyline>
+                  <line x1="12" y1="15" x2="12" y2="3"></line>
+                </svg>
+                Debian/Ubuntu <span class="arch-badge">deb</span>
+              </a>
+            </div>
+
+            <!-- Windows -->
+            <div class="download-column">
+              <div class="download-os-header">
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="currentColor"
+                >
+                  <path
+                    d="M0 3.449L9.75 2.1v9.451H0m10.949-9.602L24 0v11.4H10.949M0 12.6h9.75v9.451L0 20.699M10.949 12.6H24V24l-12.9-1.801"
+                  ></path>
+                </svg>
+                Windows
+              </div>
+              <a href={downloads.windows.x64} class="download-btn">
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                  <polyline points="7 10 12 15 17 10"></polyline>
+                  <line x1="12" y1="15" x2="12" y2="3"></line>
+                </svg>
+                Installer <span class="arch-badge">x64</span>
+              </a>
+            </div>
+          </div>
+          <div class="version-badge">Latest Version: {downloads.version}</div>
+        </div>
+      </div>
+    </section>
+    <Footer />
+
+    <script is:inline>
+      const showAllBtn = document.getElementById("showAllBtn");
+      const hiddenFeatures = document.querySelectorAll(".feature-hidden");
+
+      showAllBtn?.addEventListener("click", () => {
+        hiddenFeatures.forEach((feature) => {
+          feature.classList.remove("feature-hidden");
+        });
+        showAllBtn.style.display = "none";
+      });
+
+      // Copy Homebrew command
+      const copyBrewBtn = document.getElementById("copy-brew-btn");
+      const brewCommand = document.getElementById("brew-command");
+
+      copyBrewBtn?.addEventListener("click", async () => {
+        const text = brewCommand.textContent;
+        try {
+          await navigator.clipboard.writeText(text);
+          copyBrewBtn.classList.add("copied");
+          setTimeout(() => {
+            copyBrewBtn.classList.remove("copied");
+          }, 2000);
+        } catch (err) {
+          console.error("Failed to copy:", err);
+        }
+      });
+    </script>
+  </body>
+</html>

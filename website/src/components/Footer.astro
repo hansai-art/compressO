@@ -1,0 +1,24 @@
+---
+import SocialLinks from "./SocialLinks.astro";
+
+const today = new Date();
+---
+
+<footer>
+  &copy; {today.getFullYear()} Code For Real. All rights reserved.
+  <div>
+    <a href="mailto:hello@codeforreal.com" target="_blank"
+      >hello@codeforreal.com</a
+    >
+  </div>
+  <div class="flex justify-center">
+    <SocialLinks />
+  </div>
+</footer>
+<style>
+  footer {
+    padding: 2em 1em 2em 1em;
+    color: rgb(var(--gray));
+    text-align: center;
+  }
+</style>
