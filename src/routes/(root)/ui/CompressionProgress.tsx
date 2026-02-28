@@ -1,4 +1,5 @@
 import { core, event } from '@tauri-apps/api'
+import { invoke } from '@tauri-apps/api/core'
 import { useEffect, useRef } from 'react'
 import { snapshot, useSnapshot } from 'valtio'
 
@@ -10,6 +11,31 @@ import {
 import { formatBytes } from '@/utils/fs'
 import { convertDurationToMilliseconds } from '@/utils/string'
 import { appProxy } from '../-state'
+
+async function updateDockProgress() {
+  const videos = snapshot(appProxy).state.videos
+  if (videos.length === 0) return
+
+  const totalProgress = videos.reduce(
+    (sum, video) => sum + (video.compressionProgress ?? 0),
+    0,
+  )
+  const batchProgress = totalProgress / videos.length
+
+  try {
+    await invoke('set_dock_progress', { progress: batchProgress })
+  } catch {
+    // Silently fail on non-macOS platforms
+  }
+}
+
+async function clearDockProgress() {
+  try {
+    await invoke('clear_dock_badge')
+  } catch {
+    // Silently fail on non-macOS platforms
+  }
+}
 
 function CompressionProgress() {
   const {
@@ -68,6 +94,8 @@ function CompressionProgress() {
                       ].compressionProgress =
                         (currentDurationInMilliseconds * 100) /
                         videoDurationInMilliseconds
+
+                      updateDockProgress()
                     }
                   }
                 }
@@ -113,6 +141,15 @@ function CompressionProgress() {
                   if (appProxy.state.videos.length > 1) {
                     appProxy.takeSnapshot('batchCompressionStep')
                   }
+
+                  const allVideosCompleted = snapshot(
+                    appProxy,
+                  ).state?.videos?.every((v) => v.isProcessCompleted)
+                  if (allVideosCompleted) {
+                    clearDockProgress()
+                  } else {
+                    updateDockProgress()
+                  }
                 }
               }
             },
@@ -123,6 +160,7 @@ function CompressionProgress() {
     return () => {
       compressionProgressRef.current?.()
       individualCompressionResultRef.current?.()
+      clearDockProgress()
     }
   }, [batchId])
 

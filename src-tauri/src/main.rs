@@ -8,6 +8,9 @@ use tauri_plugin_fs::FsExt;
 use tauri_plugin_log::{Target as LogTarget, TargetKind as LogTargetKind};
 
 use lib::tauri_commands::{
+    dock::{
+        __cmd__clear_dock_badge, __cmd__set_dock_progress, clear_dock_badge, set_dock_progress,
+    },
     ffmpeg::{
         __cmd__compress_video, __cmd__compress_videos_batch, __cmd__extract_subtitle,
         __cmd__generate_video_thumbnail, __cmd__get_video_info, compress_video,
@@ -263,6 +266,8 @@ async fn main() {
             get_container_info,
             get_subtitle_streams,
             get_video_streams,
+            set_dock_progress,
+            clear_dock_badge,
         ])
         .build(tauri::generate_context!())
         .expect("error while running tauri application")
