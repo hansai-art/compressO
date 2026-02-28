@@ -81,9 +81,9 @@ function VideoThumbnail({ videoIndex }: VideoThumbnailProps) {
 
       const targetDuration =
         currentTime >= videoDuration
-          ? currentTime - 0.05
+          ? currentTime - 0.02
           : currentTime <= 0
-            ? 0.05
+            ? 0.02
             : currentTime
       const timestamp = formatDuration(targetDuration)
 
@@ -180,9 +180,9 @@ function VideoThumbnail({ videoIndex }: VideoThumbnailProps) {
               try {
                 const targetDuration =
                   currentTime >= videoSnapshot.videoDuration!
-                    ? currentTime - 0.05
+                    ? currentTime - 0.02
                     : currentTime <= 0
-                      ? 0.05
+                      ? 0.02
                       : currentTime
                 const timestamp = formatDuration(targetDuration)
 
