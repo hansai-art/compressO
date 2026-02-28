@@ -1,4 +1,10 @@
-import { Tab } from '@heroui/react'
+import {
+  ButtonGroup,
+  DropdownItem,
+  DropdownMenu,
+  DropdownTrigger,
+  Tab,
+} from '@heroui/react'
 import { save } from '@tauri-apps/plugin-dialog'
 import { motion } from 'framer-motion'
 import { startCase, upperCase } from 'lodash'
@@ -9,6 +15,7 @@ import { useSnapshot } from 'valtio'
 import Button from '@/components/Button'
 import Code from '@/components/Code'
 import Divider from '@/components/Divider'
+import Dropdown from '@/components/Dropdown'
 import Icon from '@/components/Icon'
 import ScrollShadow from '@/components/ScrollShadow'
 import Spinner from '@/components/Spinner'
@@ -596,6 +603,19 @@ function isSubtitleExtractable(codec: string): boolean {
   return !UNSUPPORTED_SUBTITLE_CODECS.includes(codec)
 }
 
+type SubtitleFormat = 'srt' | 'vtt'
+
+const SUBTITLE_FORMATS = {
+  srt: {
+    name: 'SRT',
+    extension: 'srt',
+  },
+  vtt: {
+    name: 'VTT',
+    extension: 'vtt',
+  },
+} as const
+
 function SubtitleStreamsDisplay({
   streams,
   videoPath,
@@ -604,6 +624,7 @@ function SubtitleStreamsDisplay({
   videoPath?: string | null
 }) {
   const [downloadingIndex, setDownloadingIndex] = useState<number | null>(null)
+  const [selectedFormat, setSelectedFormat] = useState<SubtitleFormat>('srt')
 
   if (streams.length === 0) {
     return (
@@ -613,7 +634,11 @@ function SubtitleStreamsDisplay({
     )
   }
 
-  const handleDownload = async (stream: SubtitleStream, index: number) => {
+  const handleDownload = async (
+    stream: SubtitleStream,
+    index: number,
+    format: SubtitleFormat,
+  ) => {
     if (!videoPath) {
       toast.error('Video path not available')
       return
@@ -623,14 +648,15 @@ function SubtitleStreamsDisplay({
 
     try {
       const language = stream.language || 'unknown'
-      const defaultFileName = `subtitle_${language}_${stream.index}.srt`
+      const formatConfig = SUBTITLE_FORMATS[format]
+      const defaultFileName = `subtitle_${language}_${stream.index}.${formatConfig.extension}`
 
       const filePath = await save({
         defaultPath: defaultFileName,
         filters: [
           {
             name: 'Subtitle Files',
-            extensions: ['srt'],
+            extensions: ['srt', 'vtt'],
           },
         ],
       })
@@ -640,9 +666,9 @@ function SubtitleStreamsDisplay({
         return
       }
 
-      await extractSubtitle(videoPath, stream.index, filePath)
+      await extractSubtitle(videoPath, stream.index, filePath, format)
 
-      toast.success(`Subtitle extracted and saved.`)
+      toast.success(`Subtitle extracted and saved as ${format.toUpperCase()}.`)
     } catch {
       toast.error('Failed to extract subtitle.')
     } finally {
@@ -654,6 +680,7 @@ function SubtitleStreamsDisplay({
     <div className="space-y-6">
       {streams.map((stream, index) => {
         const isExtractable = isSubtitleExtractable(stream.codec)
+        const formatConfig = SUBTITLE_FORMATS[selectedFormat]
         return (
           <motion.div
             key={index}
@@ -664,32 +691,55 @@ function SubtitleStreamsDisplay({
           >
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-semibold text-primary">
-                Subtitle Stream {streams.length > 1 ? `${index + 1}` : ''}
+                Subtitle Stream {index + 1}
               </h3>
-              <Button
-                size="sm"
-                radius="lg"
-                onPress={() => handleDownload(stream, index)}
-                isDisabled={downloadingIndex === index || !isExtractable}
-                color={!isExtractable ? 'default' : undefined}
-              >
-                {downloadingIndex === index ? (
-                  <>
-                    <Spinner size="sm" />
-                    Downloading...
-                  </>
-                ) : !isExtractable ? (
-                  <>
-                    <Icon name="cross" />
-                    Unsupported
-                  </>
-                ) : (
-                  <>
-                    <Icon name="download" />
-                    Download
-                  </>
-                )}
-              </Button>
+              <ButtonGroup variant="flat" size="sm">
+                <Button
+                  radius="lg"
+                  onPress={() => handleDownload(stream, index, selectedFormat)}
+                  isDisabled={downloadingIndex === index || !isExtractable}
+                  color={!isExtractable ? 'default' : undefined}
+                  startContent={
+                    downloadingIndex === index ? (
+                      <Spinner size="sm" />
+                    ) : !isExtractable ? (
+                      <Icon name="cross" size={20} />
+                    ) : (
+                      <Icon name="download" size={20} />
+                    )
+                  }
+                >
+                  {downloadingIndex === index
+                    ? 'Downloading...'
+                    : !isExtractable
+                      ? 'Unsupported'
+                      : `Download as ${formatConfig.name}`}
+                </Button>
+                <Dropdown size="sm">
+                  <DropdownTrigger>
+                    <Button isIconOnly radius="lg">
+                      <Icon name="chevron" />
+                    </Button>
+                  </DropdownTrigger>
+                  <DropdownMenu
+                    disallowEmptySelection
+                    aria-label="Subtitle format"
+                    selectedKeys={new Set([selectedFormat])}
+                    selectionMode="single"
+                    onSelectionChange={(keys) => {
+                      const format = Array.from(keys)[0] as SubtitleFormat
+                      setSelectedFormat(format)
+                    }}
+                  >
+                    <DropdownItem key="srt">
+                      {SUBTITLE_FORMATS.srt.name}
+                    </DropdownItem>
+                    <DropdownItem key="vtt">
+                      {SUBTITLE_FORMATS.vtt.name}
+                    </DropdownItem>
+                  </DropdownMenu>
+                </Dropdown>
+              </ButtonGroup>
             </div>
 
             <InfoItem

@@ -10,11 +10,13 @@ export function extractSubtitle(
   videoPath: string,
   streamIndex: number,
   outputPath: string,
+  format?: 'srt' | 'vtt',
 ): Promise<string> {
   return core.invoke('extract_subtitle', {
     videoPath,
     streamIndex,
     outputPath,
+    format: format || 'srt',
   })
 }
 

@@ -106,6 +106,7 @@ pub async fn extract_subtitle(
     video_path: &str,
     stream_index: u32,
     output_path: &str,
+    format: Option<&str>,
 ) -> Result<String, String> {
     let mut ffmpeg = ffmpeg::FFMPEG::new(&app)?;
 
@@ -113,11 +114,13 @@ pub async fn extract_subtitle(
         return Err(String::from("Video file does not exist."));
     }
 
-    if !output_path.ends_with(".srt") {
-        return Err(String::from("Output file must have .srt extension."));
+    let output_format = format.unwrap_or("srt");
+
+    if !matches!(output_format, "srt" | "vtt") {
+        return Err(format!("Unsupported output format '{}'. Supported formats: srt, vtt", output_format));
     }
 
     ffmpeg
-        .extract_subtitle(video_path, stream_index, output_path)
+        .extract_subtitle(video_path, stream_index, output_path, output_format)
         .await
 }

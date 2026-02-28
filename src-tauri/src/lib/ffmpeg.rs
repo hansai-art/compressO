@@ -85,7 +85,7 @@ impl FFMPEG {
         let has_audio_stream = !audio_streams.is_empty();
 
         // Detect existing subtitle streams in source video
-        let (existing_subtitle_count, preserve_existing_subtitles) = {
+        let (existing_subtitle_count, _) = {
             if let Some(subs_config) = subtitles_config {
                 let preserve = subs_config.preserve_existing_subtitles.unwrap_or(false);
                 if preserve {
@@ -1054,6 +1054,7 @@ impl FFMPEG {
         video_path: &str,
         stream_index: u32,
         output_path: &str,
+        output_format: &str,
     ) -> Result<String, String> {
         if !Path::exists(Path::new(video_path)) {
             return Err(String::from("File does not exist in given path."));
@@ -1089,22 +1090,18 @@ impl FFMPEG {
             .position(|s| s.index == stream_index)
             .unwrap_or(0);
 
-        log::info!(
-            "[ffmpeg] Extracting subtitle stream (global index: {}, subtitle index: {}, codec: {}) from {} to {}",
-            stream_index,
-            subtitle_specific_index,
-            codec,
-            video_path,
-            output_path
-        );
+        let ffmpeg_codec = match output_format {
+            "vtt" => "webvtt",
+            _ => output_format,
+        };
 
         if matches!(
             codec.as_str(),
             "hdmv_pgs_subtitle" | "dvd_subtitle" | "xsub"
         ) {
             return Err(format!(
-                "Cannot extract subtitle: Codec '{}' cannot be converted to SRT. This is an image-based subtitle format (e.g., Blu-ray PGS or DVD VobSub).",
-                codec
+                "Cannot extract subtitle: Codec '{}' cannot be converted to {}. This is an image-based subtitle format (e.g., Blu-ray PGS or DVD VobSub).",
+                codec, output_format.to_uppercase()
             ));
         }
 
@@ -1112,7 +1109,7 @@ impl FFMPEG {
             .ffmpeg
             .args(["-i", video_path])
             .args(["-map", &format!("0:s:{}", subtitle_specific_index)])
-            .args(["-c:s", "srt"])
+            .args(["-c:s", ffmpeg_codec])
             .arg(&output_path_buf)
             .arg("-y")
             .stdout(Stdio::piped())

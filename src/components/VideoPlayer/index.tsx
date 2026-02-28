@@ -63,6 +63,7 @@ const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(
       onPlay,
       onPause,
       onEnded,
+      onReady,
       ...props
     },
     forwardedRef,
@@ -171,6 +172,17 @@ const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(
       return videoFrameUrl
     }, [])
 
+    const toggleClosedCaptions = useCallback((disable = false) => {
+      if (playerRef.current) {
+        const video = playerRef.current.getInternalPlayer()
+        if (video && video.textTracks) {
+          for (let i = 0; i < video.textTracks.length; i++) {
+            video.textTracks[i].mode = disable ? 'hidden' : 'showing'
+          }
+        }
+      }
+    }, [])
+
     const {
       refreshTimeline,
       autoScrollCursorToCurrentTime,
@@ -210,16 +222,9 @@ const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(
 
     useEffect(() => {
       if (playerRef.current) {
-        const video = playerRef.current.getInternalPlayer()
-        if (video && video.textTracks) {
-          for (let i = 0; i < video.textTracks.length; i++) {
-            video.textTracks[i].mode = disableClosedCaptions
-              ? 'hidden'
-              : 'showing'
-          }
-        }
+        toggleClosedCaptions(disableClosedCaptions)
       }
-    }, [disableClosedCaptions])
+    }, [disableClosedCaptions, toggleClosedCaptions])
 
     useImperativeHandle(
       forwardedRef,
@@ -281,6 +286,10 @@ const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(
               if (timelinePlayerRef.current) {
                 refreshTimeline()
               }
+            }}
+            onReady={(player) => {
+              onReady?.(player)
+              toggleClosedCaptions(disableClosedCaptions)
             }}
             {...props}
           />

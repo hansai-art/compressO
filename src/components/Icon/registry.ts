@@ -3,6 +3,7 @@ import React from 'react'
 import Audio from '@/assets/icons/audio.svg?react'
 import AudioMuted from '@/assets/icons/audio-muted.svg?react'
 import Back from '@/assets/icons/back.svg?react'
+import Chevron from '@/assets/icons/chevron.svg?react'
 import Copy from '@/assets/icons/copy.svg?react'
 import Cross from '@/assets/icons/cross.svg?react'
 import CurvedArrow from '@/assets/icons/curved-arrow.svg?react'
@@ -78,6 +79,7 @@ const registry = asRegistry({
   audioMuted: AudioMuted,
   audio: Audio,
   download: Download,
+  chevron: Chevron,
 })
 
 export default registry
