@@ -287,6 +287,13 @@ const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(
       }
     }, [enableTimelinePlayer, setTimelineTime])
 
+    // biome-ignore lint/correctness/useExhaustiveDependencies: <autoScrollCursorToCurrentTime>
+    useEffect(() => {
+      if (enableTimelinePlayer && timelinePlayerRef.current) {
+        autoScrollCursorToCurrentTime(scales, true)
+      }
+    }, [enableTimelinePlayer])
+
     useEffect(() => {
       if (playerRef.current) {
         toggleClosedCaptions(disableClosedCaptions)
