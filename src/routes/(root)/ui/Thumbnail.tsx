@@ -233,7 +233,7 @@ function VideoThumbnail({ videoIndex }: VideoThumbnailProps) {
                   playerRef?.current?.playerRef?.getCurrentTime?.()
                 if (currentTime) {
                   setTimelineTime(currentTime)
-                  autoScrollCursorToCurrentTime(scales)
+                  autoScrollCursorToCurrentTime(scales, true)
                 }
               }
             }, 100)
@@ -329,6 +329,17 @@ function VideoThumbnail({ videoIndex }: VideoThumbnailProps) {
                 appProxy.state.videos[videoIndex].videoDuration = duration
                 refreshTimeline()
               }
+            }}
+            onSpaceKeydownForPlayPause={() => {
+              if (playerRef.current) {
+                const playbackState = playerRef.current.getPlaybackState()
+                if (playbackState === 'paused') {
+                  autoScrollCursorToCurrentTime(scales, true)
+                }
+              }
+            }}
+            onArrowKeySeek={() => {
+              autoScrollCursorToCurrentTime(scales, true)
             }}
           />
         ) : (

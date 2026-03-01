@@ -51,16 +51,36 @@ function useTimelineEngine({
     }
   }, [timelineState.current])
 
-  const autoScrollCursorToCurrentTime = (scales: TimelineScales) => {
+  const autoScrollCursorToCurrentTime = (
+    scales: TimelineScales,
+    realtime = false,
+  ) => {
     if (!timelineState.current) return
 
-    const { width } = timelineState.current.target.getBoundingClientRect()
+    const target = timelineState.current.target
+    if (!target) return
+
     const currentTime = timelineState.current.getTime()
-    const left =
-      currentTime * (scales.scaleWidth / scales.scale) +
-      scales.startLeft -
-      width / 1.2
-    timelineState.current.setScrollLeft(left)
+
+    if (realtime) {
+      const { width } = timelineState.current.target.getBoundingClientRect()
+      const currentTime = timelineState.current.getTime()
+      const left =
+        currentTime * (scales.scaleWidth / scales.scale) +
+        scales.startLeft -
+        width / 2
+      timelineState.current.setScrollLeft(left)
+    } else {
+      const width = target.clientWidth
+      const scrollLeft = target.scrollLeft
+      const cursorX =
+        currentTime * (scales.scaleWidth / scales.scale) + scales.startLeft
+      const viewEnd = scrollLeft + width
+
+      if (Math.floor(cursorX) % Math.floor(viewEnd) === 0) {
+        timelineState.current.setScrollLeft(cursorX)
+      }
+    }
   }
 
   const playOrPause = () => {

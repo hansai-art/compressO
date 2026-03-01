@@ -42,6 +42,8 @@ export interface VideoPlayerProps extends BaseReactPlayerProps {
   enableTimelinePlayer?: boolean
   disableClosedCaptions?: boolean
   contextMenu?: React.ReactNode
+  onSpaceKeydownForPlayPause?: () => void
+  onArrowKeySeek?: (arrowKey: 'left' | 'right') => void
 }
 
 const scales: TimelineScales = {
@@ -60,6 +62,8 @@ const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(
       enableTimelinePlayer,
       disableClosedCaptions,
       contextMenu,
+      onSpaceKeydownForPlayPause,
+      onArrowKeySeek,
       onProgress,
       onDuration,
       onPlay,
@@ -84,8 +88,22 @@ const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(
     const lastCapturedVideoFrame = useRef<string | null>(null)
     const timelinePlayerRef = useRef<TimelineState | null>(null)
 
+    const {
+      refreshTimeline,
+      autoScrollCursorToCurrentTime,
+      setTime: setTimelineTime,
+    } = useTimelineEngine({
+      timelineState: timelinePlayerRef,
+      totalDuration: duration ?? 0,
+    })
+
     const togglePlayPause = useCallback(() => {
-      setIsPlaying((s) => !s)
+      let playState: 'playing' | 'paused' = 'playing'
+      setIsPlaying((s) => {
+        playState = s ? 'paused' : 'playing'
+        return !s
+      })
+      return playState
     }, [])
 
     const handleContextMenu = useCallback(
@@ -138,13 +156,19 @@ const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(
 
         if (e.code === 'Space' && !isInputField) {
           e.preventDefault()
-          togglePlayPause()
+          const playState = togglePlayPause()
+          onSpaceKeydownForPlayPause?.()
+          if (playState === 'playing') {
+            autoScrollCursorToCurrentTime(scales, true)
+          }
         } else if (e.code === 'ArrowRight' && !isInputField) {
           e.preventDefault()
           if (playerRef.current && duration) {
             const currentTime = playerRef.current.getCurrentTime()
             const newTime = Math.min(currentTime + SEEK_DURATION, duration)
             playerRef.current.seekTo(newTime, 'seconds')
+            autoScrollCursorToCurrentTime(scales, true)
+            onArrowKeySeek?.('right')
           }
         } else if (e.code === 'ArrowLeft' && !isInputField) {
           e.preventDefault()
@@ -152,10 +176,19 @@ const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(
             const currentTime = playerRef.current.getCurrentTime()
             const newTime = Math.max(currentTime - SEEK_DURATION, 0)
             playerRef.current.seekTo(newTime, 'seconds')
+            autoScrollCursorToCurrentTime(scales, true)
+            onArrowKeySeek?.('left')
           }
         }
       },
-      [togglePlayPause, duration, closeContextMenu],
+      [
+        togglePlayPause,
+        duration,
+        closeContextMenu,
+        onSpaceKeydownForPlayPause,
+        autoScrollCursorToCurrentTime,
+        onArrowKeySeek,
+      ],
     )
 
     const captureVideoFrame = useCallback(async () => {
@@ -230,15 +263,6 @@ const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(
       }
     }, [])
 
-    const {
-      refreshTimeline,
-      autoScrollCursorToCurrentTime,
-      setTime: setTimelineTime,
-    } = useTimelineEngine({
-      timelineState: timelinePlayerRef,
-      totalDuration: duration ?? 0,
-    })
-
     useEffect(() => {
       if (playPauseOnSpaceKeydown) {
         window.addEventListener('keydown', handleKeyDown)
@@ -263,7 +287,7 @@ const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(
         playerRef.current
       ) {
         setTimelineTime(playerRef.current.getCurrentTime())
-        autoScrollCursorToCurrentTime(scales)
+        autoScrollCursorToCurrentTime(scales, true)
       }
     }, [enableTimelinePlayer, setTimelineTime, autoScrollCursorToCurrentTime])
 
