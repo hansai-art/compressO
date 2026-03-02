@@ -94,7 +94,6 @@ function AudioCodec({ videoIndex }: AudioCodecProps) {
 
   const currentExtension = convertToExtension ?? 'mp4'
 
-  // Reset codec if it's not compatible with the current extension
   useEffect(() => {
     if (shouldEnableCustomAudioCodec && customAudioCodec) {
       const currentCodec = AUDIO_CODECS.find(
