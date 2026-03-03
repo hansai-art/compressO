@@ -26,6 +26,8 @@ function useTimelineEngine({
   onSeek,
   onTimeChange,
 }: UseEngineProps) {
+  const disableAnimationTimeoutRef = React.useRef<NodeJS.Timeout | null>(null)
+
   // biome-ignore lint/correctness/useExhaustiveDependencies: <>
   useEffect(() => {
     if (!timelineState.current) return
@@ -53,22 +55,40 @@ function useTimelineEngine({
 
   const autoScrollCursorToCurrentTime = (
     scales: TimelineScales,
-    realtime = false,
+    options: { realtime?: boolean; disableTransitionAnimation?: boolean } = {
+      realtime: false,
+      disableTransitionAnimation: false,
+    },
   ) => {
     if (!timelineState.current) return
+
+    function manageTransitionAnimation() {
+      if (options.disableTransitionAnimation) {
+        const target = timelineState.current?.target
+        if (!target) return
+        target.classList.add('disable-transition-animation')
+        if (disableAnimationTimeoutRef.current) {
+          clearTimeout(disableAnimationTimeoutRef.current)
+        }
+        disableAnimationTimeoutRef.current = setTimeout(() => {
+          target.classList.remove('disable-transition-animation')
+        }, 250)
+      }
+    }
 
     const target = timelineState.current.target
     if (!target) return
 
     const currentTime = timelineState.current.getTime()
 
-    if (realtime) {
+    if (options.realtime) {
       const { width } = timelineState.current.target.getBoundingClientRect()
       const currentTime = timelineState.current.getTime()
       const left =
         currentTime * (scales.scaleWidth / scales.scale) +
         scales.startLeft -
         width / 2
+      manageTransitionAnimation()
       timelineState.current.setScrollLeft(left)
     } else {
       const width = target.clientWidth
@@ -78,6 +98,7 @@ function useTimelineEngine({
       const viewEnd = scrollLeft + width
 
       if (Math.floor(cursorX) % Math.floor(viewEnd) === 0) {
+        manageTransitionAnimation()
         timelineState.current.setScrollLeft(cursorX)
       }
     }

@@ -233,7 +233,10 @@ function VideoThumbnail({ videoIndex }: VideoThumbnailProps) {
                   playerRef?.current?.playerRef?.getCurrentTime?.()
                 if (currentTime) {
                   setTimelineTime(currentTime)
-                  autoScrollCursorToCurrentTime(scales, true)
+                  autoScrollCursorToCurrentTime(scales, {
+                    realtime: true,
+                    disableTransitionAnimation: true,
+                  })
                 }
               }
             }, 100)
@@ -331,10 +334,13 @@ function VideoThumbnail({ videoIndex }: VideoThumbnailProps) {
               }
             }}
             onPlay={() => {
-              autoScrollCursorToCurrentTime(scales, true)
+              autoScrollCursorToCurrentTime(scales, {
+                realtime: true,
+                disableTransitionAnimation: true,
+              })
             }}
             onArrowKeySeek={() => {
-              autoScrollCursorToCurrentTime(scales, true)
+              autoScrollCursorToCurrentTime(scales, { realtime: true })
             }}
           />
         ) : (

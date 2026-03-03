@@ -164,7 +164,7 @@ const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(
             const currentTime = playerRef.current.getCurrentTime()
             const newTime = Math.min(currentTime + SEEK_DURATION, duration)
             playerRef.current.seekTo(newTime, 'seconds')
-            autoScrollCursorToCurrentTime(scales, true)
+            autoScrollCursorToCurrentTime(scales, { realtime: true })
             onArrowKeySeek?.('right')
           }
         } else if (e.code === 'ArrowLeft' && !isInputField) {
@@ -173,7 +173,7 @@ const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(
             const currentTime = playerRef.current.getCurrentTime()
             const newTime = Math.max(currentTime - SEEK_DURATION, 0)
             playerRef.current.seekTo(newTime, 'seconds')
-            autoScrollCursorToCurrentTime(scales, true)
+            autoScrollCursorToCurrentTime(scales, { realtime: true })
             onArrowKeySeek?.('left')
           }
         }
@@ -290,7 +290,10 @@ const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(
     // biome-ignore lint/correctness/useExhaustiveDependencies: <autoScrollCursorToCurrentTime>
     useEffect(() => {
       if (enableTimelinePlayer && timelinePlayerRef.current) {
-        autoScrollCursorToCurrentTime(scales, true)
+        autoScrollCursorToCurrentTime(scales, {
+          realtime: true,
+          disableTransitionAnimation: true,
+        })
       }
     }, [enableTimelinePlayer])
 
@@ -343,7 +346,10 @@ const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(
             onPlay={() => {
               setIsPlaying(true)
               onPlay?.()
-              autoScrollCursorToCurrentTime(scales, true)
+              autoScrollCursorToCurrentTime(scales, {
+                realtime: true,
+                disableTransitionAnimation: true,
+              })
             }}
             onPause={() => {
               setIsPlaying(false)
