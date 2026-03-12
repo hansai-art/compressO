@@ -1192,4 +1192,162 @@ impl FFMPEG {
 
         filters.join(",")
     }
+
+    /// Converts an image from one format to another using ffmpeg
+    pub async fn convert_image(
+        &mut self,
+        input_path: &Path,
+        output_path: &Path,
+        output_format: &str,
+        quality: u8,
+        strip_metadata: bool,
+    ) -> Result<PathBuf, String> {
+        if !input_path.exists() {
+            return Err(String::from("Input image file does not exist."));
+        }
+
+        // Build ffmpeg command for image conversion
+        let mut cmd_args: Vec<String> = Vec::new();
+
+        cmd_args.push("-i".to_string());
+        cmd_args.push(input_path.to_str().unwrap().to_string());
+
+        // Handle different output formats
+        let output_format_lower = output_format.to_lowercase();
+        match output_format_lower.as_str() {
+            "jpg" | "jpeg" => {
+                // JPEG compression settings
+                let jpeg_quality = quality.max(1).min(100);
+                let qscale = 31 - ((jpeg_quality * 31) / 100); // 1-31 scale (lower is better)
+                cmd_args.push("-q:v".to_string());
+                cmd_args.push(qscale.to_string());
+                cmd_args.push("-vf".to_string());
+                cmd_args.push("scale=iw:ih:flags=lanczos".to_string());
+            }
+            "png" => {
+                // PNG compression settings
+                // Use compression level 0-9 (higher is better compression)
+                let compression_level = (quality / 10).clamp(0, 9);
+                cmd_args.push("-compression_level".to_string());
+                cmd_args.push(compression_level.to_string());
+                cmd_args.push("-pred".to_string());
+                cmd_args.push("mixed".to_string());
+            }
+            "webp" => {
+                // WebP quality (0-100)
+                let webp_quality = quality.max(0).min(100);
+                cmd_args.push("-q:v".to_string());
+                cmd_args.push(webp_quality.to_string());
+                cmd_args.push("-lossless".to_string());
+                cmd_args.push("0".to_string());
+            }
+            "gif" => {
+                // GIF settings
+                let _gif_quality = quality.max(1).min(30); // 1-30 scale (lower is better)
+                cmd_args.push("-vf".to_string());
+                cmd_args.push(
+                    "scale=iw:ih:flags=lanczos,split[s0][s1];[s0]palettegen[p];[s1][p]paletteuse"
+                        .to_string(),
+                );
+            }
+            "bmp" => {
+                // BMP settings
+                cmd_args.push("-compression_level".to_string());
+                cmd_args.push("0".to_string());
+            }
+            "tiff" => {
+                // TIFF settings
+                cmd_args.push("-compression".to_string());
+                cmd_args.push("lzw".to_string());
+            }
+            _ => {
+                // Default settings for other formats
+                cmd_args.push("-q:v".to_string());
+                cmd_args.push("2".to_string());
+            }
+        }
+
+        // Strip metadata if requested
+        if strip_metadata {
+            cmd_args.push("-map_metadata".to_string());
+            cmd_args.push("-1".to_string());
+        }
+
+        cmd_args.push("-y".to_string());
+        cmd_args.push(output_path.to_str().unwrap().to_string());
+
+        log::info!("[ffmpeg-image] conversion command: {:?}", cmd_args);
+
+        let command = self
+            .ffmpeg
+            .args(&cmd_args)
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped());
+
+        match SharedChild::spawn(command) {
+            Ok(child) => {
+                let cp = Arc::new(child);
+                let cp_clone1 = cp.clone();
+                let cp_clone2 = cp.clone();
+
+                let window = match self.app.get_webview_window("main") {
+                    Some(window) => window,
+                    None => return Err(String::from("Could not attach to main window")),
+                };
+
+                // Handle window destroy event
+                let destroy_event_id =
+                    window.listen(TauriEvents::Destroyed.get_str("key").unwrap(), move |_| {
+                        log::info!("[tauri] window destroyed");
+                        let _ = cp.kill();
+                    });
+
+                // Handle cancellation
+                let cancel_event_id = window.listen(
+                    CustomEvents::CancelInProgressCompression.as_ref(),
+                    move |evt| {
+                        let payload_str = evt.payload();
+                        if let Ok(_payload) =
+                            serde_json::from_str::<CancelInProgressCompressionPayload>(payload_str)
+                        {
+                            let _ = cp_clone2.kill();
+                        }
+                    },
+                );
+
+                // Wait for process completion
+                let handle = tokio::spawn(async move {
+                    match cp_clone1.wait() {
+                        Ok(status) if status.success() => Ok(()),
+                        Ok(_) => Err(String::from("FFmpeg conversion failed")),
+                        Err(e) => Err(format!("FFmpeg error: {}", e)),
+                    }
+                });
+
+                match handle.await {
+                    Ok(result) => {
+                        // Cleanup listeners
+                        window.unlisten(destroy_event_id);
+                        window.unlisten(cancel_event_id);
+
+                        result?;
+
+                        // Verify output file exists and has content
+                        if !output_path.exists() {
+                            return Err(String::from("Output file was not created"));
+                        }
+
+                        let output_metadata = get_file_metadata(&output_path.to_string_lossy())?;
+                        if output_metadata.size == 0 {
+                            return Err(String::from("Output file is empty"));
+                        }
+
+                        Ok(output_path.to_path_buf())
+                    }
+                    Err(e) => Err(format!("Conversion task failed: {}", e)),
+                }
+            }
+            Err(e) => Err(format!("Failed to spawn FFmpeg: {}", e)),
+        }
+    }
 }

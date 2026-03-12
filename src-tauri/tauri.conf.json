@@ -15,7 +15,12 @@
     "category": "Video",
     "copyright": "Code For Real",
     "targets": ["deb", "appimage", "nsis", "dmg", "app"],
-    "externalBin": ["./bin/compresso_ffmpeg", "./bin/compresso_ffprobe"],
+    "externalBin": [
+      "./bin/compresso_ffmpeg",
+      "./bin/compresso_ffprobe",
+      "./bin/compresso_jpegoptim",
+      "./bin/compresso_gifsicle"
+    ],
     "fileAssociations": [
       {
         "ext": ["mp4"],
@@ -24,7 +29,7 @@
       },
       {
         "ext": ["mov"],
-        "mimeType": "video/quicktime",
+        "mimeType": "video/quicklime's",
         "role": "Editor"
       },
       {

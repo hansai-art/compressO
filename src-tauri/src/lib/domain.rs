@@ -18,7 +18,7 @@ pub struct CompressionResult {
     pub file_metadata: Option<FileMetadata>,
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct FileMetadata {
     pub path: String,
@@ -51,6 +51,9 @@ pub enum CustomEvents {
     CancelInProgressCompression,
     BatchCompressionProgress,
     BatchCompressionIndividualCompressionCompletion,
+    ImageCompressionProgress,
+    ImageBatchCompressionProgress,
+    ImageBatchIndividualCompressionCompletion,
 }
 
 #[derive(EnumProperty)]
@@ -344,4 +347,93 @@ pub struct UpdateInfo {
     pub latest_version: Option<String>,
     pub body: Option<String>,
     pub date: Option<String>,
+}
+
+// Image compression types
+#[derive(Serialize, Deserialize, Clone, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct ImageCompressionProgress {
+    pub image_id: String,
+    pub batch_id: String,
+    pub file_name: String,
+    pub progress: f32, // 0.0 to 1.0
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct ImageCompressionResult {
+    pub image_id: String,
+    pub file_name: String,
+    pub file_path: String,
+    pub file_metadata: Option<FileMetadata>,
+    pub original_size: u64,
+    pub compressed_size: u64,
+    pub compression_ratio: f32,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct ImageCompressionConfig {
+    pub image_id: String,
+    pub image_path: String,
+    pub convert_to_extension: Option<String>,
+    pub quality: u8, // 0-100
+    pub png_compression_mode: Option<PngCompressionMode>,
+    pub jpeg_compression_mode: Option<JpegCompressionMode>,
+    pub webp_quality: Option<u8>,
+    pub gif_quality: Option<GifQuality>,
+    pub gif_compression_mode: Option<GifCompressionMode>,
+    pub strip_metadata: Option<bool>,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+#[serde(rename_all = "camelCase")]
+pub enum PngCompressionMode {
+    Lossy,
+    Lossless,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+#[serde(rename_all = "camelCase")]
+pub enum JpegCompressionMode {
+    Lossy,
+    Lossless,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+#[serde(rename_all = "camelCase")]
+pub enum GifCompressionMode {
+    Lossy,
+    Lossless,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct GifQuality {
+    pub quality: u8, // 1-100
+    pub width: Option<u32>,
+    pub height: Option<u32>,
+    pub fast: Option<bool>,
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct ImageBatchCompressionResult {
+    pub results: std::collections::HashMap<String, ImageCompressionResult>,
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct ImageBatchCompressionProgress {
+    pub batch_id: String,
+    pub current_index: usize,
+    pub total_count: usize,
+    pub image_progress: ImageCompressionProgress,
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct ImageBatchIndividualCompressionResult {
+    pub batch_id: String,
+    pub result: ImageCompressionResult,
 }
