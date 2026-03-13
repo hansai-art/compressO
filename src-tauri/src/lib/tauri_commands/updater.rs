@@ -39,7 +39,7 @@ pub async fn check_update(app_handle: tauri::AppHandle) -> Result<UpdateInfo, St
 }
 
 #[tauri::command]
-pub async fn install_update(app_handle: tauri::AppHandle) -> Result<String, String> {
+pub async fn download_and_install_update(app_handle: tauri::AppHandle) -> Result<String, String> {
     use tauri_plugin_updater::UpdaterExt;
 
     let updater = app_handle

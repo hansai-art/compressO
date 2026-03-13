@@ -19,27 +19,27 @@ const AUDIO_BITRATES = [
 ]
 
 type AudioBitrateProps = {
-  videoIndex: number
+  mediaIndex: number
 }
 
-function AudioBitrate({ videoIndex }: AudioBitrateProps) {
+function AudioBitrate({ mediaIndex }: AudioBitrateProps) {
   const {
     state: {
       videos,
       isCompressing,
       isProcessCompleted,
       commonConfigForBatchCompression,
-      isLoadingFiles,
+      isLoadingMediaFiles,
     },
   } = useSnapshot(appProxy)
-  const video = videos.length > 0 && videoIndex >= 0 ? videos[videoIndex] : null
+  const video = videos.length > 0 && mediaIndex >= 0 ? videos[mediaIndex] : null
   const { config, videoInfoRaw } = video ?? {}
   const { audioConfig, shouldEnableCustomBitrate } =
     config ?? commonConfigForBatchCompression ?? {}
 
   const handleSwitchToggle = useCallback(() => {
-    if (videoIndex >= 0 && appProxy.state.videos[videoIndex]?.config) {
-      const videoConfig = appProxy.state.videos[videoIndex].config
+    if (mediaIndex >= 0 && appProxy.state.videos[mediaIndex]?.config) {
+      const videoConfig = appProxy.state.videos[mediaIndex].config
       videoConfig.shouldEnableCustomBitrate = !shouldEnableCustomBitrate
       if (!shouldEnableCustomBitrate) {
         if (!videoConfig.audioConfig) {
@@ -51,7 +51,7 @@ function AudioBitrate({ videoIndex }: AudioBitrateProps) {
           videoConfig.audioConfig.bitrate = null
         }
       }
-      appProxy.state.videos[videoIndex].isConfigDirty = true
+      appProxy.state.videos[mediaIndex].isConfigDirty = true
     } else {
       if (appProxy.state.videos.length > 1) {
         const commonConfig = appProxy.state.commonConfigForBatchCompression
@@ -67,19 +67,19 @@ function AudioBitrate({ videoIndex }: AudioBitrateProps) {
         normalizeBatchVideosConfig()
       }
     }
-  }, [videoIndex, shouldEnableCustomBitrate])
+  }, [mediaIndex, shouldEnableCustomBitrate])
 
   const handleBitrateChange = useCallback(
     (value: string) => {
       const bitrate = Number.parseInt(value, 10)
 
-      if (videoIndex >= 0 && appProxy.state.videos[videoIndex]?.config) {
-        const videoConfig = appProxy.state.videos[videoIndex].config
+      if (mediaIndex >= 0 && appProxy.state.videos[mediaIndex]?.config) {
+        const videoConfig = appProxy.state.videos[mediaIndex].config
         if (!videoConfig.audioConfig) {
           videoConfig.audioConfig = { volume: 100 }
         }
         videoConfig.audioConfig.bitrate = bitrate
-        appProxy.state.videos[videoIndex].isConfigDirty = true
+        appProxy.state.videos[mediaIndex].isConfigDirty = true
       } else {
         if (appProxy.state.videos.length > 1) {
           if (!appProxy.state.commonConfigForBatchCompression.audioConfig) {
@@ -93,14 +93,14 @@ function AudioBitrate({ videoIndex }: AudioBitrateProps) {
         }
       }
     },
-    [videoIndex],
+    [mediaIndex],
   )
 
   const shouldDisableInput =
     videos.length === 0 ||
     isCompressing ||
     isProcessCompleted ||
-    isLoadingFiles ||
+    isLoadingMediaFiles ||
     audioConfig?.volume === 0
 
   const hasNoAudio = videoInfoRaw?.audioStreams?.length === 0

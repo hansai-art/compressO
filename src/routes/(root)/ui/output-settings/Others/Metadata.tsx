@@ -18,20 +18,20 @@ import {
 } from '../../../-state'
 
 type MetadataProps = {
-  videoIndex: number
+  mediaIndex: number
 }
 
-function Metadata({ videoIndex }: MetadataProps) {
+function Metadata({ mediaIndex }: MetadataProps) {
   const {
     state: {
       videos,
       isCompressing,
       isProcessCompleted,
       commonConfigForBatchCompression,
-      isLoadingFiles,
+      isLoadingMediaFiles,
     },
   } = useSnapshot(appProxy)
-  const video = videos.length > 0 && videoIndex >= 0 ? videos[videoIndex] : null
+  const video = videos.length > 0 && mediaIndex >= 0 ? videos[mediaIndex] : null
   const { config } = video ?? {}
   const { shouldPreserveMetadata, metadataConfig } =
     config ?? commonConfigForBatchCompression ?? {}
@@ -41,26 +41,26 @@ function Metadata({ videoIndex }: MetadataProps) {
       field: keyof VideoMetadataConfig,
       value: string | boolean | null | undefined,
     ) => {
-      if (videoIndex >= 0 && appProxy.state.videos[videoIndex]?.config) {
-        if (!appProxy.state.videos[videoIndex]?.config?.metadataConfig) {
-          appProxy.state.videos[videoIndex].config.metadataConfig = cloneDeep(
+      if (mediaIndex >= 0 && appProxy.state.videos[mediaIndex]?.config) {
+        if (!appProxy.state.videos[mediaIndex]?.config?.metadataConfig) {
+          appProxy.state.videos[mediaIndex].config.metadataConfig = cloneDeep(
             videoMetadataConfigInitialState,
           )
         }
-        ;(appProxy.state.videos[videoIndex].config.metadataConfig![
+        ;(appProxy.state.videos[mediaIndex].config.metadataConfig![
           field
         ] as any) = value
 
         if (
           field === 'creationTimeRaw' &&
-          appProxy.state.videos[videoIndex]?.config?.metadataConfig
+          appProxy.state.videos[mediaIndex]?.config?.metadataConfig
         ) {
-          appProxy.state.videos[videoIndex].config.metadataConfig![
+          appProxy.state.videos[mediaIndex].config.metadataConfig![
             'creationTime'
           ] = (value as any)?.toDate?.('')?.toISOString()
         }
 
-        appProxy.state.videos[videoIndex].isConfigDirty = true
+        appProxy.state.videos[mediaIndex].isConfigDirty = true
       } else {
         if (appProxy.state.videos.length > 1) {
           if (
@@ -86,19 +86,19 @@ function Metadata({ videoIndex }: MetadataProps) {
         }
       }
     },
-    [videoIndex],
+    [mediaIndex],
   )
 
   const handlePreserveMetadataToggle = useCallback(() => {
-    if (videoIndex >= 0 && appProxy.state.videos[videoIndex]?.config) {
-      appProxy.state.videos[videoIndex].config.shouldPreserveMetadata =
-        !appProxy.state.videos[videoIndex].config.shouldPreserveMetadata
-      appProxy.state.videos[videoIndex].isConfigDirty = true
+    if (mediaIndex >= 0 && appProxy.state.videos[mediaIndex]?.config) {
+      appProxy.state.videos[mediaIndex].config.shouldPreserveMetadata =
+        !appProxy.state.videos[mediaIndex].config.shouldPreserveMetadata
+      appProxy.state.videos[mediaIndex].isConfigDirty = true
 
-      if (appProxy.state.videos[videoIndex].config.shouldPreserveMetadata) {
-        appProxy.state.videos[videoIndex].config.metadataConfig = null
+      if (appProxy.state.videos[mediaIndex].config.shouldPreserveMetadata) {
+        appProxy.state.videos[mediaIndex].config.metadataConfig = null
       } else {
-        appProxy.state.videos[videoIndex].config.metadataConfig = cloneDeep(
+        appProxy.state.videos[mediaIndex].config.metadataConfig = cloneDeep(
           videoMetadataConfigInitialState,
         )
       }
@@ -119,10 +119,13 @@ function Metadata({ videoIndex }: MetadataProps) {
         normalizeBatchVideosConfig()
       }
     }
-  }, [videoIndex])
+  }, [mediaIndex])
 
   const shouldDisableInput =
-    videos.length === 0 || isCompressing || isProcessCompleted || isLoadingFiles
+    videos.length === 0 ||
+    isCompressing ||
+    isProcessCompleted ||
+    isLoadingMediaFiles
 
   return (
     <>

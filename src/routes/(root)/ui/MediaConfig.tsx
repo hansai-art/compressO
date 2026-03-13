@@ -5,16 +5,16 @@ import { useSnapshot } from 'valtio'
 import Layout from '@/components/Layout'
 import { cn } from '@/utils/tailwind'
 import CompressionProgress from './CompressionProgress'
-import CustomizeVideoOnBatchActions from './CustomizeVideoOnBatchActions'
-import OutputSettings from './output-settings/-index'
-import PreviewBatchVideos from './PreviewBatchVideos'
-import PreviewSingleVideo from './PreviewSingleVideo'
-import styles from './styles.module.css'
+import CustomizeMediaOnBatchActions from './CustomizeMediaOnBatchActions'
+// import OutputSettings from './output-settings/-index'
 import { appProxy } from '../-state'
+import PreviewBatchVideos from './PreviewBatchMedia'
+import PreviewSingleVideo from './PreviewSingleMedia'
+import styles from './styles.module.css'
 
-function VideoConfig() {
+function MediaConfig() {
   const {
-    state: { videos, isCompressing, selectedVideoIndexForCustomization },
+    state: { media, isCompressing, selectedMediaIndexForCustomization },
   } = useSnapshot(appProxy)
 
   return (
@@ -31,29 +31,29 @@ function VideoConfig() {
           )}
         >
           <AnimatePresence>
-            {videos.length > 1 ? (
+            {media.length > 1 ? (
               <>
                 <PreviewBatchVideos />
-                {selectedVideoIndexForCustomization > -1 ? (
-                  <CustomizeVideoOnBatchActions />
+                {selectedMediaIndexForCustomization > -1 ? (
+                  <CustomizeMediaOnBatchActions />
                 ) : null}
               </>
             ) : (
-              <PreviewSingleVideo videoIndex={0} />
+              <PreviewSingleVideo mediaIndex={0} />
             )}
           </AnimatePresence>
         </section>
-        <section className="p-4 w-full h-full rounded-xl border-2 border-zinc-200 dark:border-zinc-800">
+        {/* <section className="p-4 w-full h-full rounded-xl border-2 border-zinc-200 dark:border-zinc-800">
           <OutputSettings
-            videoIndex={
-              videos.length === 1 ? 0 : selectedVideoIndexForCustomization
+            mediaIndex={
+              media.length === 1 ? 0 : selectedMediaIndexForCustomization
             }
           />
-        </section>
+        </section> */}
       </div>
       {isCompressing ? <CompressionProgress /> : null}
     </Layout>
   )
 }
 
-export default React.memo(VideoConfig)
+export default React.memo(MediaConfig)

@@ -40,7 +40,7 @@ import { formatDuration } from '@/utils/string'
 import { appProxy } from '../-state'
 
 type VideoInfoProps = {
-  videoIndex: number
+  mediaIndex: number
 }
 
 const TABS = {
@@ -66,14 +66,17 @@ const TABS = {
   },
 } as const
 
-function VideoInfo({ videoIndex }: VideoInfoProps) {
-  if (videoIndex < 0) return null
+function VideoInfo({ mediaIndex }: VideoInfoProps) {
+  if (mediaIndex < 0) return null
 
   const {
-    state: { videos },
+    state: { media },
   } = useSnapshot(appProxy)
 
-  const video = videos.length && videoIndex >= 0 ? videos[videoIndex] : null
+  const video =
+    media.length && mediaIndex >= 0 && media[mediaIndex].type === 'video'
+      ? media[mediaIndex]
+      : null
   const { pathRaw: videoPathRaw, videoInfoRaw } = video ?? {}
   if (!video) return null
 
@@ -82,9 +85,9 @@ function VideoInfo({ videoIndex }: VideoInfoProps) {
 
   const fetchTabData = useCallback(
     async (tabKey: keyof typeof TABS) => {
-      const video = appProxy.state.videos[videoIndex]
+      const video = appProxy.state.media[mediaIndex]
 
-      if (!videoPathRaw || !video) {
+      if (!videoPathRaw || !video || video.type !== 'video') {
         return
       }
 
@@ -147,7 +150,7 @@ function VideoInfo({ videoIndex }: VideoInfoProps) {
         setLoading(false)
       }
     },
-    [videoPathRaw, videoIndex],
+    [videoPathRaw, mediaIndex],
   )
 
   useEffect(() => {

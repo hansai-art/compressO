@@ -3,6 +3,15 @@ import { FileMetadata } from './fs'
 
 export const extensions = {
   video: { mp4: 'mp4', mov: 'mov', mkv: 'mkv', webm: 'webm', avi: 'avi' },
+  image: {
+    png: 'png',
+    jpg: 'jpg',
+    jpeg: 'jpeg',
+    webp: 'webp',
+    gif: 'gif',
+    heic: 'heic',
+    svg: 'svg',
+  },
 } as const
 
 export const compressionPresets = {

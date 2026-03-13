@@ -13,18 +13,18 @@ import {
 } from '@/tauri/commands/fs'
 import { appProxy } from '../-state'
 
-function SaveVideo() {
+function SaveMedia() {
   const {
-    state: { videos, isSaving, isSaved, isCompressing },
+    state: { media, isSaving, isSaved, isCompressing },
   } = useSnapshot(appProxy)
-  const singleVideo = videos.length === 1 ? videos[0] : null
+  const mediaFile = media.length === 1 ? media[0] : null
 
-  const handleCompressedVideoSave = useCallback(async () => {
-    if (appProxy.state.videos.length) {
-      const { videos } = appProxy.state
-      const isBatch = videos.length > 1
-      const singleVideo = videos.length > 0 ? videos[0] : null
-      const { compressedVideo, fileName } = singleVideo ?? {}
+  const handleCompressedMediaSave = useCallback(async () => {
+    if (appProxy.state.media.length) {
+      const { media } = appProxy.state
+      const isBatch = media.length > 1
+      const mediaFile = media.length > 0 ? media[0] : null
+      const { compressedFile, fileName } = mediaFile ?? {}
 
       try {
         let pathToSave: string | string[] | null = null
@@ -32,15 +32,15 @@ function SaveVideo() {
         if (isBatch) {
           const selectedDirectory = await open({
             directory: true,
-            title: 'Choose directory to save the compressed videos.',
+            title: 'Choose directory to save the compressed media.',
           })
           if (selectedDirectory) {
             pathToSave = selectedDirectory as string
           }
         } else {
           pathToSave = await save({
-            title: 'Choose location to save the compressed video.',
-            defaultPath: `compressO-${compressedVideo?.fileNameToDisplay ?? fileName ?? ''}`,
+            title: 'Choose location to save the compressed media.',
+            defaultPath: `compressO-${compressedFile?.fileNameToDisplay ?? fileName ?? ''}`,
           })
         }
 
@@ -52,20 +52,23 @@ function SaveVideo() {
           if (isBatch) {
             const directory = pathToSave as string
 
-            for (let i = 0; i < videos.length; i++) {
-              const video = videos[i]
-              if (video.compressedVideo?.pathRaw) {
-                appProxy.state.videos[i].compressedVideo = {
-                  ...(snapshot(appProxy).state.videos[i].compressedVideo ?? {}),
+            for (let i = 0; i < media.length; i++) {
+              const mediaFile = media[i]
+              if (mediaFile.compressedFile?.pathRaw) {
+                appProxy.state.media[i].compressedFile = {
+                  ...(snapshot(appProxy).state.media[i].compressedFile ?? {}),
                   isSaving: true,
                   isSaved: false,
                 }
 
-                const destinationPath = `${directory}/compressO-${video?.compressedVideo?.fileNameToDisplay || video?.fileName}`
+                const destinationPath = `${directory}/compressO-${mediaFile?.compressedFile?.fileNameToDisplay || mediaFile?.fileName}`
 
-                await moveFile(video.compressedVideo.pathRaw, destinationPath)
-                appProxy.state.videos[i].compressedVideo = {
-                  ...(snapshot(appProxy).state.videos[i].compressedVideo ?? {}),
+                await moveFile(
+                  mediaFile.compressedFile.pathRaw,
+                  destinationPath,
+                )
+                appProxy.state.media[i].compressedFile = {
+                  ...(snapshot(appProxy).state.media[i].compressedFile ?? {}),
                   savedPath: destinationPath,
                   isSaving: false,
                   isSaved: true,
@@ -74,17 +77,17 @@ function SaveVideo() {
             }
             appProxy.state.isSaved = true
           } else {
-            appProxy.state.videos[0].compressedVideo = {
-              ...(snapshot(appProxy).state.videos[0].compressedVideo ?? {}),
+            appProxy.state.media[0].compressedFile = {
+              ...(snapshot(appProxy).state.media[0].compressedFile ?? {}),
               isSaving: true,
               isSaved: false,
             }
             await moveFile(
-              compressedVideo?.pathRaw as string,
+              compressedFile?.pathRaw as string,
               pathToSave as string,
             )
-            appProxy.state.videos[0].compressedVideo = {
-              ...(snapshot(appProxy).state.videos[0].compressedVideo ?? {}),
+            appProxy.state.media[0].compressedFile = {
+              ...(snapshot(appProxy).state.media[0].compressedFile ?? {}),
               savedPath: pathToSave as string,
               isSaving: false,
               isSaved: true,
@@ -93,10 +96,10 @@ function SaveVideo() {
           }
         }
       } catch (_) {
-        toast.error('Could not save video(s) to the given path.')
-        for (let i = 0; i < videos.length; i++) {
-          appProxy.state.videos[i].compressedVideo = {
-            ...(snapshot(appProxy).state.videos[i].compressedVideo ?? {}),
+        toast.error('Could not save media to the given path.')
+        for (let i = 0; i < media.length; i++) {
+          appProxy.state.media[i].compressedFile = {
+            ...(snapshot(appProxy).state.media[i].compressedFile ?? {}),
             isSaving: false,
             isSaved: false,
           }
@@ -107,11 +110,11 @@ function SaveVideo() {
   }, [])
 
   const openInFileManager = async () => {
-    const { videos } = appProxy.state
-    const singleVideo = videos.length > 0 ? videos[0] : null
-    const { compressedVideo } = singleVideo ?? {}
+    const { media } = appProxy.state
+    const mediaFile = media.length > 0 ? media[0] : null
+    const { compressedFile } = mediaFile ?? {}
 
-    const savedPath = appProxy.state.savedPath ?? compressedVideo?.savedPath
+    const savedPath = appProxy.state.savedPath ?? compressedFile?.savedPath
     if (!savedPath) return
     try {
       await showItemInFileManager(savedPath)
@@ -119,14 +122,14 @@ function SaveVideo() {
   }
 
   const copyToClipboard = async () => {
-    const { videos } = appProxy.state
-    const singleVideo = videos.length > 0 ? videos[0] : null
-    const { compressedVideo } = singleVideo ?? {}
+    const { media } = appProxy.state
+    const mediaFile = media.length > 0 ? media[0] : null
+    const { compressedFile } = mediaFile ?? {}
 
     const savedPath =
       appProxy.state.savedPath ??
-      compressedVideo?.savedPath ??
-      compressedVideo?.pathRaw
+      compressedFile?.savedPath ??
+      compressedFile?.pathRaw
     if (!savedPath) return
 
     try {
@@ -140,16 +143,12 @@ function SaveVideo() {
       <Button
         className="flex justify-center items-center"
         color="success"
-        onPress={handleCompressedVideoSave}
+        onPress={handleCompressedMediaSave}
         isLoading={isSaving}
         isDisabled={isSaving || isSaved}
         fullWidth
       >
-        {isSaving
-          ? 'Saving...'
-          : isSaved
-            ? 'Saved'
-            : `Save Video${videos.length > 1 ? 's' : ''}`}
+        {isSaving ? 'Saving...' : isSaved ? 'Saved' : `Save Media`}
         {!isSaving ? (
           <Icon name={isSaved ? 'tick' : 'save'} className="text-green-300" />
         ) : null}
@@ -171,8 +170,8 @@ function SaveVideo() {
         </>
       ) : null}
       {!isCompressing &&
-      singleVideo?.isProcessCompleted &&
-      singleVideo?.compressedVideo?.isSuccessful ? (
+      mediaFile?.isProcessCompleted &&
+      mediaFile?.compressedFile?.isSuccessful ? (
         <Tooltip content="Copy to clipboard" aria-label="Copy to clipboard">
           <Button
             isIconOnly
@@ -187,4 +186,4 @@ function SaveVideo() {
   )
 }
 
-export default React.memo(SaveVideo)
+export default React.memo(SaveMedia)

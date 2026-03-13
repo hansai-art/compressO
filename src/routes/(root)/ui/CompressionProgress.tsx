@@ -13,14 +13,14 @@ import { convertDurationToMilliseconds } from '@/utils/string'
 import { appProxy } from '../-state'
 
 async function updateDockProgress() {
-  const videos = snapshot(appProxy).state.videos
-  if (videos.length === 0) return
+  const media = snapshot(appProxy).state.media
+  if (media.length === 0) return
 
-  const totalProgress = videos.reduce(
-    (sum, video) => sum + (video.compressionProgress ?? 0),
+  const totalProgress = media.reduce(
+    (sum, media) => sum + (media.compressionProgress ?? 0),
     0,
   )
-  const batchProgress = totalProgress / videos.length
+  const batchProgress = totalProgress / media.length
 
   try {
     await invoke('set_dock_progress', { progress: batchProgress })
@@ -46,6 +46,7 @@ function CompressionProgress() {
   const individualCompressionResultRef = useRef<event.UnlistenFn>()
 
   useEffect(() => {
+    // Batch compression progress
     if (batchId) {
       ;(async () => {
         if (compressionProgressRef.current) {
@@ -57,52 +58,59 @@ function CompressionProgress() {
             (evt) => {
               const payload = evt?.payload
               if (batchId === payload?.batchId) {
-                const videos = snapshot(appProxy).state.videos
-                const targetVideoIndex = videos.findIndex(
-                  (v) => v.id === payload.videoId,
+                const media = snapshot(appProxy).state.media
+                const targetMediaIndex = media.findIndex(
+                  (v) => v.id === payload.videoId, // TODO: handle for imageId
                 )
-                if (targetVideoIndex !== -1) {
-                  appProxy.state.currentVideoIndex = targetVideoIndex
-                  appProxy.state.videos[targetVideoIndex].isCompressing = true
+                if (targetMediaIndex !== -1) {
+                  appProxy.state.currentMediaIndex = targetMediaIndex
+                  appProxy.state.media[targetMediaIndex].isCompressing = true
+                  const mediaType = appProxy.state.media[targetMediaIndex].type
 
-                  const trimConfig =
-                    videos[targetVideoIndex]?.config?.trimConfig ?? []
+                  if (media[targetMediaIndex].type === 'video') {
+                    const trimConfig =
+                      media[targetMediaIndex]?.config?.trimConfig ?? []
 
-                  const targetVideoDuration =
-                    videos[targetVideoIndex].videoDuration ?? 0
+                    const targetVideoDuration =
+                      media[targetMediaIndex].videoDuration ?? 0
 
-                  const videoDurationInMilliseconds =
-                    (videos[targetVideoIndex]?.config?.shouldTrimVideo &&
-                    trimConfig
-                      ? (trimConfig.reduce((a, c) => {
-                          a += c.end >= c.start ? c.end - c.start : 0
-                          return a
-                        }, 0) ?? targetVideoDuration)
-                      : targetVideoDuration) * 1000
+                    const videoDurationInMilliseconds =
+                      (media[targetMediaIndex]?.config?.shouldTrimVideo &&
+                      trimConfig
+                        ? (trimConfig.reduce((a, c) => {
+                            a += c.end >= c.start ? c.end - c.start : 0
+                            return a
+                          }, 0) ?? targetVideoDuration)
+                        : targetVideoDuration) * 1000
 
-                  if (!Number.isNaN(videoDurationInMilliseconds)) {
-                    const currentDurationInMilliseconds =
-                      convertDurationToMilliseconds(payload?.currentDuration) // current duration is the duration processed on the output not input source
+                    if (!Number.isNaN(videoDurationInMilliseconds)) {
+                      const currentDurationInMilliseconds =
+                        convertDurationToMilliseconds(payload?.currentDuration) // current duration is the duration processed on the output not input source
 
-                    if (
-                      currentDurationInMilliseconds > 0 &&
-                      videoDurationInMilliseconds >=
-                        currentDurationInMilliseconds
-                    ) {
-                      appProxy.state.videos[
-                        targetVideoIndex
-                      ].compressionProgress =
-                        (currentDurationInMilliseconds * 100) /
-                        videoDurationInMilliseconds
+                      if (
+                        currentDurationInMilliseconds > 0 &&
+                        videoDurationInMilliseconds >=
+                          currentDurationInMilliseconds
+                      ) {
+                        appProxy.state.media[
+                          targetMediaIndex
+                        ].compressionProgress =
+                          (currentDurationInMilliseconds * 100) /
+                          videoDurationInMilliseconds
 
-                      updateDockProgress()
+                        updateDockProgress()
+                      }
                     }
+                  } else if (mediaType === 'image') {
+                    // TODO: Handle image
                   }
                 }
               }
             },
           )
       })()
+
+      // Individual compression progress
       ;(async () => {
         if (individualCompressionResultRef.current) {
           individualCompressionResultRef.current?.()
@@ -113,18 +121,18 @@ function CompressionProgress() {
             (evt) => {
               const payload = evt?.payload
               if (batchId === payload?.batchId && payload?.result) {
-                const videos = snapshot(appProxy).state.videos
-                const targetVideoIndex = videos.findIndex(
-                  (v) => v.id === payload.result.videoId,
+                const media = snapshot(appProxy).state.media
+                const targetMediaIndex = media.findIndex(
+                  (v) => v.id === payload.result.videoId, // TODO: handle for imageId
                 )
-                if (targetVideoIndex !== -1) {
+                if (targetMediaIndex !== -1) {
                   const fileMetadata = payload?.result?.fileMetadata
-                  appProxy.state.videos[targetVideoIndex].isProcessCompleted =
+                  appProxy.state.media[targetMediaIndex].isProcessCompleted =
                     true
-                  appProxy.state.videos[targetVideoIndex].isCompressing = false
-                  appProxy.state.videos[targetVideoIndex].compressionProgress =
+                  appProxy.state.media[targetMediaIndex].isCompressing = false
+                  appProxy.state.media[targetMediaIndex].compressionProgress =
                     100
-                  appProxy.state.videos[targetVideoIndex].compressedVideo = {
+                  appProxy.state.media[targetMediaIndex].compressedFile = {
                     isSuccessful: true,
                     fileName: fileMetadata?.fileName,
                     fileNameToDisplay: `${fileMetadata?.fileName?.slice(
@@ -138,14 +146,14 @@ function CompressionProgress() {
                     size: formatBytes(fileMetadata?.size ?? 0),
                     sizeInBytes: fileMetadata?.size,
                   }
-                  if (appProxy.state.videos.length > 1) {
+                  if (appProxy.state.media.length > 1) {
                     appProxy.takeSnapshot('batchCompressionStep')
                   }
 
-                  const allVideosCompleted = snapshot(
+                  const allMediaCompleted = snapshot(
                     appProxy,
-                  ).state?.videos?.every((v) => v.isProcessCompleted)
-                  if (allVideosCompleted) {
+                  ).state?.media?.every((v) => v.isProcessCompleted)
+                  if (allMediaCompleted) {
                     clearDockProgress()
                   } else {
                     updateDockProgress()

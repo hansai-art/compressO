@@ -3,15 +3,15 @@ import Metadata from './Metadata'
 import Subtitles from './Subtitles'
 
 type OthersProps = {
-  videoIndex: number
+  mediaIndex: number
 }
 
-function Others({ videoIndex }: OthersProps) {
+function Others({ mediaIndex }: OthersProps) {
   return (
     <div>
-      <Subtitles videoIndex={videoIndex} />
+      <Subtitles mediaIndex={mediaIndex} />
       <Divider className="my-3" />
-      <Metadata videoIndex={videoIndex} />
+      <Metadata mediaIndex={mediaIndex} />
     </div>
   )
 }

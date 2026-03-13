@@ -1,5 +1,6 @@
 import { core } from '@tauri-apps/api'
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { PhotoView } from 'react-photo-view'
 import { OnProgressProps } from 'react-player/base'
 import { toast } from 'sonner'
 import { useSnapshot } from 'valtio'
@@ -8,6 +9,7 @@ import { subscribeKey } from 'valtio/utils'
 import Button from '@/components/Button'
 import Icon from '@/components/Icon'
 import Image from '@/components/Image'
+import ImageViewer from '@/components/ImageViewer'
 import useTimelineEngine from '@/components/Timeline/useTimelineEngine'
 import Tooltip from '@/components/Tooltip'
 import VideoPlayer, { VideoPlayerRef } from '@/components/VideoPlayer'
@@ -19,8 +21,8 @@ import VideoTrimmerTimeline, {
   VideoTrimmerTimelineRef,
 } from '@/ui/VideoTrimmerTimeline'
 import { formatDuration } from '@/utils/string'
-import VideoTransformer from './VideoTransformer'
 import { appProxy } from '../-state'
+import VideoTransformer from './VideoTransformer'
 
 function pickRandomTimestamp(durationMs: number): string {
   const durationSeconds = durationMs / 1000
@@ -33,34 +35,36 @@ function pickRandomTimestamp(durationMs: number): string {
   return formatDuration(randomSeconds)
 }
 
-type VideoThumbnailProps = {
-  videoIndex: number
+type MediaThumbnailProps = {
+  mediaIndex: number
 }
 
-function VideoThumbnail({ videoIndex }: VideoThumbnailProps) {
-  if (videoIndex < 0) return
+function MediaThumbnail({ mediaIndex }: MediaThumbnailProps) {
+  if (mediaIndex < 0) return
 
   const {
-    state: { videos },
+    state: { media },
   } = useSnapshot(appProxy)
-  const video = videos.length > 0 ? videos[videoIndex] : null
+  const mediaFile = media.length > 0 ? media[mediaIndex] : null
   const {
-    config,
-    path: videoPath,
-    pathRaw: videoPathRaw,
-    thumbnailPath,
+    type: mediaType,
+    path: mediaPath,
+    pathRaw: mediaPathRaw,
+    compressedFile,
     isProcessCompleted,
+  } = mediaFile ?? {}
+  const {
+    thumbnailPath: videoThumbnailPath,
     previewMode = 'video',
     videoDuration,
-    compressedVideo,
-  } = video ?? {}
+  } = mediaFile?.type === 'video' ? (mediaFile ?? {}) : {}
   const {
     shouldTransformVideo,
     isVideoTransformEditMode,
     trimConfig,
     isVideoTrimEditMode,
     shouldTrimVideo,
-  } = config ?? {}
+  } = mediaFile?.type === 'video' ? (mediaFile?.config ?? {}) : {}
 
   const playerRef = useRef<VideoPlayerRef | null>(null)
   const trimmerRef = useRef<VideoTrimmerTimelineRef | null>(null)
@@ -70,7 +74,12 @@ function VideoThumbnail({ videoIndex }: VideoThumbnailProps) {
   const [isCopyingFrame, setIsCopyingFrame] = useState(false)
 
   const handleCopyCurrentFrame = useCallback(async () => {
-    if (!videoPathRaw || !videoDuration || !playerRef.current) {
+    if (
+      !mediaPathRaw ||
+      !videoDuration ||
+      !playerRef.current ||
+      appProxy.state.media[mediaIndex].type !== 'video'
+    ) {
       toast.error('Unable to copy frame')
       return
     }
@@ -87,7 +96,7 @@ function VideoThumbnail({ videoIndex }: VideoThumbnailProps) {
             : currentTime
       const timestamp = formatDuration(targetDuration)
 
-      const result = await generateVideoThumbnail(videoPathRaw, timestamp)
+      const result = await generateVideoThumbnail(mediaPathRaw, timestamp)
 
       await copyFileToClipboard(result.filePath)
       toast.success('Frame copied to clipboard')
@@ -96,12 +105,13 @@ function VideoThumbnail({ videoIndex }: VideoThumbnailProps) {
     } finally {
       setIsCopyingFrame(false)
     }
-  }, [videoPathRaw, videoDuration])
+  }, [mediaPathRaw, videoDuration, mediaIndex])
 
   const handleRegenerateThumbnail = useCallback(
     async (timeStamp?: string, retries = 2, forced = false) => {
       if (
-        !videoPathRaw ||
+        appProxy.state.media[mediaIndex].type !== 'video' ||
+        !mediaPathRaw ||
         !videoDuration ||
         (forced ? false : isThumbnailRegenerating)
       )
@@ -110,11 +120,11 @@ function VideoThumbnail({ videoIndex }: VideoThumbnailProps) {
       setIsThumbnailRegenerating(true)
       try {
         const result = await generateVideoThumbnail(
-          videoPathRaw,
+          mediaPathRaw,
           timeStamp ?? pickRandomTimestamp(videoDuration * 1000),
         )
-        appProxy.state.videos[videoIndex].thumbnailPathRaw = result.filePath
-        appProxy.state.videos[videoIndex].thumbnailPath = core.convertFileSrc(
+        appProxy.state.media[mediaIndex].thumbnailPathRaw = result.filePath
+        appProxy.state.media[mediaIndex].thumbnailPath = core.convertFileSrc(
           result.filePath,
         )
       } catch {
@@ -125,7 +135,7 @@ function VideoThumbnail({ videoIndex }: VideoThumbnailProps) {
         setIsThumbnailRegenerating(false)
       }
     },
-    [videoPathRaw, videoDuration, videoIndex, isThumbnailRegenerating],
+    [mediaPathRaw, videoDuration, mediaIndex, isThumbnailRegenerating],
   )
 
   const seekPlayerTo = useCallback((time: number, onPausedOnly = true) => {
@@ -161,27 +171,31 @@ function VideoThumbnail({ videoIndex }: VideoThumbnailProps) {
   useEffect(() => {
     let unsubscribeTransform: (() => void) | undefined
 
-    if (appProxy.state.videos[videoIndex]?.config) {
+    if (
+      appProxy.state.media[mediaIndex]?.type === 'video' &&
+      appProxy.state.media[mediaIndex]?.config
+    ) {
       unsubscribeTransform = subscribeKey(
-        appProxy.state.videos[videoIndex].config,
+        appProxy.state.media[mediaIndex].config,
         'isVideoTransformEditMode',
         async () => {
-          const videoSnapshot = appProxy.state.videos[videoIndex]
+          const mediaSnapshot = appProxy.state.media[mediaIndex]
           if (
             (playerRef.current || trimmerRef.current) &&
-            videoSnapshot.config.isVideoTransformEditMode
+            mediaSnapshot.type === 'video' &&
+            mediaSnapshot.config.isVideoTransformEditMode
           ) {
             if (playerRef.current) {
               playerRef.current.pauseVideo()
             }
-            const { pathRaw: videoPathRaw } = videoSnapshot
+            const { pathRaw: mediaPathRaw } = mediaSnapshot
             const currentTime = playerRef.current
               ? playerRef.current.playerRef?.getCurrentTime?.()
               : trimmerRef.current?.getTime?.()
-            if (currentTime && videoPathRaw) {
+            if (currentTime && mediaPathRaw) {
               try {
                 const targetDuration =
-                  currentTime >= videoSnapshot.videoDuration!
+                  currentTime >= mediaSnapshot.videoDuration!
                     ? currentTime - 0.02
                     : currentTime <= 0
                       ? 0.02
@@ -192,7 +206,7 @@ function VideoThumbnail({ videoIndex }: VideoThumbnailProps) {
 
                 if (!thumbnailPath) {
                   const result = await generateVideoThumbnail(
-                    videoPathRaw,
+                    mediaPathRaw,
                     timestamp,
                   )
 
@@ -200,10 +214,8 @@ function VideoThumbnail({ videoIndex }: VideoThumbnailProps) {
                   thumbnailCacheRef.current[timestamp] = thumbnailPath
                 }
 
-                appProxy.state.videos[videoIndex].thumbnailPathRaw =
-                  thumbnailPath
-                appProxy.state.videos[videoIndex].thumbnailPath =
-                  core.convertFileSrc(thumbnailPath)
+                mediaSnapshot.thumbnailPathRaw = thumbnailPath
+                mediaSnapshot.thumbnailPath = core.convertFileSrc(thumbnailPath)
               } catch {}
             }
           }
@@ -213,19 +225,22 @@ function VideoThumbnail({ videoIndex }: VideoThumbnailProps) {
     return () => {
       unsubscribeTransform?.()
     }
-  }, [videoIndex])
+  }, [mediaIndex])
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: <Clear thumbnail cache when video changes>
   useEffect(() => {
     thumbnailCacheRef.current = {}
-  }, [videoIndex])
+  }, [mediaIndex])
 
   useEffect(() => {
     let unsubscribeTrim: (() => void) | undefined
 
-    if (appProxy.state.videos[videoIndex]?.config) {
+    if (
+      appProxy.state.media[mediaIndex]?.type === 'video' &&
+      appProxy.state.media[mediaIndex]?.config
+    ) {
       unsubscribeTrim = subscribeKey(
-        appProxy.state.videos[videoIndex].config,
+        appProxy.state.media[mediaIndex].config,
         'isVideoTrimEditMode',
         async () => {
           if (playerRef.current) {
@@ -241,7 +256,10 @@ function VideoThumbnail({ videoIndex }: VideoThumbnailProps) {
                 }
               }
             }, 100)
-            if (appProxy.state.videos[videoIndex].config.isVideoTrimEditMode) {
+            if (
+              appProxy.state.media[mediaIndex].type === 'video' &&
+              appProxy.state.media[mediaIndex].config.isVideoTrimEditMode
+            ) {
               playerRef.current.pauseVideo()
             }
           }
@@ -251,7 +269,7 @@ function VideoThumbnail({ videoIndex }: VideoThumbnailProps) {
     return () => {
       unsubscribeTrim?.()
     }
-  }, [videoIndex, autoScrollCursorToCurrentTime, setTimelineTime])
+  }, [mediaIndex, autoScrollCursorToCurrentTime, setTimelineTime])
 
   const showTrimmerLayout =
     shouldTrimVideo && isVideoTrimEditMode && !isProcessCompleted
@@ -259,16 +277,19 @@ function VideoThumbnail({ videoIndex }: VideoThumbnailProps) {
   const showTransformerLayout =
     shouldTransformVideo && isVideoTransformEditMode && !isProcessCompleted
 
+  const thumbnailPath =
+    mediaFile?.type === 'video' ? videoThumbnailPath : mediaPath
+
   return (
     <div className="relative w-full flex items-center justify-center">
       <div className="relative w-full px-4">
-        {previewMode === 'video' && videoPath ? (
+        {mediaType === 'video' && previewMode === 'video' && mediaPath ? (
           <VideoPlayer
             ref={playerRef}
             url={
-              isProcessCompleted && compressedVideo
-                ? compressedVideo?.path!
-                : videoPath!
+              isProcessCompleted && compressedFile
+                ? compressedFile?.path!
+                : mediaPath!
             }
             enableTimelinePlayer={
               !(
@@ -301,8 +322,8 @@ function VideoThumbnail({ videoIndex }: VideoThumbnailProps) {
               minWidth: '50vw',
               maxHeight: '65vh',
               aspectRatio:
-                (video?.dimensions?.width ?? 1) /
-                (video?.dimensions?.height ?? 1),
+                (mediaFile?.dimensions?.width ?? 1) /
+                (mediaFile?.dimensions?.height ?? 1),
             }}
             config={{
               file: {
@@ -315,7 +336,9 @@ function VideoThumbnail({ videoIndex }: VideoThumbnailProps) {
             disableClosedCaptions
             onError={() => {
               toast.warning('Switching to image thumbnail...')
-              appProxy.state.videos[videoIndex].previewMode = 'image'
+              if (appProxy.state.media[mediaIndex].type === 'video') {
+                appProxy.state.media[mediaIndex].previewMode = 'image'
+              }
             }}
             onProgress={({ playedSeconds }: OnProgressProps) => {
               if (playerRef.current?.playerRef) {
@@ -330,7 +353,9 @@ function VideoThumbnail({ videoIndex }: VideoThumbnailProps) {
                 !Number.isNaN(duration) &&
                 !appProxy.state.isProcessCompleted
               ) {
-                appProxy.state.videos[videoIndex].videoDuration = duration
+                if (appProxy.state.media[mediaIndex].type === 'video') {
+                  appProxy.state.media[mediaIndex].videoDuration = duration
+                }
                 refreshTimeline()
               }
             }}
@@ -348,16 +373,20 @@ function VideoThumbnail({ videoIndex }: VideoThumbnailProps) {
           />
         ) : (
           <div className="relative w-fit mx-auto">
-            <Image
-              alt="video to compress"
-              src={thumbnailPath as string}
-              className="object-contain rounded-3xl max-h-[65vh] border-1 border-primary"
-              onError={() => {
-                if (!isProcessCompleted) {
-                  handleRegenerateThumbnail('00:00:01.00', 0, true)
-                }
-              }}
-            />
+            <ImageViewer>
+              <PhotoView src={thumbnailPath!}>
+                <Image
+                  alt="video to compress"
+                  src={thumbnailPath as string}
+                  className="object-contain rounded-3xl max-h-[65vh] border-1 border-zinc-200 dark:border-zinc-900 cursor-zoom-in"
+                  onError={() => {
+                    if (!isProcessCompleted) {
+                      handleRegenerateThumbnail('00:00:01.00', 0, true)
+                    }
+                  }}
+                />
+              </PhotoView>
+            </ImageViewer>
             {videoDuration && !isProcessCompleted ? (
               <div className="absolute bottom-4 right-4 z-[10]">
                 <Tooltip content="Regenerate Thumbnail">
@@ -378,7 +407,7 @@ function VideoThumbnail({ videoIndex }: VideoThumbnailProps) {
             ) : null}
           </div>
         )}
-        {showTrimmerLayout && videoDuration ? (
+        {mediaType === 'video' && showTrimmerLayout && videoDuration ? (
           <div className="mt-4">
             <VideoTrimmerTimeline
               id="video-trimmer-1"
@@ -411,8 +440,12 @@ function VideoThumbnail({ videoIndex }: VideoThumbnailProps) {
                 }
                 trimConfigSetDebounceRef.current = setTimeout(() => {
                   const trimRow = data.find((d) => d.id === rowIds.videoTrim)
-                  if (trimRow && appProxy.state.videos[videoIndex]?.config) {
-                    appProxy.state.videos[videoIndex].config.trimConfig =
+                  if (
+                    trimRow &&
+                    appProxy.state.media[mediaIndex].type === 'video' &&
+                    appProxy.state.media[mediaIndex]?.config
+                  ) {
+                    appProxy.state.media[mediaIndex].config.trimConfig =
                       trimRow.actions
                   }
                 }, 250)
@@ -423,11 +456,11 @@ function VideoThumbnail({ videoIndex }: VideoThumbnailProps) {
       </div>
       {showTransformerLayout ? (
         <div className="absolute top-0 right-0 bottom-0 left-0 w-full h-full flex flex-col m-auto justify-center items-center z-[10] bg-white1 dark:bg-black1">
-          <VideoTransformer videoIndex={videoIndex} />
+          <VideoTransformer mediaIndex={mediaIndex} />
         </div>
       ) : null}
     </div>
   )
 }
 
-export default VideoThumbnail
+export default MediaThumbnail

@@ -1,7 +1,16 @@
 use crate::{
-    domain::{AudioStream, Chapter, ContainerInfo, SubtitleStream, VideoStream},
+    domain::{AudioStream, Chapter, ContainerInfo, SubtitleStream, VideoInfo, VideoStream},
     ffprobe,
 };
+
+#[tauri::command]
+pub async fn get_video_basic_info(
+    app: tauri::AppHandle,
+    video_path: &str,
+) -> Result<VideoInfo, String> {
+    let mut ffprobe = ffprobe::FFPROBE::new(&app)?;
+    ffprobe.get_video_basic_info(video_path).await
+}
 
 #[tauri::command]
 pub async fn get_container_info(

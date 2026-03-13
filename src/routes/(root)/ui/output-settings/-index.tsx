@@ -18,6 +18,10 @@ import {
   VideoTransformsHistory,
 } from '@/types/compression'
 import { formatBytes } from '@/utils/fs'
+import { appProxy } from '../../-state'
+import CancelCompression from '../CancelCompression'
+import CompressionActions from '../CompressionActions'
+import SaveVideo from '../SaveMedia'
 import AudioBitrate from './AudioBitrate'
 import AudioChannels from './AudioChannels'
 import AudioCodec from './AudioCodec'
@@ -33,13 +37,9 @@ import VideoCodec from './VideoCodec'
 import VideoDimensions from './VideoDimensions'
 import VideoExtension from './VideoExtension'
 import VideoFPS from './VideoFPS'
-import { appProxy } from '../../-state'
-import CancelCompression from '../CancelCompression'
-import CompressionActions from '../CompressionActions'
-import SaveVideo from '../SaveVideo'
 
 type OutputSettingsProps = {
-  videoIndex: number // if videoIndex < 0, we'll only show settings that applies to all videos
+  mediaIndex: number // if mediaIndex < 0, we'll only show settings that applies to all videos
 }
 
 const TABS = {
@@ -57,17 +57,17 @@ const TABS = {
   },
 } as const
 
-function OutputSettings({ videoIndex }: OutputSettingsProps) {
+function OutputSettings({ mediaIndex }: OutputSettingsProps) {
   const {
     state: {
       videos,
       isCompressing,
       isProcessCompleted,
-      isLoadingFiles,
-      selectedVideoIndexForCustomization,
+      isLoadingMediaFiles,
+      selectedMediaIndexForCustomization,
     },
   } = useSnapshot(appProxy)
-  const video = videos.length && videoIndex >= 0 ? videos[videoIndex] : null
+  const video = videos.length && mediaIndex >= 0 ? videos[mediaIndex] : null
   const { dimensions, pathRaw: videoPathRaw, videoInfoRaw } = video ?? {}
 
   const [tab, setTab] = useState<keyof typeof TABS>('video')
@@ -79,8 +79,8 @@ function OutputSettings({ videoIndex }: OutputSettingsProps) {
     // Resets
     appProxy.clearSnapshots()
     appProxy.state.isBatchCompressionCancelled = false
-    appProxy.state.selectedVideoIndexForCustomization = -1
-    appProxy.state.showVideoInfo = false
+    appProxy.state.selectedMediaIndexForCustomization = -1
+    appProxy.state.showMediaInfo = false
     for (const index in appProxy.state.videos) {
       appProxy.state.videos[index].config.isVideoTransformEditMode = false
       appProxy.state.videos[index].config.isVideoTrimEditMode = false
@@ -241,23 +241,23 @@ function OutputSettings({ videoIndex }: OutputSettingsProps) {
 
   useEffect(() => {
     tab === 'audio' &&
-      videoIndex > -1 &&
-      appProxy.state.videos[videoIndex] &&
-      !appProxy.state.videos[videoIndex]?.videoInfoRaw?.audioStreams &&
+      mediaIndex > -1 &&
+      appProxy.state.videos[mediaIndex] &&
+      !appProxy.state.videos[mediaIndex]?.videoInfoRaw?.audioStreams &&
       videoPathRaw &&
       (async () => {
         const streams = await getAudioStreams(videoPathRaw)
         if (streams) {
-          const targetVideo = appProxy.state.videos[videoIndex]
+          const targetVideo = appProxy.state.videos[mediaIndex]
           if (!targetVideo?.videoInfoRaw) {
-            appProxy.state.videos[videoIndex].videoInfoRaw = {}
+            appProxy.state.videos[mediaIndex].videoInfoRaw = {}
           }
           if (targetVideo.videoInfoRaw) {
             targetVideo.videoInfoRaw.audioStreams = streams
           }
         }
       })()
-  }, [videoPathRaw, videoIndex, tab])
+  }, [videoPathRaw, mediaIndex, tab])
 
   const hasNoAudio = videoInfoRaw?.audioStreams?.length === 0
 
@@ -265,7 +265,7 @@ function OutputSettings({ videoIndex }: OutputSettingsProps) {
     <>
       <div className="flex items-center justify-between w-full mb-2">
         <p className="text-xl font-bold">
-          {videos.length === 1 || selectedVideoIndexForCustomization > -1
+          {videos.length === 1 || selectedMediaIndexForCustomization > -1
             ? 'Output'
             : 'Batch'}{' '}
           Settings
@@ -292,35 +292,35 @@ function OutputSettings({ videoIndex }: OutputSettingsProps) {
           {tab === 'video' ? (
             <div>
               <>
-                <CompressionPreset videoIndex={videoIndex} />
+                <CompressionPreset mediaIndex={mediaIndex} />
                 <Divider className="my-3" />
               </>
               <>
-                <VideoCodec videoIndex={videoIndex} />
+                <VideoCodec mediaIndex={mediaIndex} />
                 <Divider className="my-3" />
               </>
               <>
-                <CompressionQuality videoIndex={videoIndex} />
+                <CompressionQuality mediaIndex={mediaIndex} />
                 <Divider className="my-3" />
               </>
-              {videoIndex >= 0 && dimensions ? (
+              {mediaIndex >= 0 && dimensions ? (
                 <>
-                  <VideoDimensions videoIndex={videoIndex} />
+                  <VideoDimensions mediaIndex={mediaIndex} />
                   <Divider className="my-3" />
-                  <TransformVideo videoIndex={videoIndex} />
+                  <TransformVideo mediaIndex={mediaIndex} />
                   <Divider className="my-3" />
-                  <TrimVideo videoIndex={videoIndex} />
+                  <TrimVideo mediaIndex={mediaIndex} />
                   <Divider className="my-3" />
                 </>
               ) : null}
               <>
-                <VideoFPS videoIndex={videoIndex} />
+                <VideoFPS mediaIndex={mediaIndex} />
                 <Divider className="my-3" />
               </>
-              <CustomThumbnail videoIndex={videoIndex} />
+              <CustomThumbnail mediaIndex={mediaIndex} />
               <>
                 <div className="mt-8">
-                  <VideoExtension videoIndex={videoIndex} />
+                  <VideoExtension mediaIndex={mediaIndex} />
                 </div>
               </>
             </div>
@@ -328,23 +328,23 @@ function OutputSettings({ videoIndex }: OutputSettingsProps) {
           {tab === 'audio' ? (
             <div className="relative">
               <div className="mb-4">
-                <AudioVolume videoIndex={videoIndex} />
+                <AudioVolume mediaIndex={mediaIndex} />
                 <Divider className="mt-8" />
               </div>
               <>
                 <>
-                  <AudioCodec videoIndex={videoIndex} />
+                  <AudioCodec mediaIndex={mediaIndex} />
                   <Divider className="my-3" />
                 </>
-                <AudioChannels videoIndex={videoIndex} />
+                <AudioChannels mediaIndex={mediaIndex} />
                 <Divider className="my-3" />
               </>
               <>
-                <AudioBitrate videoIndex={videoIndex} />
+                <AudioBitrate mediaIndex={mediaIndex} />
                 <Divider className="my-3" />
               </>
               <>
-                <AudioTracks videoIndex={videoIndex} />
+                <AudioTracks mediaIndex={mediaIndex} />
               </>
               {hasNoAudio ? (
                 <div className="flex justify-center items-center absolute left-0 top-0 w-full h-full bg-white1/50 dark:bg-black1/50">
@@ -357,13 +357,13 @@ function OutputSettings({ videoIndex }: OutputSettingsProps) {
           ) : null}
           {tab === 'others' ? (
             <>
-              <Others videoIndex={videoIndex} />
+              <Others mediaIndex={mediaIndex} />
             </>
           ) : null}
         </ScrollShadow>
       </section>
 
-      {selectedVideoIndexForCustomization < 0 ? (
+      {selectedMediaIndexForCustomization < 0 ? (
         <div className="mt-4">
           {isCompressing ? (
             <CancelCompression />
@@ -375,7 +375,7 @@ function OutputSettings({ videoIndex }: OutputSettingsProps) {
               onPress={handleCompression}
               fullWidth
               className="w-full text-primary bg-primary/20"
-              isDisabled={isLoadingFiles}
+              isDisabled={isLoadingMediaFiles}
             >
               Process <Icon name="logo" size={25} />
             </Button>

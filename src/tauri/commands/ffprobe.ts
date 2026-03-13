@@ -9,8 +9,10 @@ import {
   VideoStream,
 } from '@/types/compression'
 
-export function getVideoInfo(videoPath: string): Promise<VideoInfo | null> {
-  return core.invoke('get_video_info', { videoPath })
+export function getVideoBasicInfo(
+  videoPath: string,
+): Promise<VideoInfo | null> {
+  return core.invoke('get_video_basic_info', { videoPath })
 }
 
 export function getContainerInfo(

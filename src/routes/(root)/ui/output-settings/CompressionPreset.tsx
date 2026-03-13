@@ -26,29 +26,29 @@ const PRESETS: {
 ]
 
 type CompressionPresetProps = {
-  videoIndex: number
+  mediaIndex: number
 }
 
-function CompressionPreset({ videoIndex }: CompressionPresetProps) {
+function CompressionPreset({ mediaIndex }: CompressionPresetProps) {
   const {
     state: {
       isCompressing,
       isProcessCompleted,
       videos,
       commonConfigForBatchCompression,
-      isLoadingFiles,
+      isLoadingMediaFiles,
     },
   } = useSnapshot(appProxy)
-  const video = videos.length > 0 && videoIndex >= 0 ? videos[videoIndex] : null
+  const video = videos.length > 0 && mediaIndex >= 0 ? videos[mediaIndex] : null
   const { config } = video ?? {}
   const { presetName, shouldDisableCompression } =
     config ?? commonConfigForBatchCompression ?? {}
 
   const handleSwitchToggle = useCallback(() => {
-    if (videoIndex >= 0 && appProxy.state.videos[videoIndex]?.config) {
-      appProxy.state.videos[videoIndex].config.shouldDisableCompression =
+    if (mediaIndex >= 0 && appProxy.state.videos[mediaIndex]?.config) {
+      appProxy.state.videos[mediaIndex].config.shouldDisableCompression =
         !shouldDisableCompression
-      appProxy.state.videos[videoIndex].isConfigDirty = true
+      appProxy.state.videos[mediaIndex].isConfigDirty = true
     } else {
       if (appProxy.state.videos.length > 1) {
         appProxy.state.commonConfigForBatchCompression.shouldDisableCompression =
@@ -56,14 +56,14 @@ function CompressionPreset({ videoIndex }: CompressionPresetProps) {
         normalizeBatchVideosConfig()
       }
     }
-  }, [videoIndex, shouldDisableCompression])
+  }, [mediaIndex, shouldDisableCompression])
 
   const handleValueChange = useCallback(
     (value: keyof typeof compressionPresets) => {
       if (value?.length > 0) {
-        if (videoIndex >= 0 && appProxy.state.videos[videoIndex]?.config) {
-          appProxy.state.videos[videoIndex].config.presetName = value
-          appProxy.state.videos[videoIndex].isConfigDirty = true
+        if (mediaIndex >= 0 && appProxy.state.videos[mediaIndex]?.config) {
+          appProxy.state.videos[mediaIndex].config.presetName = value
+          appProxy.state.videos[mediaIndex].isConfigDirty = true
         } else {
           if (appProxy.state.videos.length > 1) {
             appProxy.state.commonConfigForBatchCompression.presetName = value
@@ -72,11 +72,14 @@ function CompressionPreset({ videoIndex }: CompressionPresetProps) {
         }
       }
     },
-    [videoIndex],
+    [mediaIndex],
   )
 
   const shouldDisableInput =
-    videos.length === 0 || isCompressing || isProcessCompleted || isLoadingFiles
+    videos.length === 0 ||
+    isCompressing ||
+    isProcessCompleted ||
+    isLoadingMediaFiles
 
   return (
     <>

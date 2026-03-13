@@ -37,12 +37,12 @@ function CancelCompression() {
       const appSnapShot = snapshot(appProxy)
       setIsCancelling(true)
       await emitTo('main', CustomEvents.CancelInProgressCompression, {
-        videoId: appSnapShot.state.videos[0]?.id, // for single-video mode
+        mediaId: appSnapShot.state.media[0]?.id, // for single-media mode
         batchId: appSnapShot.state.batchId,
       })
       if (
-        appProxy.state.videos.length > 1 &&
-        appProxy.state.currentVideoIndex > 0
+        appProxy.state.media.length > 1 &&
+        appProxy.state.currentMediaIndex > 0
       ) {
         appProxy.timeTravel('batchCompressionStep')
         appProxy.state.isProcessCompleted = true

@@ -16,23 +16,23 @@ import { cn } from '@/utils/tailwind'
 import { appProxy, normalizeBatchVideosConfig } from '../../-state'
 
 type CustomThumbnailProps = {
-  videoIndex: number
+  mediaIndex: number
 }
 
 const THUMBNAIL_EXTENSIONS = ['png', 'jpg', 'jpeg', 'webp']
 
-function CustomThumbnail({ videoIndex }: CustomThumbnailProps) {
+function CustomThumbnail({ mediaIndex }: CustomThumbnailProps) {
   const {
     state: {
       videos,
       isCompressing,
       isProcessCompleted,
       commonConfigForBatchCompression,
-      isLoadingFiles,
+      isLoadingMediaFiles,
     },
   } = useSnapshot(appProxy)
 
-  const video = videos.length > 0 && videoIndex >= 0 ? videos[videoIndex] : null
+  const video = videos.length > 0 && mediaIndex >= 0 ? videos[mediaIndex] : null
   const { config } = video ?? {}
   const {
     customThumbnailPath,
@@ -41,7 +41,10 @@ function CustomThumbnail({ videoIndex }: CustomThumbnailProps) {
   } = config ?? commonConfigForBatchCompression ?? {}
 
   const shouldDisableInput =
-    videos.length === 0 || isCompressing || isProcessCompleted || isLoadingFiles
+    videos.length === 0 ||
+    isCompressing ||
+    isProcessCompleted ||
+    isLoadingMediaFiles
 
   const thumbnailFileName = customThumbnailPath
     ? customThumbnailPath.split(/[/\\]/).pop()
@@ -61,10 +64,10 @@ function CustomThumbnail({ videoIndex }: CustomThumbnailProps) {
         ],
       })
       if (typeof filePath === 'string') {
-        if (videoIndex >= 0 && appProxy.state.videos[videoIndex]?.config) {
-          appProxy.state.videos[videoIndex].config.customThumbnailPath =
+        if (mediaIndex >= 0 && appProxy.state.videos[mediaIndex]?.config) {
+          appProxy.state.videos[mediaIndex].config.customThumbnailPath =
             filePath
-          appProxy.state.videos[videoIndex].isConfigDirty = true
+          appProxy.state.videos[mediaIndex].isConfigDirty = true
         } else {
           if (appProxy.state.videos.length > 1) {
             appProxy.state.commonConfigForBatchCompression.customThumbnailPath =
@@ -76,12 +79,12 @@ function CustomThumbnail({ videoIndex }: CustomThumbnailProps) {
     } catch (error: any) {
       toast.error(error?.message ?? 'Could not select thumbnail image.')
     }
-  }, [videoIndex])
+  }, [mediaIndex])
 
   const handleClearThumbnail = useCallback(() => {
-    if (videoIndex >= 0 && appProxy.state.videos[videoIndex]?.config) {
-      appProxy.state.videos[videoIndex].config.customThumbnailPath = ''
-      appProxy.state.videos[videoIndex].isConfigDirty = true
+    if (mediaIndex >= 0 && appProxy.state.videos[mediaIndex]?.config) {
+      appProxy.state.videos[mediaIndex].config.customThumbnailPath = ''
+      appProxy.state.videos[mediaIndex].isConfigDirty = true
     } else {
       if (appProxy.state.videos.length > 1) {
         appProxy.state.commonConfigForBatchCompression.customThumbnailPath =
@@ -89,14 +92,14 @@ function CustomThumbnail({ videoIndex }: CustomThumbnailProps) {
         normalizeBatchVideosConfig()
       }
     }
-  }, [videoIndex])
+  }, [mediaIndex])
 
   const handleToggleChange = useCallback(
     (isSelected: boolean) => {
-      if (videoIndex >= 0 && appProxy.state.videos[videoIndex]?.config) {
-        appProxy.state.videos[videoIndex].config.shouldEnableCustomThumbnail =
+      if (mediaIndex >= 0 && appProxy.state.videos[mediaIndex]?.config) {
+        appProxy.state.videos[mediaIndex].config.shouldEnableCustomThumbnail =
           isSelected
-        appProxy.state.videos[videoIndex].isConfigDirty = true
+        appProxy.state.videos[mediaIndex].isConfigDirty = true
       } else {
         if (appProxy.state.videos.length > 1) {
           appProxy.state.commonConfigForBatchCompression.shouldEnableCustomThumbnail =
@@ -105,7 +108,7 @@ function CustomThumbnail({ videoIndex }: CustomThumbnailProps) {
         }
       }
     },
-    [videoIndex],
+    [mediaIndex],
   )
 
   return (

@@ -16,7 +16,7 @@ import ThemeSwitcher from '@/components/ThemeSwitcher'
 import Title from '@/components/Title'
 import { toast } from '@/components/Toast'
 import Tooltip from '@/components/Tooltip'
-import { installUpdateApp, updateStore } from '@/stores/updateStore'
+import { downloadAndInstallUpdateApp, updateStore } from '@/stores/updateStore'
 import { deleteCache as invokeDeleteCache } from '@/tauri/commands/fs'
 import About from './About'
 
@@ -39,7 +39,7 @@ function Setting() {
       <div className="absolute bottom-4 left-4 p-0 z-[1]">
         <Dropdown placement="right">
           <DropdownTrigger>
-            <Button isIconOnly size="sm">
+            <Button isIconOnly size="sm" variant="light">
               <Tooltip
                 content="Open Settings"
                 aria-label="Open Settings"
@@ -204,7 +204,7 @@ function UpdateModal({ onClose }: UpdateModalProps) {
 
   const handleInstall = async () => {
     try {
-      await installUpdateApp()
+      await downloadAndInstallUpdateApp()
       onClose()
     } catch {
       toast.error('Failed to install update. Please try again.')

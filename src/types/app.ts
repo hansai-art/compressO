@@ -5,8 +5,8 @@ import {
   AudioChannelConfig,
   AudioStream,
   Chapter,
-  ContainerInfo,
   compressionPresets,
+  ContainerInfo,
   extensions,
   SubtitleStream,
   VideoStream,
@@ -99,7 +99,7 @@ export type Video = {
   videoDuration?: number | null
   isCompressing?: boolean
   isProcessCompleted?: boolean
-  compressedVideo?: {
+  compressedFile?: {
     isSuccessful?: boolean
     pathRaw?: string | null
     path?: string | null
@@ -129,13 +129,50 @@ export type Video = {
   }
 }
 
+export type ImageConfig = {
+  convertToExtension: keyof typeof extensions.image
+  isLossless: boolean
+  quality?: number | null
+  stripMetadata: boolean
+}
+
+export type Image = {
+  id: string | null
+  pathRaw?: string | null
+  path?: string | null
+  fileName?: string | null
+  mimeType?: string | null
+  sizeInBytes?: number | null
+  size?: string | null
+  extension?: null | string
+  isCompressing?: boolean
+  isProcessCompleted?: boolean
+  compressedFile?: {
+    isSuccessful?: boolean
+    pathRaw?: string | null
+    path?: string | null
+    fileName?: string | null
+    fileNameToDisplay?: string | null
+    mimeType?: string | null
+    sizeInBytes?: number | null
+    size?: string | null
+    extension?: null | string
+    isSaving?: boolean
+    isSaved?: boolean
+    savedPath?: string
+  } | null
+  compressionProgress?: number
+  config: ImageConfig
+  isConfigDirty?: boolean
+  dimensions?: { width: number; height: number }
+}
+
 export type App = {
   batchId?: string
-  videos: Video[]
-  isLoadingFiles: boolean
-  totalSelectedFilesCount: number
-  currentVideoIndex: number
-  totalDurationMs: number
+  media: ((Video & { type: 'video' }) | (Image & { type: 'image' }))[]
+  isLoadingMediaFiles: boolean
+  totalSelectedMediaCount: number
+  currentMediaIndex: number
   isCompressing: boolean
   totalProgress: number
   isProcessCompleted: boolean
@@ -143,7 +180,7 @@ export type App = {
   isSaving: boolean
   isSaved: boolean
   savedPath?: string
-  selectedVideoIndexForCustomization: number
-  commonConfigForBatchCompression: VideoConfig
-  showVideoInfo?: boolean
+  selectedMediaIndexForCustomization: number
+  commonConfigForBatchCompression: VideoConfig // TODO: Add ImageConfig
+  showMediaInfo?: boolean
 }

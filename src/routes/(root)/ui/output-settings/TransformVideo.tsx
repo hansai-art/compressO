@@ -7,41 +7,44 @@ import Switch from '@/components/Switch'
 import { appProxy } from '../../-state'
 
 type TransformVideoProps = {
-  videoIndex: number
+  mediaIndex: number
 }
 
-function TransformVideo({ videoIndex }: TransformVideoProps) {
-  if (videoIndex < 0) return
+function TransformVideo({ mediaIndex }: TransformVideoProps) {
+  if (mediaIndex < 0) return
 
   const {
-    state: { videos, isCompressing, isProcessCompleted, isLoadingFiles },
+    state: { videos, isCompressing, isProcessCompleted, isLoadingMediaFiles },
   } = useSnapshot(appProxy)
-  const video = videos.length > 0 ? videos[videoIndex] : null
+  const video = videos.length > 0 ? videos[mediaIndex] : null
   const { config } = video ?? {}
   const { shouldTransformVideo, isVideoTransformEditMode } = config ?? {}
 
   const shouldDisableInput =
-    videos.length === 0 || isCompressing || isProcessCompleted || isLoadingFiles
+    videos.length === 0 ||
+    isCompressing ||
+    isProcessCompleted ||
+    isLoadingMediaFiles
 
   return (
     <div className="w-full flex">
       <Switch
         isSelected={shouldTransformVideo}
         onValueChange={() => {
-          if (appProxy.state.videos[videoIndex]?.config) {
-            appProxy.state.videos[videoIndex].config.shouldTransformVideo =
+          if (appProxy.state.videos[mediaIndex]?.config) {
+            appProxy.state.videos[mediaIndex].config.shouldTransformVideo =
               !shouldTransformVideo
-            appProxy.state.videos[videoIndex].config.isVideoTransformEditMode =
+            appProxy.state.videos[mediaIndex].config.isVideoTransformEditMode =
               !shouldTransformVideo
-            appProxy.state.videos[videoIndex].config.isVideoTrimEditMode = false
-            appProxy.state.videos[videoIndex].isConfigDirty = true
+            appProxy.state.videos[mediaIndex].config.isVideoTrimEditMode = false
+            appProxy.state.videos[mediaIndex].isConfigDirty = true
 
             if (shouldTransformVideo) {
-              appProxy.state.videos[videoIndex].config.transformVideoConfig =
+              appProxy.state.videos[mediaIndex].config.transformVideoConfig =
                 undefined
-              appProxy.state.videos[videoIndex].thumbnailPath =
+              appProxy.state.videos[mediaIndex].thumbnailPath =
                 core.convertFileSrc(
-                  appProxy.state.videos[videoIndex].thumbnailPathRaw!,
+                  appProxy.state.videos[mediaIndex].thumbnailPathRaw!,
                 )
             }
           }
@@ -59,7 +62,7 @@ function TransformVideo({ videoIndex }: TransformVideoProps) {
             color="success"
             onPress={() => {
               appProxy.state.videos[
-                videoIndex
+                mediaIndex
               ].config.isVideoTransformEditMode = false
             }}
             className="h-[unset] py-1 ml-auto"
@@ -72,9 +75,9 @@ function TransformVideo({ videoIndex }: TransformVideoProps) {
             size="sm"
             onPress={() => {
               appProxy.state.videos[
-                videoIndex
+                mediaIndex
               ].config.isVideoTransformEditMode = true
-              appProxy.state.videos[videoIndex].config.isVideoTrimEditMode =
+              appProxy.state.videos[mediaIndex].config.isVideoTrimEditMode =
                 false
             }}
             className="h-[unset] py-1 ml-auto"

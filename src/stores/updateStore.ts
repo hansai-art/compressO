@@ -1,7 +1,7 @@
 import { proxy } from 'valtio'
 
 import { toast } from '@/components/Toast'
-import { checkUpdate, installUpdate } from '@/tauri/commands/updater'
+import { checkUpdate, downloadAndInstallUpdate } from '@/tauri/commands/updater'
 
 export type UpdateState = {
   isUpdateAvailable: boolean
@@ -48,14 +48,14 @@ export async function checkForUpdates() {
   }
 }
 
-export async function installUpdateApp() {
+export async function downloadAndInstallUpdateApp() {
   if (updateStore.isInstalling) return
 
   updateStore.isInstalling = true
   updateStore.installProgress = 0
 
   try {
-    await installUpdate()
+    await downloadAndInstallUpdate()
     toast.success(
       'Update installed successfully. Restart the app to use the new version.',
     )

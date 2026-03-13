@@ -6,29 +6,32 @@ import Switch from '@/components/Switch'
 import { appProxy } from '../../-state'
 
 type TrimVideoProps = {
-  videoIndex: number
+  mediaIndex: number
 }
 
-function TrimVideo({ videoIndex }: TrimVideoProps) {
-  if (videoIndex < 0) return
+function TrimVideo({ mediaIndex }: TrimVideoProps) {
+  if (mediaIndex < 0) return
 
   const {
-    state: { videos, isCompressing, isProcessCompleted, isLoadingFiles },
+    state: { videos, isCompressing, isProcessCompleted, isLoadingMediaFiles },
   } = useSnapshot(appProxy)
-  const video = videos.length > 0 ? videos[videoIndex] : null
+  const video = videos.length > 0 ? videos[mediaIndex] : null
   const { config } = video ?? {}
   const { shouldTrimVideo, isVideoTrimEditMode } = config ?? {}
 
   const shouldDisableInput =
-    videos.length === 0 || isCompressing || isProcessCompleted || isLoadingFiles
+    videos.length === 0 ||
+    isCompressing ||
+    isProcessCompleted ||
+    isLoadingMediaFiles
 
   return (
     <div className="w-full flex">
       <Switch
         isSelected={shouldTrimVideo}
         onValueChange={() => {
-          if (appProxy.state.videos[videoIndex]?.config) {
-            const currentConfig = appProxy.state.videos[videoIndex].config
+          if (appProxy.state.videos[mediaIndex]?.config) {
+            const currentConfig = appProxy.state.videos[mediaIndex].config
             const newState = !shouldTrimVideo
 
             currentConfig.shouldTrimVideo = newState
@@ -42,7 +45,7 @@ function TrimVideo({ videoIndex }: TrimVideoProps) {
             }
 
             currentConfig.isVideoTransformEditMode = false
-            appProxy.state.videos[videoIndex].isConfigDirty = true
+            appProxy.state.videos[mediaIndex].isConfigDirty = true
           }
         }}
         isDisabled={shouldDisableInput}
@@ -57,7 +60,7 @@ function TrimVideo({ videoIndex }: TrimVideoProps) {
             size="sm"
             color="success"
             onPress={() => {
-              appProxy.state.videos[videoIndex].config.isVideoTrimEditMode =
+              appProxy.state.videos[mediaIndex].config.isVideoTrimEditMode =
                 false
             }}
             className="h-[unset] py-1 ml-auto"
@@ -69,10 +72,10 @@ function TrimVideo({ videoIndex }: TrimVideoProps) {
           <Button
             size="sm"
             onPress={() => {
-              appProxy.state.videos[videoIndex].config.isVideoTrimEditMode =
+              appProxy.state.videos[mediaIndex].config.isVideoTrimEditMode =
                 true
               appProxy.state.videos[
-                videoIndex
+                mediaIndex
               ].config.isVideoTransformEditMode = false
             }}
             className="h-[unset] py-1 ml-auto"

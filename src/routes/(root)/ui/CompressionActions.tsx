@@ -11,7 +11,7 @@ import { appProxy } from '../-state'
 
 function CompressionActions() {
   const {
-    state: { videos, isProcessCompleted, isLoadingFiles, isSaving },
+    state: { media, isProcessCompleted, isLoadingMediaFiles, isSaving },
     resetProxy,
   } = useSnapshot(appProxy)
 
@@ -23,12 +23,14 @@ function CompressionActions() {
     closeModal: UseDisclosureProps['onClose']
   }) => {
     try {
-      const deletePromises = videos
-        .flatMap((video) => [
-          video.compressedVideo?.pathRaw
-            ? deleteFile(video.compressedVideo.pathRaw)
+      const deletePromises = media
+        .flatMap((media) => [
+          media.compressedFile?.pathRaw
+            ? deleteFile(media.compressedFile.pathRaw)
             : null,
-          video.thumbnailPathRaw ? deleteFile(video.thumbnailPathRaw) : null,
+          media.type === 'video' && media.thumbnailPathRaw
+            ? deleteFile(media.thumbnailPathRaw)
+            : null,
         ])
         .filter(Boolean)
 
@@ -51,7 +53,7 @@ function CompressionActions() {
     appProxy.timeTravel('beforeCompressionStarted')
   }
 
-  return videos.length && !isLoadingFiles ? (
+  return media.length && !isLoadingMediaFiles ? (
     <>
       <div className="w-fit flex justify-center items-center z-[10]">
         {isProcessCompleted ? (
@@ -84,9 +86,9 @@ function CompressionActions() {
         </Tooltip>
       </div>
       <AlertDialog
-        title={`Video${videos.length > 1 ? 's' : ''} not saved`}
+        title={`Media not saved`}
         discloser={alertDiscloser}
-        description={`Your compressed video${videos.length > 1 ? 's are' : ' is'} not yet saved. Are you sure you want to discard it?`}
+        description={`Your compressed media${media.length > 1 ? 'are' : ' is'} not yet saved. Are you sure you want to discard it?`}
         renderFooter={({ closeModal }) => (
           <>
             <AlertDialogButton onPress={closeModal}>Go Back</AlertDialogButton>

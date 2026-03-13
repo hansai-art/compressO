@@ -8,17 +8,17 @@ import { toast } from '@/components/Toast'
 import { readFilesFromPaths } from '@/tauri/commands/fs'
 import { zoomInTransition } from '@/utils/animation'
 
-type DragAndDropProps = {
+type DragAndDropFilesProps = {
   disable?: boolean
   onFile?: (filePath: string | string[]) => void
   multiple?: boolean
 }
 
-function DragAndDrop({
+function DragAndDropFiles({
   disable = false,
   onFile,
   multiple = false,
-}: DragAndDropProps) {
+}: DragAndDropFilesProps) {
   const [dragAndDropState, setDragAndDropState] = React.useState<
     'idle' | 'dragging' | 'dropped'
   >('idle')
@@ -102,7 +102,7 @@ function DragAndDrop({
                 {...zoomInTransition}
               >
                 <Icon name="dragAndDrop" className="text-primary" size={50} />
-                <p className="my-2 text-gray-600 dark:text-gray-400 italic text-sm">
+                <p className="my-2 text-gray-600 dark:text-gray-400 text-sm">
                   Drop anywhere...
                 </p>
               </motion.div>
@@ -115,4 +115,4 @@ function DragAndDrop({
   )
 }
 
-export default React.memo(DragAndDrop)
+export default React.memo(DragAndDropFiles)

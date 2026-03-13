@@ -12,16 +12,19 @@ import { VideoTransforms, VideoTransformsHistory } from '@/types/compression'
 import { appProxy } from '../-state'
 
 type VideoTransformerProps = {
-  videoIndex: number
+  mediaIndex: number
 }
 
-function VideoTransformer({ videoIndex }: VideoTransformerProps) {
-  if (videoIndex < 0) return
+function VideoTransformer({ mediaIndex }: VideoTransformerProps) {
+  if (mediaIndex < 0) return
 
   const {
-    state: { videos },
+    state: { media },
   } = useSnapshot(appProxy)
-  const video = videos.length > 0 ? videos[videoIndex] : null
+  const video =
+    media.length > 0 && media[mediaIndex].type === 'video'
+      ? media[mediaIndex]
+      : null
   const { config, thumbnailPathRaw } = video ?? {}
   const { shouldTransformVideo } = config ?? {}
 
@@ -29,8 +32,9 @@ function VideoTransformer({ videoIndex }: VideoTransformerProps) {
   const debouncedRef = useRef<NodeJS.Timeout | null>(null)
 
   const recordTransformHistory = (action: VideoTransformsHistory) => {
-    const targetVideo = appProxy.state.videos[videoIndex]
-    if (!targetVideo || !targetVideo.config) return
+    const targetVideo = appProxy.state.media[mediaIndex]
+    if (!targetVideo || !targetVideo.config || targetVideo.type !== 'video')
+      return
 
     const transformsHistory =
       targetVideo.config?.transformVideoConfig?.transformsHistory ?? []
@@ -96,8 +100,9 @@ function VideoTransformer({ videoIndex }: VideoTransformerProps) {
   }
 
   const onChange = (cropper: CropperRef) => {
-    const targetVideo = appProxy.state.videos[videoIndex]
-    if (!targetVideo || !targetVideo.config) return
+    const targetVideo = appProxy.state.media[mediaIndex]
+    if (!targetVideo || !targetVideo.config || targetVideo.type !== 'video')
+      return
 
     if (debouncedRef.current) {
       clearTimeout(debouncedRef.current)
@@ -173,8 +178,10 @@ function VideoTransformer({ videoIndex }: VideoTransformerProps) {
         boundaryClassName="max-w-full max-h-full w-full h-full object-contain"
         defaultCoordinates={(state: CropperState) => {
           const crop =
-            appProxy.state.videos[videoIndex].config.transformVideoConfig
-              ?.transforms?.crop
+            appProxy.state.media[mediaIndex].type === 'video'
+              ? appProxy.state.media[mediaIndex].config.transformVideoConfig
+                  ?.transforms?.crop
+              : null
           return {
             left: crop?.left ?? 0,
             top: crop?.top ?? 0,
@@ -184,8 +191,10 @@ function VideoTransformer({ videoIndex }: VideoTransformerProps) {
         }}
         defaultPosition={() => {
           const crop =
-            appProxy.state.videos[videoIndex].config.transformVideoConfig
-              ?.transforms?.crop
+            appProxy.state.media[mediaIndex].type === 'video'
+              ? appProxy.state.media[mediaIndex].config.transformVideoConfig
+                  ?.transforms?.crop
+              : null
           return {
             left: crop?.left ?? 0,
             top: crop?.top ?? 0,
@@ -193,8 +202,10 @@ function VideoTransformer({ videoIndex }: VideoTransformerProps) {
         }}
         defaultSize={(state: CropperState) => {
           const crop =
-            appProxy.state.videos[videoIndex].config.transformVideoConfig
-              ?.transforms?.crop
+            appProxy.state.media[mediaIndex].type === 'video'
+              ? appProxy.state.media[mediaIndex].config.transformVideoConfig
+                  ?.transforms?.crop
+              : null
           return {
             width: crop?.width ?? state.imageSize.width,
             height: crop?.height ?? state.imageSize.height,
@@ -202,8 +213,10 @@ function VideoTransformer({ videoIndex }: VideoTransformerProps) {
         }}
         defaultTransforms={() => {
           const transforms =
-            appProxy.state.videos[videoIndex].config.transformVideoConfig
-              ?.transforms
+            appProxy.state.media[mediaIndex].type === 'video'
+              ? appProxy.state.media[mediaIndex].config.transformVideoConfig
+                  ?.transforms
+              : null
           return {
             rotate: transforms?.rotate ?? 0,
             flip: {

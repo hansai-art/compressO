@@ -52,20 +52,20 @@ const VIDEO_CODECS: readonly VideoCodecOption[] = [
 ]
 
 type VideoCodecProps = {
-  videoIndex: number
+  mediaIndex: number
 }
 
-function VideoCodec({ videoIndex }: VideoCodecProps) {
+function VideoCodec({ mediaIndex }: VideoCodecProps) {
   const {
     state: {
       videos,
       isCompressing,
       isProcessCompleted,
       commonConfigForBatchCompression,
-      isLoadingFiles,
+      isLoadingMediaFiles,
     },
   } = useSnapshot(appProxy)
-  const video = videos.length > 0 && videoIndex >= 0 ? videos[videoIndex] : null
+  const video = videos.length > 0 && mediaIndex >= 0 ? videos[mediaIndex] : null
   const { config } = video ?? {}
   const { shouldEnableCustomVideoCodec, customVideoCodec, convertToExtension } =
     config ?? commonConfigForBatchCompression ?? {}
@@ -83,8 +83,8 @@ function VideoCodec({ videoIndex }: VideoCodecProps) {
         !currentCodec.compatible_containers.includes(currentExtension)
       ) {
         // Codec is incompatible with current extension, reset it
-        if (videoIndex >= 0 && appProxy.state.videos[videoIndex]?.config) {
-          appProxy.state.videos[videoIndex].config.customVideoCodec = undefined
+        if (mediaIndex >= 0 && appProxy.state.videos[mediaIndex]?.config) {
+          appProxy.state.videos[mediaIndex].config.customVideoCodec = undefined
         } else {
           if (appProxy.state.videos.length > 1) {
             appProxy.state.commonConfigForBatchCompression.customVideoCodec =
@@ -97,14 +97,14 @@ function VideoCodec({ videoIndex }: VideoCodecProps) {
     currentExtension,
     shouldEnableCustomVideoCodec,
     customVideoCodec,
-    videoIndex,
+    mediaIndex,
   ])
 
   const handleSwitchToggle = useCallback(() => {
-    if (videoIndex >= 0 && appProxy.state.videos[videoIndex]?.config) {
-      appProxy.state.videos[videoIndex].config.shouldEnableCustomVideoCodec =
+    if (mediaIndex >= 0 && appProxy.state.videos[mediaIndex]?.config) {
+      appProxy.state.videos[mediaIndex].config.shouldEnableCustomVideoCodec =
         !shouldEnableCustomVideoCodec
-      appProxy.state.videos[videoIndex].isConfigDirty = true
+      appProxy.state.videos[mediaIndex].isConfigDirty = true
     } else {
       if (appProxy.state.videos.length > 1) {
         appProxy.state.commonConfigForBatchCompression.shouldEnableCustomVideoCodec =
@@ -112,13 +112,13 @@ function VideoCodec({ videoIndex }: VideoCodecProps) {
         normalizeBatchVideosConfig()
       }
     }
-  }, [videoIndex, shouldEnableCustomVideoCodec])
+  }, [mediaIndex, shouldEnableCustomVideoCodec])
 
   const handleValueChange = useCallback(
     (value: string) => {
-      if (videoIndex >= 0 && appProxy.state.videos[videoIndex]?.config) {
-        appProxy.state.videos[videoIndex].config.customVideoCodec = value
-        appProxy.state.videos[videoIndex].isConfigDirty = true
+      if (mediaIndex >= 0 && appProxy.state.videos[mediaIndex]?.config) {
+        appProxy.state.videos[mediaIndex].config.customVideoCodec = value
+        appProxy.state.videos[mediaIndex].isConfigDirty = true
       } else {
         if (appProxy.state.videos.length > 1) {
           appProxy.state.commonConfigForBatchCompression.customVideoCodec =
@@ -127,11 +127,14 @@ function VideoCodec({ videoIndex }: VideoCodecProps) {
         }
       }
     },
-    [videoIndex],
+    [mediaIndex],
   )
 
   const shouldDisableInput =
-    videos.length === 0 || isCompressing || isProcessCompleted || isLoadingFiles
+    videos.length === 0 ||
+    isCompressing ||
+    isProcessCompleted ||
+    isLoadingMediaFiles
 
   const initialCodecValue = customVideoCodec ?? 'libx264'
 

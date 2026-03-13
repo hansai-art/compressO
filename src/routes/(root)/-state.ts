@@ -2,7 +2,12 @@ import { getLocalTimeZone, now } from '@internationalized/date'
 import cloneDeep from 'lodash/cloneDeep'
 import { proxy } from 'valtio'
 
-import { App, VideoConfig, VideoMetadataConfig } from '../../types/app'
+import {
+  App,
+  ImageConfig,
+  VideoConfig,
+  VideoMetadataConfig,
+} from '../../types/app'
 
 export const videoMetadataConfigInitialState: VideoMetadataConfig = {
   title: '',
@@ -49,19 +54,25 @@ export const videoConfigInitialState: VideoConfig = {
   },
 }
 
+export const imageConfigInitialState: ImageConfig = {
+  convertToExtension: 'png',
+  isLossless: false,
+  stripMetadata: true,
+  quality: 75,
+}
+
 const appInitialState: App = {
-  videos: [],
-  isLoadingFiles: false,
-  totalSelectedFilesCount: 0,
-  currentVideoIndex: 0,
-  totalDurationMs: 0,
+  media: [],
+  isLoadingMediaFiles: false,
+  totalSelectedMediaCount: 0,
+  currentMediaIndex: 0,
   isCompressing: false,
   totalProgress: 0,
   isProcessCompleted: false,
   isBatchCompressionCancelled: false,
   isSaving: false,
   isSaved: false,
-  selectedVideoIndexForCustomization: -1,
+  selectedMediaIndexForCustomization: -1,
   commonConfigForBatchCompression: videoConfigInitialState,
 }
 
@@ -118,10 +129,10 @@ export const appProxy: AppProxy = proxy({
  * Normalizes the individual non-dirty video config to match with batch config.
  */
 export function normalizeBatchVideosConfig() {
-  if (appProxy.state.videos.length > 1) {
-    for (const index in appProxy.state.videos) {
-      if (!appProxy.state.videos[index]?.isConfigDirty) {
-        appProxy.state.videos[index].config = cloneDeep(
+  if (appProxy.state.media.length > 1) {
+    for (const index in appProxy.state.media) {
+      if (!appProxy.state.media[index]?.isConfigDirty) {
+        appProxy.state.media[index].config = cloneDeep(
           appProxy.state.commonConfigForBatchCompression,
         )
       }

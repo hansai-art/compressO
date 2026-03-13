@@ -1,7 +1,8 @@
 import React from 'react'
 
-import Audio from '@/assets/icons/audio.svg?react'
+import AddMedia from '@/assets/icons/add-media.svg?react'
 import AudioMuted from '@/assets/icons/audio-muted.svg?react'
+import Audio from '@/assets/icons/audio.svg?react'
 import Back from '@/assets/icons/back.svg?react'
 import Chevron from '@/assets/icons/chevron.svg?react'
 import Copy from '@/assets/icons/copy.svg?react'
@@ -33,7 +34,7 @@ import Star from '@/assets/icons/star.svg?react'
 import Sun from '@/assets/icons/sun.svg?react'
 import Tick from '@/assets/icons/tick.svg?react'
 import Trash from '@/assets/icons/trash.svg?react'
-import VideoFile from '@/assets/icons/video-file.svg?react'
+import Video from '@/assets/icons/video.svg?react'
 import Warning from '@/assets/icons/warning.svg?react'
 
 type SVGAsComponent = React.FunctionComponent<React.SVGProps<SVGSVGElement>>
@@ -48,7 +49,7 @@ const registry = asRegistry({
   logo: Logo,
   moon: Moon,
   sun: Sun,
-  videoFile: VideoFile,
+  video: Video,
   star: Star,
   copy: Copy,
   cross: Cross,
@@ -80,6 +81,7 @@ const registry = asRegistry({
   audio: Audio,
   download: Download,
   chevron: Chevron,
+  addMedia: AddMedia,
 })
 
 export default registry

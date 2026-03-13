@@ -70,20 +70,20 @@ const AUDIO_CODECS: readonly AudioCodecOption[] = [
 ]
 
 type AudioCodecProps = {
-  videoIndex: number
+  mediaIndex: number
 }
 
-function AudioCodec({ videoIndex }: AudioCodecProps) {
+function AudioCodec({ mediaIndex }: AudioCodecProps) {
   const {
     state: {
       videos,
       isCompressing,
       isProcessCompleted,
       commonConfigForBatchCompression,
-      isLoadingFiles,
+      isLoadingMediaFiles,
     },
   } = useSnapshot(appProxy)
-  const video = videos.length > 0 && videoIndex >= 0 ? videos[videoIndex] : null
+  const video = videos.length > 0 && mediaIndex >= 0 ? videos[mediaIndex] : null
   const { config, videoInfoRaw } = video ?? {}
   const {
     shouldEnableCustomAudioCodec,
@@ -104,8 +104,8 @@ function AudioCodec({ videoIndex }: AudioCodecProps) {
         !currentCodec.compatible_containers.includes(currentExtension)
       ) {
         // Codec is incompatible with current extension, reset it
-        if (videoIndex >= 0 && appProxy.state.videos[videoIndex]?.config) {
-          appProxy.state.videos[videoIndex].config.customAudioCodec = undefined
+        if (mediaIndex >= 0 && appProxy.state.videos[mediaIndex]?.config) {
+          appProxy.state.videos[mediaIndex].config.customAudioCodec = undefined
         } else {
           if (appProxy.state.videos.length > 1) {
             appProxy.state.commonConfigForBatchCompression.customAudioCodec =
@@ -118,14 +118,14 @@ function AudioCodec({ videoIndex }: AudioCodecProps) {
     currentExtension,
     shouldEnableCustomAudioCodec,
     customAudioCodec,
-    videoIndex,
+    mediaIndex,
   ])
 
   const handleSwitchToggle = useCallback(() => {
-    if (videoIndex >= 0 && appProxy.state.videos[videoIndex]?.config) {
-      appProxy.state.videos[videoIndex].config.shouldEnableCustomAudioCodec =
+    if (mediaIndex >= 0 && appProxy.state.videos[mediaIndex]?.config) {
+      appProxy.state.videos[mediaIndex].config.shouldEnableCustomAudioCodec =
         !shouldEnableCustomAudioCodec
-      appProxy.state.videos[videoIndex].isConfigDirty = true
+      appProxy.state.videos[mediaIndex].isConfigDirty = true
     } else {
       if (appProxy.state.videos.length > 1) {
         appProxy.state.commonConfigForBatchCompression.shouldEnableCustomAudioCodec =
@@ -133,13 +133,13 @@ function AudioCodec({ videoIndex }: AudioCodecProps) {
         normalizeBatchVideosConfig()
       }
     }
-  }, [videoIndex, shouldEnableCustomAudioCodec])
+  }, [mediaIndex, shouldEnableCustomAudioCodec])
 
   const handleValueChange = useCallback(
     (value: string) => {
-      if (videoIndex >= 0 && appProxy.state.videos[videoIndex]?.config) {
-        appProxy.state.videos[videoIndex].config.customAudioCodec = value
-        appProxy.state.videos[videoIndex].isConfigDirty = true
+      if (mediaIndex >= 0 && appProxy.state.videos[mediaIndex]?.config) {
+        appProxy.state.videos[mediaIndex].config.customAudioCodec = value
+        appProxy.state.videos[mediaIndex].isConfigDirty = true
       } else {
         if (appProxy.state.videos.length > 1) {
           appProxy.state.commonConfigForBatchCompression.customAudioCodec =
@@ -148,7 +148,7 @@ function AudioCodec({ videoIndex }: AudioCodecProps) {
         }
       }
     },
-    [videoIndex],
+    [mediaIndex],
   )
 
   const hasNoAudio = videoInfoRaw?.audioStreams?.length === 0
@@ -157,7 +157,7 @@ function AudioCodec({ videoIndex }: AudioCodecProps) {
     videos.length === 0 ||
     isCompressing ||
     isProcessCompleted ||
-    isLoadingFiles ||
+    isLoadingMediaFiles ||
     hasNoAudio ||
     audioConfig?.volume === 0
 

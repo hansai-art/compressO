@@ -13,13 +13,14 @@ use lib::tauri_commands::{
     },
     ffmpeg::{
         __cmd__compress_video, __cmd__compress_videos_batch, __cmd__extract_subtitle,
-        __cmd__generate_video_thumbnail, __cmd__get_video_info, compress_video,
-        compress_videos_batch, extract_subtitle, generate_video_thumbnail, get_video_info,
+        __cmd__generate_video_thumbnail, compress_video, compress_videos_batch, extract_subtitle,
+        generate_video_thumbnail,
     },
     ffprobe::{
         __cmd__get_audio_streams, __cmd__get_chapters, __cmd__get_container_info,
-        __cmd__get_subtitle_streams, __cmd__get_video_streams, get_audio_streams, get_chapters,
-        get_container_info, get_subtitle_streams, get_video_streams,
+        __cmd__get_subtitle_streams, __cmd__get_video_basic_info, __cmd__get_video_streams,
+        get_audio_streams, get_chapters, get_container_info, get_subtitle_streams,
+        get_video_basic_info, get_video_streams,
     },
     file_manager::{__cmd__show_item_in_file_manager, show_item_in_file_manager},
     fs::{
@@ -29,7 +30,10 @@ use lib::tauri_commands::{
         delete_cache, delete_file, get_file_metadata, get_image_dimension, move_file,
         read_files_from_clipboard, read_files_from_paths,
     },
-    updater::{__cmd__check_update, __cmd__install_update, check_update, install_update},
+    updater::{
+        __cmd__check_update, __cmd__download_and_install_update, check_update,
+        download_and_install_update,
+    },
 };
 
 #[cfg(target_os = "linux")]
@@ -86,11 +90,10 @@ fn emit_pending_open_with_app_files(app_handle: &tauri::AppHandle) {
                 log::error!("Failed to emit open-with-app event: {:?}", e);
             }
         }
-    } 
+    }
 }
 
 fn handle_open_with_app(app_handle: &tauri::AppHandle, urls: Vec<Url>) -> Result<(), String> {
-
     let fs_scope = app_handle.fs_scope();
     let asset_scope = app_handle.asset_protocol_scope();
 
@@ -102,11 +105,11 @@ fn handle_open_with_app(app_handle: &tauri::AppHandle, urls: Vec<Url>) -> Result
 
     for url in &urls {
         if let Ok(path) = url.to_file_path() {
-            if let Err(e) = fs_scope.allow_file(&path) {
+            if let Err(_) = fs_scope.allow_file(&path) {
                 let path_str = path.to_string_lossy().to_string();
                 return Err(format!("Failed to allow file in fs_scope: {}", path_str));
             }
-            if let Err(e) = asset_scope.allow_file(&path) {
+            if let Err(_) = asset_scope.allow_file(&path) {
                 let path_str = path.to_string_lossy().to_string();
                 return Err(format!("Failed to allow file in asset_scope: {}", path_str));
             }
@@ -253,7 +256,7 @@ async fn main() {
             compress_videos_batch,
             extract_subtitle,
             generate_video_thumbnail,
-            get_video_info,
+            get_video_basic_info,
             get_image_dimension,
             get_file_metadata,
             move_file,
@@ -271,7 +274,7 @@ async fn main() {
             set_dock_progress,
             clear_dock_badge,
             check_update,
-            install_update,
+            download_and_install_update,
         ])
         .build(tauri::generate_context!())
         .expect("error while running tauri application")

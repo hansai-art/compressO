@@ -11,51 +11,50 @@ import { CircularProgress } from '@/components/Progress'
 import { slideUpTransition, zoomInTransition } from '@/utils/animation'
 import { formatDuration } from '@/utils/string'
 import { cn } from '@/utils/tailwind'
-import styles from './styles.module.css'
-import Thumbnail from './Thumbnail'
-import VideoInfo from './VideoInfo'
 import { appProxy } from '../-state'
+import Thumbnail from './MediaThumbnail'
+import styles from './styles.module.css'
+import VideoInfo from './VideoInfo'
 
-type PreviewSingleVideoProps = {
-  videoIndex: number
+type PreviewSingleMediaProps = {
+  mediaIndex: number
 }
 
-function PreviewSingleVideo({ videoIndex }: PreviewSingleVideoProps) {
-  if (videoIndex < 0) return
+function PreviewSingleMedia({ mediaIndex }: PreviewSingleMediaProps) {
+  if (mediaIndex < 0) return
 
   const {
-    state: { videos, isCompressing, isProcessCompleted, showVideoInfo },
+    state: { media, isCompressing, isProcessCompleted, showMediaInfo },
   } = useSnapshot(appProxy)
-  const video = videos.length > 0 ? videos[videoIndex] : null
+  const mediaFile = media.length > 0 ? media[mediaIndex] : null
   const {
-    config,
-    size: videoSize,
+    size: mediaSize,
     sizeInBytes,
-    videoDuration,
     dimensions,
-    fps,
-    extension: videoExtension,
-    thumbnailPath,
-    compressedVideo,
+    extension: mediaExtension,
     compressionProgress,
-  } = video ?? {}
-  const { isVideoTransformEditMode, isVideoTrimEditMode } = config ?? {}
+    compressedFile,
+  } = mediaFile ?? {}
+  const { videoDuration, fps, thumbnailPath } =
+    mediaFile?.type === 'video' ? (mediaFile ?? {}) : {}
+  const { isVideoTransformEditMode, isVideoTrimEditMode } =
+    mediaFile?.type === 'video' ? (mediaFile?.config ?? {}) : {}
 
   const compressedSizeDiff: number = useMemo(
     () =>
-      typeof compressedVideo?.sizeInBytes === 'number' &&
+      typeof compressedFile?.sizeInBytes === 'number' &&
       typeof sizeInBytes === 'number' &&
       !Number.isNaN(sizeInBytes)
-        ? (((sizeInBytes ?? 0) - (compressedVideo?.sizeInBytes ?? 0)) * 100) /
+        ? (((sizeInBytes ?? 0) - (compressedFile?.sizeInBytes ?? 0)) * 100) /
           sizeInBytes
         : 0,
-    [compressedVideo?.sizeInBytes, sizeInBytes],
+    [compressedFile?.sizeInBytes, sizeInBytes],
   )
 
   const singleFileNameDisplay =
     (isProcessCompleted
-      ? video?.compressedVideo?.fileNameToDisplay
-      : video?.fileName) ?? ''
+      ? mediaFile?.compressedFile?.fileNameToDisplay
+      : mediaFile?.fileName) ?? ''
 
   return !isCompressing ? (
     <motion.div
@@ -73,20 +72,20 @@ function PreviewSingleVideo({ videoIndex }: PreviewSingleVideoProps) {
         </Code>
       ) : null}
 
-      {video ? <Thumbnail videoIndex={videoIndex} /> : null}
+      {mediaFile ? <Thumbnail mediaIndex={mediaIndex} /> : null}
 
       {!(isVideoTransformEditMode || isVideoTrimEditMode) ? (
         isProcessCompleted ? (
           <section className="animate-appearance-in">
             <div className="flex justify-center items-center mt-3">
-              <p className="text-2xl font-bold mx-4">{videoSize}</p>
+              <p className="text-2xl font-bold mx-4">{mediaSize}</p>
               <Icon
                 name="curvedArrow"
                 className="text-black dark:text-white rotate-[-65deg] translate-y-[-8px]"
                 size={100}
               />
               <p className="text-3xl  font-bold mx-4 text-primary">
-                {compressedVideo?.size}
+                {compressedFile?.size}
               </p>
             </div>
             {!(compressedSizeDiff <= 0) ? (
@@ -102,18 +101,16 @@ function PreviewSingleVideo({ videoIndex }: PreviewSingleVideoProps) {
           <section className={cn(['my-4 mb-2', styles.videoMetadata])}>
             <>
               <div>
-                <p className="italic text-gray-600 dark:text-gray-400">Size</p>
-                <span className="block font-black">{videoSize}</span>
+                <p className=" text-gray-600 dark:text-gray-400">Size</p>
+                <span className="block font-black">{mediaSize}</span>
               </div>
               <Divider orientation="vertical" className="h-10" />
             </>
             <>
               <div>
-                <p className="italic text-gray-600 dark:text-gray-400">
-                  Extension
-                </p>
+                <p className=" text-gray-600 dark:text-gray-400">Extension</p>
                 <span className="block font-black">
-                  {videoExtension ?? '-'}
+                  {mediaExtension ?? '-'}
                 </span>
               </div>
               <Divider orientation="vertical" className="h-10" />
@@ -122,49 +119,44 @@ function PreviewSingleVideo({ videoIndex }: PreviewSingleVideoProps) {
             {videoDuration ? (
               <>
                 <div>
-                  <p className="italic text-gray-600 dark:text-gray-400">
-                    Duration
-                  </p>
+                  <p className=" text-gray-600 dark:text-gray-400">Duration</p>
                   <span className="block font-black">
                     {formatDuration(videoDuration) ?? '-'}
                   </span>
                 </div>
+                <Divider orientation="vertical" className="h-10" />{' '}
               </>
             ) : null}
             <>
               {dimensions ? (
                 <>
-                  <Divider orientation="vertical" className="h-10" />{' '}
                   <div>
-                    <p className="italic text-gray-600 dark:text-gray-400">
+                    <p className=" text-gray-600 dark:text-gray-400">
                       Dimensions
                     </p>
                     <span className="block font-black">
                       {dimensions.width ?? '-'} x {dimensions.height ?? '-'}
                     </span>
                   </div>
+                  <Divider orientation="vertical" className="h-10" />{' '}
                 </>
               ) : null}
             </>
             <>
               {fps ? (
                 <>
-                  <Divider orientation="vertical" className="h-10" />{' '}
                   <div>
-                    <p className="italic text-gray-600 dark:text-gray-400">
-                      FPS
-                    </p>
+                    <p className=" text-gray-600 dark:text-gray-400">FPS</p>
                     <span className="block font-black">{fps ?? '-'}</span>
                   </div>
                 </>
               ) : null}
             </>
             <>
-              <Divider orientation="vertical" className="h-10" />{' '}
               <div>
                 <Button
                   onPress={() => {
-                    appProxy.state.showVideoInfo = true
+                    appProxy.state.showMediaInfo = true
                   }}
                   size="sm"
                 >
@@ -175,13 +167,13 @@ function PreviewSingleVideo({ videoIndex }: PreviewSingleVideoProps) {
           </section>
         )
       ) : null}
-      {showVideoInfo ? (
+      {showMediaInfo ? (
         <motion.div
           className="absolute right-0 bottom-0 left-0 top-0 w-full h-full z-[10] bg-white1 dark:bg-black1 p-6"
           {...slideUpTransition}
         >
           <div className="2xl:max-w-[50vw] mx-auto">
-            <VideoInfo videoIndex={videoIndex} />
+            <VideoInfo mediaIndex={mediaIndex} />
           </div>
           <div className="absolute top-4 right-4">
             <Button
@@ -189,7 +181,7 @@ function PreviewSingleVideo({ videoIndex }: PreviewSingleVideoProps) {
               isIconOnly
               radius="full"
               onPress={() => {
-                appProxy.state.showVideoInfo = false
+                appProxy.state.showMediaInfo = false
               }}
             >
               <Icon name="cross" />
@@ -227,11 +219,11 @@ function PreviewSingleVideo({ videoIndex }: PreviewSingleVideoProps) {
         />
         <div className="blur-2xl  z-[10] absolute top-0 right-0 bottom-0 left-0 rounded-full" />
       </div>
-      <p className="italic text-sm mt-10 text-gray-600 dark:text-gray-400 text-center animate-pulse">
+      <p className=" text-sm mt-10 text-gray-600 dark:text-gray-400 text-center animate-pulse">
         Processing...
       </p>
       <p
-        className={`not-italic text-2xl text-center font-bold text-primary my-4 opacity-${
+        className={`not- text-2xl text-center font-bold text-primary my-4 opacity-${
           compressionProgress && compressionProgress > 0 ? 1 : 0
         }`}
       >
@@ -241,4 +233,4 @@ function PreviewSingleVideo({ videoIndex }: PreviewSingleVideoProps) {
   )
 }
 
-export default PreviewSingleVideo
+export default PreviewSingleMedia

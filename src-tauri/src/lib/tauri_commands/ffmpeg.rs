@@ -1,7 +1,7 @@
 use crate::{
     domain::{
-        AudioConfig, BatchCompressionResult, CompressionResult, SubtitlesConfig, TrimSegment, VideoCompressionConfig, VideoInfo,
-        VideoMetadataConfig, VideoThumbnail,
+        AudioConfig, BatchCompressionResult, CompressionResult, SubtitlesConfig, TrimSegment,
+        VideoCompressionConfig, VideoInfo, VideoMetadataConfig, VideoThumbnail,
     },
     ffmpeg::{self},
     ffprobe,
@@ -73,12 +73,6 @@ pub async fn generate_video_thumbnail(
 }
 
 #[tauri::command]
-pub async fn get_video_info(app: tauri::AppHandle, video_path: &str) -> Result<VideoInfo, String> {
-    let mut ffprobe = ffprobe::FFPROBE::new(&app)?;
-    ffprobe.get_video_info(video_path).await
-}
-
-#[tauri::command]
 pub async fn compress_videos_batch(
     app: tauri::AppHandle,
     batch_id: &str,
@@ -117,7 +111,10 @@ pub async fn extract_subtitle(
     let output_format = format.unwrap_or("srt");
 
     if !matches!(output_format, "srt" | "vtt") {
-        return Err(format!("Unsupported output format '{}'. Supported formats: srt, vtt", output_format));
+        return Err(format!(
+            "Unsupported output format '{}'. Supported formats: srt, vtt",
+            output_format
+        ));
     }
 
     ffmpeg

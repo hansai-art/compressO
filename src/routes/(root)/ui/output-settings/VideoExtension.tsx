@@ -9,29 +9,29 @@ import { appProxy, normalizeBatchVideosConfig } from '../../-state'
 const videoExtensions = Object.keys(extensions?.video)
 
 type VideoExtensionProps = {
-  videoIndex: number
+  mediaIndex: number
 }
 
-function VideoExtension({ videoIndex }: VideoExtensionProps) {
+function VideoExtension({ mediaIndex }: VideoExtensionProps) {
   const {
     state: {
       videos,
       isCompressing,
       isProcessCompleted,
       commonConfigForBatchCompression,
-      isLoadingFiles,
+      isLoadingMediaFiles,
     },
   } = useSnapshot(appProxy)
-  const video = videos.length > 0 && videoIndex >= 0 ? videos[videoIndex] : null
+  const video = videos.length > 0 && mediaIndex >= 0 ? videos[mediaIndex] : null
   const { config } = video ?? {}
   const { convertToExtension } = config ?? commonConfigForBatchCompression ?? {}
 
   const handleValueChange = useCallback(
     (value: keyof typeof extensions.video) => {
       if (value?.length > 0) {
-        if (videoIndex >= 0 && appProxy.state.videos[videoIndex]?.config) {
-          appProxy.state.videos[videoIndex].config.convertToExtension = value
-          appProxy.state.videos[videoIndex].isConfigDirty = true
+        if (mediaIndex >= 0 && appProxy.state.videos[mediaIndex]?.config) {
+          appProxy.state.videos[mediaIndex].config.convertToExtension = value
+          appProxy.state.videos[mediaIndex].isConfigDirty = true
         } else {
           if (appProxy.state.videos.length > 1) {
             appProxy.state.commonConfigForBatchCompression.convertToExtension =
@@ -41,11 +41,14 @@ function VideoExtension({ videoIndex }: VideoExtensionProps) {
         }
       }
     },
-    [videoIndex],
+    [mediaIndex],
   )
 
   const shouldDisableInput =
-    videos.length === 0 || isCompressing || isProcessCompleted || isLoadingFiles
+    videos.length === 0 ||
+    isCompressing ||
+    isProcessCompleted ||
+    isLoadingMediaFiles
 
   return (
     <Select

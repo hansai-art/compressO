@@ -672,7 +672,7 @@ impl FFMPEG {
                             serde_json::from_str(payload_str).ok();
                         if let Some(payload) = payload_opt {
                             let batch_id = batch_id_clone1.as_str();
-                            if payload.video_id == video_id_clone1
+                            if payload.media_id == video_id_clone1
                                 || (payload.batch_id.is_some()
                                     && payload.batch_id.unwrap() == batch_id)
                             {
@@ -840,7 +840,6 @@ impl FFMPEG {
         let total_count = videos.len();
 
         for (index, video_options) in videos.iter().enumerate() {
-            let video_path = &video_options.video_path;
             let video_id = &video_options.video_id;
 
             let app_clone = self.app.clone();
@@ -881,6 +880,7 @@ impl FFMPEG {
             let app_clone2 = self.app.clone();
             let batch_id_clone2 = batch_id.to_string();
 
+            let video_path = &video_options.video_path;
             let convert_to_extension = &video_options.convert_to_extension;
             let preset_name = video_options.preset_name.as_deref();
             let batch_id_for_compression = batch_id;
@@ -1142,57 +1142,6 @@ impl FFMPEG {
         }
     }
 
-    pub fn get_asset_dir(&self) -> String {
-        self.assets_dir.display().to_string()
-    }
-
-    fn build_ffmpeg_filters(&self, actions: &Vec<Value>) -> String {
-        let mut filters: Vec<String> = Vec::new();
-        let mut latest_crop: Option<&Value> = None;
-
-        for action in actions {
-            let action_type = action["type"].as_str().unwrap_or("");
-
-            match action_type {
-                "rotate" => {
-                    let angle = action["value"].as_i64().unwrap_or(0);
-                    match angle % 360 {
-                        -90 | 270 => filters.push("transpose=2".to_string()),
-                        90 | -270 => filters.push("transpose=1".to_string()),
-                        180 | -180 => filters.push("hflip,vflip".to_string()),
-                        _ => {}
-                    }
-                }
-                "flip" => {
-                    if let Some(flip_obj) = action["value"].as_object() {
-                        if flip_obj.get("horizontal").and_then(|v| v.as_bool()) == Some(true) {
-                            filters.push("hflip".to_string());
-                        }
-                        if flip_obj.get("vertical").and_then(|v| v.as_bool()) == Some(true) {
-                            filters.push("vflip".to_string());
-                        }
-                    }
-                }
-                "crop" => {
-                    latest_crop = Some(&action["value"]);
-                }
-                _ => {}
-            }
-        }
-
-        // Apply only the last crop
-        if let Some(c) = latest_crop {
-            let w = c["width"].as_f64().unwrap_or(0.0).round() as i64;
-            let h = c["height"].as_f64().unwrap_or(0.0).round() as i64;
-            let x = c["left"].as_f64().unwrap_or(0.0).round() as i64;
-            let y = c["top"].as_f64().unwrap_or(0.0).round() as i64;
-
-            filters.push(format!("crop={}:{}:{}:{}", w, h, x, y));
-        }
-
-        filters.join(",")
-    }
-
     /// Converts an image from one format to another using ffmpeg
     pub async fn convert_image(
         &mut self,
@@ -1249,16 +1198,6 @@ impl FFMPEG {
                     "scale=iw:ih:flags=lanczos,split[s0][s1];[s0]palettegen[p];[s1][p]paletteuse"
                         .to_string(),
                 );
-            }
-            "bmp" => {
-                // BMP settings
-                cmd_args.push("-compression_level".to_string());
-                cmd_args.push("0".to_string());
-            }
-            "tiff" => {
-                // TIFF settings
-                cmd_args.push("-compression".to_string());
-                cmd_args.push("lzw".to_string());
             }
             _ => {
                 // Default settings for other formats
@@ -1349,5 +1288,56 @@ impl FFMPEG {
             }
             Err(e) => Err(format!("Failed to spawn FFmpeg: {}", e)),
         }
+    }
+
+    pub fn get_asset_dir(&self) -> String {
+        self.assets_dir.display().to_string()
+    }
+
+    fn build_ffmpeg_filters(&self, actions: &Vec<Value>) -> String {
+        let mut filters: Vec<String> = Vec::new();
+        let mut latest_crop: Option<&Value> = None;
+
+        for action in actions {
+            let action_type = action["type"].as_str().unwrap_or("");
+
+            match action_type {
+                "rotate" => {
+                    let angle = action["value"].as_i64().unwrap_or(0);
+                    match angle % 360 {
+                        -90 | 270 => filters.push("transpose=2".to_string()),
+                        90 | -270 => filters.push("transpose=1".to_string()),
+                        180 | -180 => filters.push("hflip,vflip".to_string()),
+                        _ => {}
+                    }
+                }
+                "flip" => {
+                    if let Some(flip_obj) = action["value"].as_object() {
+                        if flip_obj.get("horizontal").and_then(|v| v.as_bool()) == Some(true) {
+                            filters.push("hflip".to_string());
+                        }
+                        if flip_obj.get("vertical").and_then(|v| v.as_bool()) == Some(true) {
+                            filters.push("vflip".to_string());
+                        }
+                    }
+                }
+                "crop" => {
+                    latest_crop = Some(&action["value"]);
+                }
+                _ => {}
+            }
+        }
+
+        // Apply only the last crop
+        if let Some(c) = latest_crop {
+            let w = c["width"].as_f64().unwrap_or(0.0).round() as i64;
+            let h = c["height"].as_f64().unwrap_or(0.0).round() as i64;
+            let x = c["left"].as_f64().unwrap_or(0.0).round() as i64;
+            let y = c["top"].as_f64().unwrap_or(0.0).round() as i64;
+
+            filters.push(format!("crop={}:{}:{}:{}", w, h, x, y));
+        }
+
+        filters.join(",")
     }
 }

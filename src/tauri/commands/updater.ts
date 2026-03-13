@@ -12,6 +12,6 @@ export function checkUpdate(): Promise<UpdateInfo> {
   return core.invoke('check_update')
 }
 
-export function installUpdate(): Promise<string> {
-  return core.invoke('install_update')
+export function downloadAndInstallUpdate(): Promise<string> {
+  return core.invoke('download_and_install_update')
 }

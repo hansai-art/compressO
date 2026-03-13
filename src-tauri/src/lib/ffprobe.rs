@@ -1,6 +1,6 @@
 use crate::domain::{
-    AudioStream, Chapter, ContainerInfo, Disposition, SubtitleStream, TauriEvents, VideoInfo,
-    VideoStream,
+    AudioStream, Chapter, ContainerInfo, Disposition, ImageInfo, SubtitleStream, TauriEvents,
+    VideoInfo, VideoStream,
 };
 use serde_json::Value;
 use shared_child::SharedChild;
@@ -31,8 +31,8 @@ impl FFPROBE {
         }
     }
 
-    /// Gets video information (duration, dimensions, fps) using ffprobe JSON output
-    pub async fn get_video_info(&mut self, video_path: &str) -> Result<VideoInfo, String> {
+    /// Gets video basic information (duration, dimensions, fps) using ffprobe JSON output
+    pub async fn get_video_basic_info(&mut self, video_path: &str) -> Result<VideoInfo, String> {
         if !Path::exists(Path::new(video_path)) {
             return Err(String::from("File does not exist in given path."));
         }
@@ -897,10 +897,9 @@ impl FFPROBE {
                             {
                                 let mut result = Vec::new();
                                 for stream in streams_array {
-                                    let index = stream
-                                        .get("index")
-                                        .and_then(|i| i.as_u64())
-                                        .unwrap_or(0) as u32;
+                                    let index =
+                                        stream.get("index").and_then(|i| i.as_u64()).unwrap_or(0)
+                                            as u32;
 
                                     let codec = stream
                                         .get("codec_name")

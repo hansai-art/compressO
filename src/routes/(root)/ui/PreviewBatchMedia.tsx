@@ -18,43 +18,57 @@ import { formatDuration } from '@/utils/string'
 import { cn } from '@/utils/tailwind'
 import { appProxy } from '../-state'
 
-function PreviewBatchVideos() {
+function PreviewBatchMedia() {
   const {
     state: {
-      videos,
+      media,
       isCompressing,
       isProcessCompleted,
-      currentVideoIndex,
-      totalSelectedFilesCount,
-      isLoadingFiles,
+      currentMediaIndex,
+      totalSelectedMediaCount,
+      isLoadingMediaFiles,
       isBatchCompressionCancelled,
     },
   } = useSnapshot(appProxy)
 
   const compressionStats = useMemo(() => {
-    const totalVideos = videos.length
-    const totalSize = videos.reduce((sum, v) => sum + (v.sizeInBytes ?? 0), 0)
-
-    const completedVideos = videos.filter(
-      (v) => v.isProcessCompleted && v.compressedVideo?.sizeInBytes,
+    const totalMedia = media.length
+    const totalVideos = media.reduce(
+      (a, m) => a + (m.type === 'video' ? 1 : 0),
+      0,
     )
-    const compressedCount = completedVideos.length
-    const cancelledCount = isBatchCompressionCancelled
-      ? totalVideos - compressedCount
+    const totalImages = media.reduce(
+      (a, m) => a + (m.type === 'image' ? 1 : 0),
+      0,
+    )
+    const totalSize = media.reduce((sum, m) => sum + (m.sizeInBytes ?? 0), 0)
+
+    const completedMedia = media.filter(
+      (m) => m.isProcessCompleted && m.compressedFile?.sizeInBytes,
+    )
+    const compressedMediaCount = completedMedia.length
+    const cancelledMediaCount = isBatchCompressionCancelled
+      ? totalMedia - compressedMediaCount
+      : 0
+    const cancelledVideosCount = isBatchCompressionCancelled
+      ? totalVideos - completedMedia.filter((m) => m.type === 'video').length
+      : 0
+    const cancelledImagesCount = isBatchCompressionCancelled
+      ? totalVideos - completedMedia.filter((m) => m.type === 'image').length
       : 0
 
-    const originalSizeOfCompressedOnly = completedVideos.reduce((sum, v) => {
-      const cs = v.compressedVideo?.sizeInBytes
-      const os = v.sizeInBytes ?? 0
+    const originalSizeOfCompressedOnly = completedMedia.reduce((sum, m) => {
+      const cs = m.compressedFile?.sizeInBytes
+      const os = m.sizeInBytes ?? 0
 
       return sum + (cs != null && cs < os ? os : 0)
     }, 0)
-    const outputSize = completedVideos.reduce((sum, v) => {
-      const cs = v.compressedVideo?.sizeInBytes
+    const outputSize = completedMedia.reduce((sum, v) => {
+      const cs = v.compressedFile?.sizeInBytes
       return sum + (cs != null ? cs : 0)
     }, 0)
-    const compressedSize = completedVideos.reduce((sum, v) => {
-      const cs = v.compressedVideo?.sizeInBytes
+    const compressedSize = completedMedia.reduce((sum, v) => {
+      const cs = v.compressedFile?.sizeInBytes
       const os = v.sizeInBytes ?? 0
 
       return sum + (cs != null && cs < os ? cs : 0)
@@ -65,41 +79,51 @@ function PreviewBatchVideos() {
         ? (sizeSaved / originalSizeOfCompressedOnly) * 100
         : 0
 
-    const totalProgress = videos.reduce(
-      (a, c) => a + (c?.compressionProgress ?? 0) / videos.length,
+    const totalProgress = media.reduce(
+      (a, c) => a + (c?.compressionProgress ?? 0) / media.length,
       0,
     )
 
+    const displayTotalMedia = isBatchCompressionCancelled
+      ? compressedMediaCount
+      : totalMedia
     const displayTotalVideos = isBatchCompressionCancelled
-      ? compressedCount
+      ? completedMedia.filter((m) => m.type === 'video').length
       : totalVideos
+    const displayTotalImages = isBatchCompressionCancelled
+      ? completedMedia.filter((m) => m.type === 'image').length
+      : totalImages
     const displayTotalSize = isBatchCompressionCancelled
-      ? completedVideos.reduce((sum, v) => sum + (v.sizeInBytes ?? 0), 0)
+      ? completedMedia.reduce((sum, v) => sum + (v.sizeInBytes ?? 0), 0)
       : totalSize
 
     return {
+      totalMedia,
       totalVideos,
+      totalImages,
       totalSize,
-      compressedCount,
+      compressedMediaCount,
       compressedSize,
       outputSize,
       sizeSaved,
       percentageSaved,
       totalProgress,
-      cancelledCount,
+      cancelledMediaCount,
+      cancelledVideosCount,
+      cancelledImagesCount,
+      displayTotalMedia,
       displayTotalVideos,
+      displayTotalImages,
       displayTotalSize,
       isPositiveCompression:
         (compressedSize ?? Number.MAX_SAFE_INTEGER) < (totalSize ?? 0),
     }
-  }, [videos, isBatchCompressionCancelled])
+  }, [media, isBatchCompressionCancelled])
 
-  const handleRemoveVideo = useCallback(
+  const handleRemoveMedia = useCallback(
     (index: number) => {
       if (isCompressing) return
-      appProxy.state.videos = appProxy.state.videos.filter(
-        (_, i) => i !== index,
-      )
+      appProxy.state.media = appProxy.state.media.filter((_, i) => i !== index)
     },
     [isCompressing],
   )
@@ -131,27 +155,34 @@ function PreviewBatchVideos() {
             exit="hidden"
             className="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 3xl:grid-cols-4 gap-4"
           >
-            {videos.map((video, index) => {
+            {media.map((mediaFile, index) => {
               const compressedSizeDiff =
-                typeof video?.compressedVideo?.sizeInBytes === 'number' &&
-                typeof video?.sizeInBytes === 'number' &&
-                !Number.isNaN(video?.sizeInBytes)
-                  ? (((video?.sizeInBytes ?? 0) -
-                      (video?.compressedVideo?.sizeInBytes ?? 0)) *
+                typeof mediaFile?.compressedFile?.sizeInBytes === 'number' &&
+                typeof mediaFile?.sizeInBytes === 'number' &&
+                !Number.isNaN(mediaFile?.sizeInBytes)
+                  ? (((mediaFile?.sizeInBytes ?? 0) -
+                      (mediaFile?.compressedFile?.sizeInBytes ?? 0)) *
                       100) /
-                    video?.sizeInBytes
+                    mediaFile?.sizeInBytes
                   : 0
+
+              const thumbnailPath =
+                mediaFile.type === 'video'
+                  ? mediaFile.thumbnailPath
+                  : mediaFile.type === 'image'
+                    ? mediaFile.path
+                    : null
 
               return (
                 <motion.div
-                  key={video.id}
+                  key={mediaFile.id}
                   layout
                   variants={zoomInStaggerAnimation.item}
                   className={cn([
                     'relative rounded-xl border-2 overflow-hidden',
-                    currentVideoIndex > index || video.isProcessCompleted
+                    currentMediaIndex > index || mediaFile.isProcessCompleted
                       ? 'border-green-400'
-                      : 'border-primary',
+                      : 'border-zinc-200 dark:border-zinc-900',
                   ])}
                 >
                   <Card
@@ -161,27 +192,35 @@ function PreviewBatchVideos() {
                     radius="lg"
                   >
                     <div className="relative w-full overflow-hidden">
-                      {video.thumbnailPath ? (
-                        <Image
-                          src={video.thumbnailPath as string}
-                          alt={video.fileName ?? ''}
-                          className="w-full max-w-[unset] h-[180px] hlg:h-[220px] object-cover drop-shadow-xl rounded-lg"
-                          removeWrapper
-                        />
+                      {thumbnailPath ? (
+                        <>
+                          <Image
+                            src={thumbnailPath}
+                            alt={mediaFile.fileName ?? ''}
+                            className="w-full max-w-[unset] h-[180px] hlg:h-[220px] object-cover drop-shadow-xl rounded-xl"
+                            removeWrapper
+                          />
+                          {mediaFile.type === 'video' ? (
+                            <Icon
+                              name="video"
+                              size={40}
+                              className="text-zinc-400 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[10]"
+                            />
+                          ) : null}
+                        </>
                       ) : (
                         <div className="w-full aspect-video bg-zinc-200 dark:bg-zinc-800 flex items-center justify-center">
                           <Icon
-                            name="videoFile"
+                            name="video"
                             size={40}
                             className="text-zinc-400"
                           />
                         </div>
                       )}
-
                       <div className="absolute top-2 left-2 z-10 flex gap-2 items-center">
                         {!isCompressing &&
-                        video?.isProcessCompleted &&
-                        video?.compressedVideo?.isSuccessful ? (
+                        mediaFile?.isProcessCompleted &&
+                        mediaFile?.compressedFile?.isSuccessful ? (
                           <Tooltip
                             content="Copy to clipboard"
                             aria-label="Copy to clipboard"
@@ -191,8 +230,9 @@ function PreviewBatchVideos() {
                               isIconOnly
                               onPress={() =>
                                 handleCopyToClipboard(
-                                  (video?.compressedVideo?.savedPath ??
-                                    video?.compressedVideo?.pathRaw) as string,
+                                  (mediaFile?.compressedFile?.savedPath ??
+                                    mediaFile?.compressedFile
+                                      ?.pathRaw) as string,
                                 )
                               }
                               className="rounded-full text-white"
@@ -205,9 +245,9 @@ function PreviewBatchVideos() {
                             </Button>
                           </Tooltip>
                         ) : null}
-                        {video.isProcessCompleted &&
-                        video?.compressedVideo?.isSaved &&
-                        video?.compressedVideo?.savedPath ? (
+                        {mediaFile.isProcessCompleted &&
+                        mediaFile?.compressedFile?.isSaved &&
+                        mediaFile?.compressedFile?.savedPath ? (
                           <Tooltip
                             content="Show in File Explorer"
                             aria-label="Show in File Explorer"
@@ -217,7 +257,7 @@ function PreviewBatchVideos() {
                               isIconOnly
                               onPress={() =>
                                 handleOpenInFileManager(
-                                  video.compressedVideo!.savedPath!,
+                                  mediaFile.compressedFile!.savedPath!,
                                 )
                               }
                               className="p-2 rounded-full text-white"
@@ -233,12 +273,12 @@ function PreviewBatchVideos() {
                       </div>
                       {!isCompressing &&
                       !isProcessCompleted &&
-                      !isLoadingFiles ? (
+                      !isLoadingMediaFiles ? (
                         <>
                           <Button
                             size="sm"
                             isIconOnly
-                            onPress={() => handleRemoveVideo(index)}
+                            onPress={() => handleRemoveMedia(index)}
                             className="absolute top-2 right-2 z-10 p-2 rounded-full bg-zinc-800/80 text-white hover:bg-zinc-700 transition-colors"
                           >
                             <Icon name="cross" size={18} />
@@ -247,12 +287,12 @@ function PreviewBatchVideos() {
                             size="sm"
                             isIconOnly
                             onPress={() => {
-                              appProxy.state.selectedVideoIndexForCustomization =
+                              appProxy.state.selectedMediaIndexForCustomization =
                                 index
                             }}
                             className={cn(
                               'absolute bottom-2 left-2 z-10 rounded-full text-white hover:bg-zinc-700 transition-colors',
-                              video.isConfigDirty
+                              mediaFile.isConfigDirty
                                 ? 'bg-primary'
                                 : 'bg-zinc-800/80',
                             )}
@@ -261,13 +301,13 @@ function PreviewBatchVideos() {
                           </Button>
                         </>
                       ) : null}
-                      {isCompressing && currentVideoIndex === index ? (
+                      {isCompressing && currentMediaIndex === index ? (
                         <>
                           <CircularProgress
                             size="lg"
                             showValueLabel
                             className="absolute left-1/2 top-1/2 z-20 -translate-x-1/2 -translate-y-1/2"
-                            value={video.compressionProgress ?? 0}
+                            value={mediaFile.compressionProgress ?? 0}
                             strokeWidth={3}
                             classNames={{
                               svg: 'w-20 h-20 drop-shadow-md',
@@ -282,22 +322,24 @@ function PreviewBatchVideos() {
                     </div>
                     <section className="px-3 py-2">
                       <p className={cn(['font-medium text-sm truncate block'])}>
-                        {video.fileName ?? ''}
+                        {mediaFile.fileName ?? ''}
                       </p>
+                      <Divider className="mt-2" />
                       <section
                         className={cn(
-                          'flex items-center gap-2 text-[12px] min-h-[55px]',
-                          !video?.compressedVideo?.isSuccessful
-                            ? 'justify-between'
-                            : '',
+                          'flex items-center text-[12px] min-h-[55px]',
+                          mediaFile.type === 'video' &&
+                            !mediaFile?.compressedFile?.isSuccessful
+                            ? 'justify-between gap-2'
+                            : 'gap-4',
                         )}
                       >
-                        {video.isProcessCompleted &&
-                        video?.compressedVideo?.isSuccessful ? (
+                        {mediaFile.isProcessCompleted &&
+                        mediaFile?.compressedFile?.isSuccessful ? (
                           <section className="animate-appearance-in w-full flex items-center justify-center gap-4">
                             <div className="flex justify-center items-center">
                               <p className="text-[16px] font-bold">
-                                {video.size ?? ''}
+                                {mediaFile.size ?? ''}
                               </p>
                               <Icon
                                 name="curvedArrow"
@@ -305,7 +347,7 @@ function PreviewBatchVideos() {
                                 size={40}
                               />
                               <p className="text-[16px] font-bold text-primary">
-                                {video?.compressedVideo?.size ?? ''}
+                                {mediaFile?.compressedFile?.size ?? ''}
                               </p>
                             </div>
                             {!(compressedSizeDiff <= 0) ? (
@@ -330,51 +372,53 @@ function PreviewBatchVideos() {
                         ) : (
                           <>
                             <div className="text-[11px] xl:text-[12px] xxl:text-[12px] 3xl:text-[12.5px]">
-                              <p className="italic text-gray-600 dark:text-gray-400 mb-1">
+                              <p className=" text-gray-600 dark:text-gray-400 mb-1">
                                 Size
                               </p>
                               <span className="block font-black">
-                                {video.size}
+                                {mediaFile.size}
                               </span>
-                            </div>{' '}
+                            </div>
                             <Divider orientation="vertical" className="h-5" />
                             <div className="text-[11px] xxl:text-[12px] 3xl:text-[12.5px]">
-                              <p className="italic text-gray-600 dark:text-gray-400 mb-1">
+                              <p className=" text-gray-600 dark:text-gray-400 mb-1">
                                 Extension
                               </p>
                               <span className="block font-black">
-                                {video.extension ?? '-'}
+                                {mediaFile.extension ?? '-'}
                               </span>
                             </div>
-                            {video.videoDuration ? (
+                            {mediaFile.type === 'video' &&
+                            mediaFile.videoDuration ? (
                               <>
                                 <Divider
                                   orientation="vertical"
                                   className="h-5"
                                 />
                                 <div className="text-[11px] xxl:text-[12px] 3xl:text-[12.5px]">
-                                  <p className="italic text-gray-600 dark:text-gray-400 mb-1">
+                                  <p className=" text-gray-600 dark:text-gray-400 mb-1">
                                     Duration
                                   </p>
                                   <span className="block font-black">
-                                    {formatDuration(video.videoDuration) ?? '-'}
+                                    {formatDuration(mediaFile.videoDuration) ??
+                                      '-'}
                                   </span>
                                 </div>
                               </>
                             ) : null}
-                            {video.dimensions ? (
+                            {mediaFile.dimensions ? (
                               <>
                                 <Divider
                                   orientation="vertical"
                                   className="h-5"
                                 />
                                 <div className="text-[11px] xxl:text-[12px] 3xl:text-[12.5px]">
-                                  <p className="italic text-gray-600 dark:text-gray-400 mb-1">
+                                  <p className=" text-gray-600 dark:text-gray-400 mb-1">
                                     Dimensions
                                   </p>
                                   <span className="block font-black">
-                                    {video.dimensions.width ?? '-'} x{' '}
-                                    {video.dimensions.height ?? '-'}
+                                    {mediaFile.dimensions.width ?? '-'} x{' '}
+                                    {mediaFile.dimensions.height ?? '-'}
                                   </span>
                                 </div>
                               </>
@@ -391,12 +435,12 @@ function PreviewBatchVideos() {
         </AnimatePresence>
       </ScrollShadow>
       <section className="relative px-4 py-6 flex flex-col items-center">
-        {isLoadingFiles ? (
+        {isLoadingMediaFiles ? (
           <Progress
             size="sm"
-            isIndeterminate={totalSelectedFilesCount == null}
+            isIndeterminate={totalSelectedMediaCount == null}
             className="w-[100px] mb-2 absolute top-2 right-1/2 translate-x-1/2"
-            value={(videos.length * 100) / (totalSelectedFilesCount || 1)}
+            value={(media.length * 100) / (totalSelectedMediaCount || 1)}
           />
         ) : null}
         <div className="max-w-7xl mx-auto">
@@ -404,19 +448,17 @@ function PreviewBatchVideos() {
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div className="flex items-center gap-6">
                 <div>
-                  <p className="italic text-gray-600 dark:text-gray-400">
+                  <p className=" text-gray-600 dark:text-gray-400">
                     Compressed
                   </p>
                   <p className="font-black text-lg">
-                    {compressionStats?.compressedCount ?? 0} /{' '}
-                    {compressionStats?.totalVideos}
+                    {compressionStats?.compressedMediaCount ?? 0} /{' '}
+                    {compressionStats?.totalMedia}
                   </p>
                 </div>
                 <Divider orientation="vertical" className="h-8" />
                 <div>
-                  <p className="italic text-gray-600 dark:text-gray-400">
-                    Saved
-                  </p>
+                  <p className=" text-gray-600 dark:text-gray-400">Saved</p>
                   <p className="font-black text-lg text-green-600 dark:text-green-400">
                     {formatBytes(compressionStats.sizeSaved ?? 0) || '...'}
                     {compressionStats.percentageSaved
@@ -438,30 +480,62 @@ function PreviewBatchVideos() {
           ) : (
             <div className="flex items-center gap-6">
               <div>
-                <p className="italic text-gray-600 dark:text-gray-400">
-                  Videos
-                </p>
+                <p className=" text-gray-600 dark:text-gray-400">Media</p>
                 <p
                   className={cn(
                     'font-black text-lg',
-                    isLoadingFiles ? 'animate-pulse' : '',
+                    isLoadingMediaFiles ? 'animate-pulse' : '',
                   )}
                 >
-                  {compressionStats.displayTotalVideos}
-                  {compressionStats.cancelledCount > 0 ? (
-                    <span className="text-xs italic text-warning-400 ml-2">
-                      ({compressionStats.cancelledCount} cancelled)
+                  {compressionStats.displayTotalMedia}
+                  {compressionStats.cancelledMediaCount > 0 ? (
+                    <span className="text-xs  text-warning-400 ml-2">
+                      ({compressionStats.cancelledMediaCount} cancelled)
                     </span>
                   ) : null}
                 </p>
               </div>
               <Divider orientation="vertical" className="h-8" />
               <div>
-                <p className="italic text-gray-600 dark:text-gray-400">Size</p>
+                <p className=" text-gray-600 dark:text-gray-400">Videos</p>
                 <p
                   className={cn(
                     'font-black text-lg',
-                    isLoadingFiles ? 'animate-pulse' : '',
+                    isLoadingMediaFiles ? 'animate-pulse' : '',
+                  )}
+                >
+                  {compressionStats.displayTotalVideos}
+                  {compressionStats.cancelledVideosCount > 0 ? (
+                    <span className="text-xs  text-warning-400 ml-2">
+                      ({compressionStats.cancelledVideosCount} cancelled)
+                    </span>
+                  ) : null}
+                </p>
+              </div>
+              <Divider orientation="vertical" className="h-8" />
+              <div>
+                <p className=" text-gray-600 dark:text-gray-400">Images</p>
+                <p
+                  className={cn(
+                    'font-black text-lg',
+                    isLoadingMediaFiles ? 'animate-pulse' : '',
+                  )}
+                >
+                  {compressionStats.displayTotalImages}
+                  {compressionStats.cancelledImagesCount > 0 ? (
+                    <span className="text-xs  text-warning-400 ml-2">
+                      ({compressionStats.cancelledImagesCount} cancelled)
+                    </span>
+                  ) : null}
+                </p>
+              </div>
+              <Divider orientation="vertical" className="h-8" />
+              <div>
+                <p className=" text-gray-600 dark:text-gray-400">Size</p>
+                <p
+                  className={cn(
+                    'font-black text-lg',
+                    isLoadingMediaFiles ? 'animate-pulse' : '',
                   )}
                 >
                   {formatBytes(compressionStats.displayTotalSize)}
@@ -471,7 +545,7 @@ function PreviewBatchVideos() {
                 <>
                   <Divider orientation="vertical" className="h-8" />
                   <div>
-                    <p className="italic text-gray-600 dark:text-gray-400">
+                    <p className=" text-gray-600 dark:text-gray-400">
                       Output Size
                     </p>
                     <p
@@ -487,9 +561,7 @@ function PreviewBatchVideos() {
                   </div>
                   <Divider orientation="vertical" className="h-8" />
                   <div>
-                    <p className="italic text-gray-600 dark:text-gray-400">
-                      Saved
-                    </p>
+                    <p className=" text-gray-600 dark:text-gray-400">Saved</p>
                     <p
                       className={cn(
                         'font-black text-lg',
@@ -512,4 +584,4 @@ function PreviewBatchVideos() {
   )
 }
 
-export default PreviewBatchVideos
+export default PreviewBatchMedia

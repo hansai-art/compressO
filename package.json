@@ -49,6 +49,7 @@
     "react-colorful": "^5.6.1",
     "react-dom": "^18",
     "react-markdown": "^10.1.0",
+    "react-photo-view": "^1.2.7",
     "react-player": "^2.16.0",
     "remark-gfm": "^4.0.1",
     "sonner": "^1.4.41",
@@ -81,6 +82,8 @@
     }
   },
   "lint-staged": {
-    "src/**/*.{js,ts,jsx,tsx}": ["biome check --write"]
+    "src/**/*.{js,ts,jsx,tsx}": [
+      "biome check --write"
+    ]
   }
 }

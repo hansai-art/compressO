@@ -65,7 +65,7 @@ pub enum TauriEvents {
 #[derive(Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CancelInProgressCompressionPayload {
-    pub video_id: String,
+    pub media_id: String,
     pub batch_id: Option<String>,
 }
 #[derive(Serialize, Deserialize)]
@@ -74,6 +74,11 @@ pub struct VideoInfo {
     pub duration: Option<f64>,
     pub dimensions: Option<(u32, u32)>,
     pub fps: Option<f32>,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct ImageInfo {
+    pub dimensions: Option<(u32, u32)>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -223,23 +228,19 @@ pub struct AudioConfig {
 #[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct VideoStream {
-    // Basic codec info
     pub codec: String,
     pub codec_long_name: String,
     pub profile: String,
     pub codec_type: String,
 
-    // Dimensions
     pub width: u32,
     pub height: u32,
     pub coded_width: u32,
     pub coded_height: u32,
 
-    // Frame rate
     pub r_frame_rate: String,
     pub avg_frame_rate: String,
 
-    // Pixel format and color
     pub pix_fmt: String,
     pub color_space: Option<String>,
     pub color_range: Option<String>,
@@ -247,19 +248,15 @@ pub struct VideoStream {
     pub color_transfer: Option<String>,
     pub chroma_location: Option<String>,
 
-    // Bitrate and duration
     pub bit_rate: Option<String>,
     pub duration: Option<String>,
 
-    // Frame info
     pub nb_frames: Option<String>,
     pub refs: Option<u32>,
 
-    // Bitstream/codec-specific info
     pub gop_size: Option<u32>,
     pub level: Option<u32>,
 
-    // Other
     pub field_order: String,
     pub time_base: String,
     pub rotation: Option<f64>,
@@ -268,28 +265,23 @@ pub struct VideoStream {
 #[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct AudioStream {
-    // Basic codec info
     pub codec: String,
     pub codec_long_name: String,
     pub codec_type: String,
     pub profile: Option<String>,
 
-    // Channels and layout
     pub channels: String,
     pub channel_layout: String,
 
-    // Sample rate and format
     pub sample_rate: String,
     pub sample_fmt: Option<String>,
     pub bits_per_sample: Option<u32>,
 
-    // Bitrate and duration
     pub bit_rate: Option<String>,
     pub duration: Option<String>,
 
     pub language: Option<String>,
 
-    // Tags (language(sometimes language is in tags), title, etc.)
     pub tags: Option<Vec<(String, String)>>,
 }
 
@@ -368,7 +360,7 @@ pub struct ImageCompressionResult {
     pub file_metadata: Option<FileMetadata>,
     pub original_size: u64,
     pub compressed_size: u64,
-    pub compression_ratio: f32,
+    pub compression_ratio: f32, // TODO: What is this?
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -377,34 +369,11 @@ pub struct ImageCompressionConfig {
     pub image_id: String,
     pub image_path: String,
     pub convert_to_extension: Option<String>,
+    pub is_lossless: Option<bool>,
     pub quality: u8, // 0-100
-    pub png_compression_mode: Option<PngCompressionMode>,
-    pub jpeg_compression_mode: Option<JpegCompressionMode>,
     pub webp_quality: Option<u8>,
     pub gif_quality: Option<GifQuality>,
-    pub gif_compression_mode: Option<GifCompressionMode>,
     pub strip_metadata: Option<bool>,
-}
-
-#[derive(Serialize, Deserialize, Clone, Debug)]
-#[serde(rename_all = "camelCase")]
-pub enum PngCompressionMode {
-    Lossy,
-    Lossless,
-}
-
-#[derive(Serialize, Deserialize, Clone, Debug)]
-#[serde(rename_all = "camelCase")]
-pub enum JpegCompressionMode {
-    Lossy,
-    Lossless,
-}
-
-#[derive(Serialize, Deserialize, Clone, Debug)]
-#[serde(rename_all = "camelCase")]
-pub enum GifCompressionMode {
-    Lossy,
-    Lossless,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]

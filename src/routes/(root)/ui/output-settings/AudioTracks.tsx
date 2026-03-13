@@ -10,7 +10,7 @@ import { cn } from '@/utils/tailwind'
 import { appProxy, normalizeBatchVideosConfig } from '../../-state'
 
 type AudioTracksProps = {
-  videoIndex: number
+  mediaIndex: number
 }
 
 function getLanguageFromTags(
@@ -29,8 +29,8 @@ function getTitleFromTags(
   return titleTag ? titleTag[1] : null
 }
 
-function AudioTracks({ videoIndex }: AudioTracksProps) {
-  if (videoIndex < 0) return null
+function AudioTracks({ mediaIndex }: AudioTracksProps) {
+  if (mediaIndex < 0) return null
 
   const {
     state: {
@@ -38,10 +38,10 @@ function AudioTracks({ videoIndex }: AudioTracksProps) {
       isCompressing,
       isProcessCompleted,
       commonConfigForBatchCompression,
-      isLoadingFiles,
+      isLoadingMediaFiles,
     },
   } = useSnapshot(appProxy)
-  const video = videos.length > 0 && videoIndex >= 0 ? videos[videoIndex] : null
+  const video = videos.length > 0 && mediaIndex >= 0 ? videos[mediaIndex] : null
   const { config, videoInfoRaw } = video ?? {}
   const { shouldEnableAudioTrackSelection, selectedAudioTracks, audioConfig } =
     config ?? commonConfigForBatchCompression ?? {}
@@ -54,8 +54,8 @@ function AudioTracks({ videoIndex }: AudioTracksProps) {
       (!selectedAudioTracks || selectedAudioTracks.length === 0)
     ) {
       const allTrackIndices = audioStreams.map((_, index) => index)
-      if (videoIndex >= 0 && appProxy.state.videos[videoIndex]?.config) {
-        appProxy.state.videos[videoIndex].config.selectedAudioTracks =
+      if (mediaIndex >= 0 && appProxy.state.videos[mediaIndex]?.config) {
+        appProxy.state.videos[mediaIndex].config.selectedAudioTracks =
           allTrackIndices
       } else {
         if (appProxy.state.videos.length > 1) {
@@ -67,22 +67,22 @@ function AudioTracks({ videoIndex }: AudioTracksProps) {
     }
   }, [
     shouldEnableAudioTrackSelection,
-    videoIndex,
+    mediaIndex,
     audioStreams,
     selectedAudioTracks,
   ])
 
   const handleSwitchToggle = useCallback(() => {
-    if (videoIndex >= 0 && appProxy.state.videos[videoIndex]?.config) {
-      appProxy.state.videos[videoIndex].config.shouldEnableAudioTrackSelection =
+    if (mediaIndex >= 0 && appProxy.state.videos[mediaIndex]?.config) {
+      appProxy.state.videos[mediaIndex].config.shouldEnableAudioTrackSelection =
         !shouldEnableAudioTrackSelection
-      appProxy.state.videos[videoIndex].isConfigDirty = true
+      appProxy.state.videos[mediaIndex].isConfigDirty = true
 
       if (!shouldEnableAudioTrackSelection) {
-        appProxy.state.videos[videoIndex].config.selectedAudioTracks =
+        appProxy.state.videos[mediaIndex].config.selectedAudioTracks =
           audioStreams.map((_, index) => index)
       } else {
-        appProxy.state.videos[videoIndex].config.selectedAudioTracks = []
+        appProxy.state.videos[mediaIndex].config.selectedAudioTracks = []
       }
     } else {
       if (appProxy.state.videos.length > 1) {
@@ -98,7 +98,7 @@ function AudioTracks({ videoIndex }: AudioTracksProps) {
         normalizeBatchVideosConfig()
       }
     }
-  }, [videoIndex, shouldEnableAudioTrackSelection, audioStreams])
+  }, [mediaIndex, shouldEnableAudioTrackSelection, audioStreams])
 
   const handleTrackToggle = useCallback(
     (trackIndex: number) => {
@@ -113,10 +113,10 @@ function AudioTracks({ videoIndex }: AudioTracksProps) {
         newSelected = [...currentSelected, trackIndex]
       }
 
-      if (videoIndex >= 0 && appProxy.state.videos[videoIndex]?.config) {
-        appProxy.state.videos[videoIndex].config.selectedAudioTracks =
+      if (mediaIndex >= 0 && appProxy.state.videos[mediaIndex]?.config) {
+        appProxy.state.videos[mediaIndex].config.selectedAudioTracks =
           newSelected
-        appProxy.state.videos[videoIndex].isConfigDirty = true
+        appProxy.state.videos[mediaIndex].isConfigDirty = true
       } else {
         if (appProxy.state.videos.length > 1) {
           appProxy.state.commonConfigForBatchCompression.selectedAudioTracks =
@@ -125,7 +125,7 @@ function AudioTracks({ videoIndex }: AudioTracksProps) {
         }
       }
     },
-    [videoIndex, selectedAudioTracks],
+    [mediaIndex, selectedAudioTracks],
   )
 
   const hasNoAudio = audioStreams.length === 0
@@ -134,7 +134,7 @@ function AudioTracks({ videoIndex }: AudioTracksProps) {
     videos.length === 0 ||
     isCompressing ||
     isProcessCompleted ||
-    isLoadingFiles ||
+    isLoadingMediaFiles ||
     hasNoAudio ||
     audioConfig?.volume === 0
 
