@@ -4,7 +4,7 @@ import { useSnapshot } from 'valtio'
 
 import Select from '@/components/Select'
 import { extensions } from '@/types/compression'
-import { appProxy, normalizeBatchVideosConfig } from '../../-state'
+import { appProxy, normalizeBatchVideosConfig } from '../../../../-state'
 
 const videoExtensions = Object.keys(extensions?.video)
 
@@ -15,25 +15,32 @@ type VideoExtensionProps = {
 function VideoExtension({ mediaIndex }: VideoExtensionProps) {
   const {
     state: {
-      videos,
+      media,
       isCompressing,
       isProcessCompleted,
       commonConfigForBatchCompression,
       isLoadingMediaFiles,
     },
   } = useSnapshot(appProxy)
-  const video = videos.length > 0 && mediaIndex >= 0 ? videos[mediaIndex] : null
+  const video =
+    media.length > 0 && mediaIndex >= 0 && media[mediaIndex].type === 'video'
+      ? media[mediaIndex]
+      : null
   const { config } = video ?? {}
   const { convertToExtension } = config ?? commonConfigForBatchCompression ?? {}
 
   const handleValueChange = useCallback(
     (value: keyof typeof extensions.video) => {
       if (value?.length > 0) {
-        if (mediaIndex >= 0 && appProxy.state.videos[mediaIndex]?.config) {
-          appProxy.state.videos[mediaIndex].config.convertToExtension = value
-          appProxy.state.videos[mediaIndex].isConfigDirty = true
+        if (
+          mediaIndex >= 0 &&
+          appProxy.state.media[mediaIndex].type === 'video' &&
+          appProxy.state.media[mediaIndex]?.config
+        ) {
+          appProxy.state.media[mediaIndex].config.convertToExtension = value
+          appProxy.state.media[mediaIndex].isConfigDirty = true
         } else {
-          if (appProxy.state.videos.length > 1) {
+          if (appProxy.state.media.length > 1) {
             appProxy.state.commonConfigForBatchCompression.convertToExtension =
               value
             normalizeBatchVideosConfig()
@@ -45,7 +52,7 @@ function VideoExtension({ mediaIndex }: VideoExtensionProps) {
   )
 
   const shouldDisableInput =
-    videos.length === 0 ||
+    media.length === 0 ||
     isCompressing ||
     isProcessCompleted ||
     isLoadingMediaFiles

@@ -7,7 +7,7 @@ import Button from '@/components/Button'
 import NumberInput from '@/components/NumberInput'
 import Switch from '@/components/Switch'
 import { slideDownTransition } from '@/utils/animation'
-import { appProxy } from '../../-state'
+import { appProxy } from '../../../../-state'
 
 type VideoDimensionsProps = {
   mediaIndex: number
@@ -17,9 +17,12 @@ function VideoDimensions({ mediaIndex }: VideoDimensionsProps) {
   if (mediaIndex < 0) return
 
   const {
-    state: { videos, isCompressing, isProcessCompleted, isLoadingMediaFiles },
+    state: { media, isCompressing, isProcessCompleted, isLoadingMediaFiles },
   } = useSnapshot(appProxy)
-  const video = videos.length > 0 ? videos[mediaIndex] : null
+  const video =
+    media.length > 0 && media[mediaIndex].type === 'video'
+      ? media[mediaIndex]
+      : null
   const { config, dimensions: videoOriginalDimensions } = video ?? {}
   const {
     shouldEnableCustomDimensions,
@@ -44,29 +47,34 @@ function VideoDimensions({ mediaIndex }: VideoDimensionsProps) {
   useEffect(() => {
     let unsubscribe: (() => void) | undefined
 
-    if (config) {
+    if (config && appProxy.state.media[mediaIndex].type === 'video') {
       unsubscribe = subscribeKey(
-        appProxy.state.videos[mediaIndex].config,
+        appProxy.state.media[mediaIndex].config,
         'shouldTransformVideo',
         (shouldTransformVideo) => {
-          const targetVideo = appProxy.state.videos[mediaIndex]
-          if (shouldTransformVideo) {
-            if (targetVideo.config.transformVideoConfig) {
-              const transforms =
-                targetVideo.config.transformVideoConfig?.transforms
-              if (transforms?.crop) {
+          const targetVideo =
+            appProxy.state.media[mediaIndex].type === 'video'
+              ? appProxy.state.media[mediaIndex]
+              : null
+          if (targetVideo) {
+            if (shouldTransformVideo) {
+              if (targetVideo.config.transformVideoConfig) {
+                const transforms =
+                  targetVideo.config.transformVideoConfig?.transforms
+                if (transforms?.crop) {
+                  setDimensions({
+                    width: transforms.crop.width,
+                    height: transforms.crop.height,
+                  })
+                }
+              }
+            } else {
+              if (targetVideo.dimensions) {
                 setDimensions({
-                  width: transforms.crop.width,
-                  height: transforms.crop.height,
+                  width: targetVideo.dimensions.width!,
+                  height: targetVideo.dimensions.height!,
                 })
               }
-            }
-          } else {
-            if (targetVideo.dimensions) {
-              setDimensions({
-                width: targetVideo.dimensions.width!,
-                height: targetVideo.dimensions.height!,
-              })
             }
           }
         },
@@ -81,25 +89,29 @@ function VideoDimensions({ mediaIndex }: VideoDimensionsProps) {
     let unsubscribe: (() => void) | undefined
 
     const transformVideoConfig =
-      appProxy.state.videos[mediaIndex]?.config?.transformVideoConfig
+      appProxy.state.media[mediaIndex].type === 'video'
+        ? appProxy.state.media[mediaIndex]?.config?.transformVideoConfig
+        : null
     if (isCropping && transformVideoConfig?.transforms?.crop) {
       unsubscribe = subscribe(transformVideoConfig, () => {
-        const targetVideo = appProxy.state.videos[mediaIndex]
-        const shouldTransformVideo = targetVideo.config.shouldTransformVideo
-        const transformCrop =
-          targetVideo.config.transformVideoConfig?.transforms?.crop
-        if (shouldTransformVideo && transformCrop) {
-          const _dimensions: [number, number] = [
-            transformCrop?.width ?? 0,
-            transformCrop?.height ?? 0,
-          ]
-          setDimensions({
-            width: _dimensions[0],
-            height: _dimensions[1],
-          })
-          appProxy.state.videos[mediaIndex].config.customDimensions =
-            _dimensions
-          appProxy.state.videos[mediaIndex].isConfigDirty = true
+        if (appProxy.state.media[mediaIndex].type === 'video') {
+          const targetVideo = appProxy.state.media[mediaIndex]
+          const shouldTransformVideo = targetVideo.config.shouldTransformVideo
+          const transformCrop =
+            targetVideo.config.transformVideoConfig?.transforms?.crop
+          if (shouldTransformVideo && transformCrop) {
+            const _dimensions: [number, number] = [
+              transformCrop?.width ?? 0,
+              transformCrop?.height ?? 0,
+            ]
+            setDimensions({
+              width: _dimensions[0],
+              height: _dimensions[1],
+            })
+            appProxy.state.media[mediaIndex].config.customDimensions =
+              _dimensions
+            appProxy.state.media[mediaIndex].isConfigDirty = true
+          }
         }
       })
     }
@@ -110,10 +122,15 @@ function VideoDimensions({ mediaIndex }: VideoDimensionsProps) {
 
   const handleChange = useCallback(
     (value: number, type: 'width' | 'height') => {
-      if (!value || value <= 0 || mediaIndex < 0) {
+      if (
+        !value ||
+        value <= 0 ||
+        mediaIndex < 0 ||
+        appProxy.state.media[mediaIndex].type !== 'video'
+      ) {
         return
       }
-      const targetVideo = appProxy.state.videos[mediaIndex]
+      const targetVideo = appProxy.state.media[mediaIndex]
       const targetVideoDimensions = targetVideo.config?.shouldTransformVideo
         ? {
             width:
@@ -142,14 +159,14 @@ function VideoDimensions({ mediaIndex }: VideoDimensionsProps) {
         width: _dimensions[0],
         height: _dimensions[1],
       }))
-      appProxy.state.videos[mediaIndex].config.customDimensions = _dimensions
-      appProxy.state.videos[mediaIndex].isConfigDirty = true
+      appProxy.state.media[mediaIndex].config.customDimensions = _dimensions
+      appProxy.state.media[mediaIndex].isConfigDirty = true
     },
     [mediaIndex],
   )
 
   const shouldDisableInput =
-    videos.length === 0 ||
+    media.length === 0 ||
     isCompressing ||
     isProcessCompleted ||
     isLoadingMediaFiles
@@ -159,12 +176,15 @@ function VideoDimensions({ mediaIndex }: VideoDimensionsProps) {
       <Switch
         isSelected={shouldEnableCustomDimensions}
         onValueChange={() => {
-          if (appProxy.state.videos[mediaIndex]?.config) {
-            appProxy.state.videos[
+          if (
+            appProxy.state.media[mediaIndex].type === 'video' &&
+            appProxy.state.media[mediaIndex]?.config
+          ) {
+            appProxy.state.media[
               mediaIndex
             ].config.shouldEnableCustomDimensions =
               !shouldEnableCustomDimensions
-            appProxy.state.videos[mediaIndex].isConfigDirty = true
+            appProxy.state.media[mediaIndex].isConfigDirty = true
           }
         }}
         isDisabled={shouldDisableInput}
@@ -194,7 +214,7 @@ function VideoDimensions({ mediaIndex }: VideoDimensionsProps) {
                 labelPlacement="outside"
                 classNames={{ label: '!text-gray-600 dark:!text-gray-400' }}
                 isDisabled={
-                  videos.length === 0 ||
+                  media.length === 0 ||
                   isCompressing ||
                   isProcessCompleted ||
                   isLoadingMediaFiles

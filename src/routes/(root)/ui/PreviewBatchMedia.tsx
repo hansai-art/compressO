@@ -1,3 +1,4 @@
+import { Tab } from '@heroui/react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { useCallback, useMemo } from 'react'
 import { useSnapshot } from 'valtio'
@@ -9,6 +10,7 @@ import Icon from '@/components/Icon'
 import Image from '@/components/Image'
 import Progress, { CircularProgress } from '@/components/Progress'
 import ScrollShadow from '@/components/ScrollShadow'
+import Tabs from '@/components/Tabs'
 import { toast } from '@/components/Toast'
 import Tooltip from '@/components/Tooltip'
 import { copyFileToClipboard, showItemInFileManager } from '@/tauri/commands/fs'
@@ -21,6 +23,7 @@ import { appProxy } from '../-state'
 function PreviewBatchMedia() {
   const {
     state: {
+      activeTab,
       media,
       isCompressing,
       isProcessCompleted,
@@ -32,18 +35,26 @@ function PreviewBatchMedia() {
   } = useSnapshot(appProxy)
 
   const compressionStats = useMemo(() => {
-    const totalMedia = media.length
-    const totalVideos = media.reduce(
-      (a, m) => a + (m.type === 'video' ? 1 : 0),
-      0,
-    )
-    const totalImages = media.reduce(
-      (a, m) => a + (m.type === 'image' ? 1 : 0),
-      0,
-    )
-    const totalSize = media.reduce((sum, m) => sum + (m.sizeInBytes ?? 0), 0)
+    const filteredMediaForStats =
+      activeTab === 'videos'
+        ? media.filter((m) => m.type === 'video')
+        : activeTab === 'images'
+          ? media.filter((m) => m.type === 'image')
+          : media
 
-    const completedMedia = media.filter(
+    const totalMedia = filteredMediaForStats.length
+    const totalVideos = filteredMediaForStats.filter(
+      (m) => m.type === 'video',
+    ).length
+    const totalImages = filteredMediaForStats.filter(
+      (m) => m.type === 'image',
+    ).length
+    const totalSize = filteredMediaForStats.reduce(
+      (sum, m) => sum + (m.sizeInBytes ?? 0),
+      0,
+    )
+
+    const completedMedia = filteredMediaForStats.filter(
       (m) => m.isProcessCompleted && m.compressedFile?.sizeInBytes,
     )
     const compressedMediaCount = completedMedia.length
@@ -54,7 +65,7 @@ function PreviewBatchMedia() {
       ? totalVideos - completedMedia.filter((m) => m.type === 'video').length
       : 0
     const cancelledImagesCount = isBatchCompressionCancelled
-      ? totalVideos - completedMedia.filter((m) => m.type === 'image').length
+      ? totalImages - completedMedia.filter((m) => m.type === 'image').length
       : 0
 
     const originalSizeOfCompressedOnly = completedMedia.reduce((sum, m) => {
@@ -79,8 +90,9 @@ function PreviewBatchMedia() {
         ? (sizeSaved / originalSizeOfCompressedOnly) * 100
         : 0
 
-    const totalProgress = media.reduce(
-      (a, c) => a + (c?.compressionProgress ?? 0) / media.length,
+    const totalProgress = filteredMediaForStats.reduce(
+      (a, c) =>
+        a + (c?.compressionProgress ?? 0) / filteredMediaForStats.length,
       0,
     )
 
@@ -118,7 +130,7 @@ function PreviewBatchMedia() {
       isPositiveCompression:
         (compressedSize ?? Number.MAX_SAFE_INTEGER) < (totalSize ?? 0),
     }
-  }, [media, isBatchCompressionCancelled])
+  }, [media, isBatchCompressionCancelled, activeTab])
 
   const handleRemoveMedia = useCallback(
     (index: number) => {
@@ -141,8 +153,123 @@ function PreviewBatchMedia() {
     } catch {}
   }, [])
 
+  const filteredMedia = useMemo(() => {
+    if (activeTab === 'videos') {
+      return media.filter((m) => m.type === 'video')
+    } else if (activeTab === 'images') {
+      return media.filter((m) => m.type === 'image')
+    }
+    return media
+  }, [media, activeTab])
+
+  const getDisplayStats = useMemo(() => {
+    const totalMedia = filteredMedia.length
+
+    const completedMedia = filteredMedia.filter(
+      (m) => m.isProcessCompleted && m.compressedFile?.sizeInBytes,
+    )
+    const compressedMediaCount = completedMedia.length
+
+    const displayTotalSize = filteredMedia.reduce(
+      (sum: number, m) => sum + (m.sizeInBytes ?? 0),
+      0,
+    )
+
+    const outputSize = completedMedia.reduce(
+      (sum: number, m) => sum + (m.compressedFile?.sizeInBytes ?? 0),
+      0,
+    )
+
+    const originalSizeOfCompressedOnly = completedMedia.reduce(
+      (sum: number, m) => {
+        const cs = m.compressedFile?.sizeInBytes
+        const os = m.sizeInBytes ?? 0
+        return sum + (cs != null && cs < os ? os : 0)
+      },
+      0,
+    )
+
+    const sizeSaved = originalSizeOfCompressedOnly - outputSize
+    const percentageSaved =
+      originalSizeOfCompressedOnly > 0
+        ? (sizeSaved / originalSizeOfCompressedOnly) * 100
+        : 0
+
+    const totalProgress = filteredMedia.reduce(
+      (sum: number, m) =>
+        sum + (m?.compressionProgress ?? 0) / filteredMedia.length,
+      0,
+    )
+
+    const isPositiveCompression =
+      completedMedia.length > 0 &&
+      (outputSize ?? Number.MAX_SAFE_INTEGER) < originalSizeOfCompressedOnly
+
+    if (activeTab === 'videos') {
+      return {
+        label: 'Videos',
+        count: compressionStats.displayTotalVideos,
+        cancelledCount: compressionStats.cancelledVideosCount,
+        totalMedia,
+        compressedMediaCount,
+        displayTotalSize,
+        outputSize,
+        sizeSaved,
+        percentageSaved,
+        totalProgress,
+        isPositiveCompression,
+      }
+    } else if (activeTab === 'images') {
+      return {
+        label: 'Images',
+        count: compressionStats.displayTotalImages,
+        cancelledCount: compressionStats.cancelledImagesCount,
+        totalMedia,
+        compressedMediaCount,
+        displayTotalSize,
+        outputSize,
+        sizeSaved,
+        percentageSaved,
+        totalProgress,
+        isPositiveCompression,
+      }
+    }
+    return {
+      label: 'Media',
+      count: compressionStats.displayTotalMedia,
+      cancelledCount: compressionStats.cancelledMediaCount,
+      totalMedia,
+      compressedMediaCount,
+      displayTotalSize,
+      outputSize,
+      sizeSaved,
+      percentageSaved,
+      totalProgress,
+      isPositiveCompression,
+    }
+  }, [activeTab, compressionStats, filteredMedia])
+
   return (
     <>
+      <div className="flex justify-center mt-[-10px]">
+        <Tabs
+          aria-label="Media Filter"
+          size="sm"
+          selectedKey={activeTab}
+          onSelectionChange={(t) => {
+            appProxy.state.activeTab = t as 'all' | 'videos' | 'images'
+          }}
+          className="mb-4"
+          classNames={{
+            tabContent: 'text-[11px]',
+            tab: 'h-6',
+          }}
+        >
+          <Tab key="all" value="all" title="All" />
+          <Tab key="videos" value="videos" title="Videos" />
+          <Tab key="images" value="images" title="Images" />
+        </Tabs>
+      </div>
       <ScrollShadow
         className="h-[75vh] hlg:h-[80vh] overflow-hidden overflow-y-auto"
         hideScrollBar
@@ -155,7 +282,11 @@ function PreviewBatchMedia() {
             exit="hidden"
             className="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 3xl:grid-cols-4 gap-4"
           >
-            {media.map((mediaFile, index) => {
+            {filteredMedia.map((mediaFile, filteredIndex) => {
+              const originalIndex = media.findIndex(
+                (m) => m.id === mediaFile.id,
+              )
+
               const compressedSizeDiff =
                 typeof mediaFile?.compressedFile?.sizeInBytes === 'number' &&
                 typeof mediaFile?.sizeInBytes === 'number' &&
@@ -180,7 +311,8 @@ function PreviewBatchMedia() {
                   variants={zoomInStaggerAnimation.item}
                   className={cn([
                     'relative rounded-xl border-2 overflow-hidden',
-                    currentMediaIndex > index || mediaFile.isProcessCompleted
+                    currentMediaIndex > originalIndex ||
+                    mediaFile.isProcessCompleted
                       ? 'border-green-400'
                       : 'border-zinc-200 dark:border-zinc-900',
                   ])}
@@ -278,7 +410,7 @@ function PreviewBatchMedia() {
                           <Button
                             size="sm"
                             isIconOnly
-                            onPress={() => handleRemoveMedia(index)}
+                            onPress={() => handleRemoveMedia(originalIndex)}
                             className="absolute top-2 right-2 z-10 p-2 rounded-full bg-zinc-800/80 text-white hover:bg-zinc-700 transition-colors"
                           >
                             <Icon name="cross" size={18} />
@@ -288,7 +420,7 @@ function PreviewBatchMedia() {
                             isIconOnly
                             onPress={() => {
                               appProxy.state.selectedMediaIndexForCustomization =
-                                index
+                                originalIndex
                             }}
                             className={cn(
                               'absolute bottom-2 left-2 z-10 rounded-full text-white hover:bg-zinc-700 transition-colors',
@@ -301,7 +433,7 @@ function PreviewBatchMedia() {
                           </Button>
                         </>
                       ) : null}
-                      {isCompressing && currentMediaIndex === index ? (
+                      {isCompressing && currentMediaIndex === originalIndex ? (
                         <>
                           <CircularProgress
                             size="lg"
@@ -320,7 +452,7 @@ function PreviewBatchMedia() {
                         </>
                       ) : null}
                     </div>
-                    <section className="px-3 py-2">
+                    <section className="px-3 py-2 mt-1">
                       <p className={cn(['font-medium text-sm truncate block'])}>
                         {mediaFile.fileName ?? ''}
                       </p>
@@ -440,7 +572,9 @@ function PreviewBatchMedia() {
             size="sm"
             isIndeterminate={totalSelectedMediaCount == null}
             className="w-[100px] mb-2 absolute top-2 right-1/2 translate-x-1/2"
-            value={(media.length * 100) / (totalSelectedMediaCount || 1)}
+            value={
+              (filteredMedia.length * 100) / (totalSelectedMediaCount || 1)
+            }
           />
         ) : null}
         <div className="max-w-7xl mx-auto">
@@ -449,20 +583,20 @@ function PreviewBatchMedia() {
               <div className="flex items-center gap-6">
                 <div>
                   <p className=" text-gray-600 dark:text-gray-400">
-                    Compressed
+                    Compressed {getDisplayStats.label}
                   </p>
                   <p className="font-black text-lg">
-                    {compressionStats?.compressedMediaCount ?? 0} /{' '}
-                    {compressionStats?.totalMedia}
+                    {getDisplayStats.compressedMediaCount ?? 0} /{' '}
+                    {getDisplayStats.totalMedia}
                   </p>
                 </div>
                 <Divider orientation="vertical" className="h-8" />
                 <div>
                   <p className=" text-gray-600 dark:text-gray-400">Saved</p>
                   <p className="font-black text-lg text-green-600 dark:text-green-400">
-                    {formatBytes(compressionStats.sizeSaved ?? 0) || '...'}
-                    {compressionStats.percentageSaved
-                      ? `(${(compressionStats.percentageSaved ?? 0).toFixed(0)}%)`
+                    {formatBytes(getDisplayStats.sizeSaved ?? 0) || '...'}
+                    {getDisplayStats.percentageSaved
+                      ? `(${(getDisplayStats.percentageSaved ?? 0).toFixed(0)}%)`
                       : null}
                   </p>
                 </div>
@@ -472,7 +606,7 @@ function PreviewBatchMedia() {
                 <CircularProgress
                   showValueLabel
                   size="lg"
-                  value={compressionStats.totalProgress ?? 0}
+                  value={getDisplayStats.totalProgress ?? 0}
                   strokeWidth={4}
                 />
               </div>
@@ -480,51 +614,19 @@ function PreviewBatchMedia() {
           ) : (
             <div className="flex items-center gap-6">
               <div>
-                <p className=" text-gray-600 dark:text-gray-400">Media</p>
-                <p
-                  className={cn(
-                    'font-black text-lg',
-                    isLoadingMediaFiles ? 'animate-pulse' : '',
-                  )}
-                >
-                  {compressionStats.displayTotalMedia}
-                  {compressionStats.cancelledMediaCount > 0 ? (
-                    <span className="text-xs  text-warning-400 ml-2">
-                      ({compressionStats.cancelledMediaCount} cancelled)
-                    </span>
-                  ) : null}
+                <p className=" text-gray-600 dark:text-gray-400">
+                  {getDisplayStats.label}
                 </p>
-              </div>
-              <Divider orientation="vertical" className="h-8" />
-              <div>
-                <p className=" text-gray-600 dark:text-gray-400">Videos</p>
                 <p
                   className={cn(
                     'font-black text-lg',
                     isLoadingMediaFiles ? 'animate-pulse' : '',
                   )}
                 >
-                  {compressionStats.displayTotalVideos}
-                  {compressionStats.cancelledVideosCount > 0 ? (
+                  {getDisplayStats.count}
+                  {getDisplayStats.cancelledCount > 0 ? (
                     <span className="text-xs  text-warning-400 ml-2">
-                      ({compressionStats.cancelledVideosCount} cancelled)
-                    </span>
-                  ) : null}
-                </p>
-              </div>
-              <Divider orientation="vertical" className="h-8" />
-              <div>
-                <p className=" text-gray-600 dark:text-gray-400">Images</p>
-                <p
-                  className={cn(
-                    'font-black text-lg',
-                    isLoadingMediaFiles ? 'animate-pulse' : '',
-                  )}
-                >
-                  {compressionStats.displayTotalImages}
-                  {compressionStats.cancelledImagesCount > 0 ? (
-                    <span className="text-xs  text-warning-400 ml-2">
-                      ({compressionStats.cancelledImagesCount} cancelled)
+                      ({getDisplayStats.cancelledCount} cancelled)
                     </span>
                   ) : null}
                 </p>
@@ -538,7 +640,7 @@ function PreviewBatchMedia() {
                     isLoadingMediaFiles ? 'animate-pulse' : '',
                   )}
                 >
-                  {formatBytes(compressionStats.displayTotalSize)}
+                  {formatBytes(getDisplayStats.displayTotalSize)}
                 </p>
               </div>
               {isProcessCompleted ? (
@@ -551,12 +653,12 @@ function PreviewBatchMedia() {
                     <p
                       className={cn(
                         'font-black text-lg',
-                        compressionStats.isPositiveCompression
+                        getDisplayStats.isPositiveCompression
                           ? 'text-green-600 dark:text-green-400'
                           : '',
                       )}
                     >
-                      {formatBytes(compressionStats.outputSize ?? 0) || '-'}
+                      {formatBytes(getDisplayStats.outputSize ?? 0) || '-'}
                     </p>
                   </div>
                   <Divider orientation="vertical" className="h-8" />
@@ -565,13 +667,13 @@ function PreviewBatchMedia() {
                     <p
                       className={cn(
                         'font-black text-lg',
-                        compressionStats.isPositiveCompression
+                        getDisplayStats.isPositiveCompression
                           ? 'text-green-600 dark:text-green-400'
                           : '',
                       )}
                     >
-                      {formatBytes(compressionStats.sizeSaved ?? 0) || '-'} (
-                      {(compressionStats.percentageSaved ?? 0).toFixed(2)}%)
+                      {formatBytes(getDisplayStats.sizeSaved ?? 0) || '-'} (
+                      {(getDisplayStats.percentageSaved ?? 0).toFixed(2)}%)
                     </p>
                   </div>
                 </>

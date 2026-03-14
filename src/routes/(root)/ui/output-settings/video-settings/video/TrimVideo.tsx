@@ -3,7 +3,7 @@ import { useSnapshot } from 'valtio'
 import Button from '@/components/Button'
 import Icon from '@/components/Icon'
 import Switch from '@/components/Switch'
-import { appProxy } from '../../-state'
+import { appProxy } from '../../../../-state'
 
 type TrimVideoProps = {
   mediaIndex: number
@@ -13,14 +13,17 @@ function TrimVideo({ mediaIndex }: TrimVideoProps) {
   if (mediaIndex < 0) return
 
   const {
-    state: { videos, isCompressing, isProcessCompleted, isLoadingMediaFiles },
+    state: { media, isCompressing, isProcessCompleted, isLoadingMediaFiles },
   } = useSnapshot(appProxy)
-  const video = videos.length > 0 ? videos[mediaIndex] : null
+  const video =
+    media.length > 0 && media[mediaIndex].type === 'video'
+      ? media[mediaIndex]
+      : null
   const { config } = video ?? {}
   const { shouldTrimVideo, isVideoTrimEditMode } = config ?? {}
 
   const shouldDisableInput =
-    videos.length === 0 ||
+    media.length === 0 ||
     isCompressing ||
     isProcessCompleted ||
     isLoadingMediaFiles
@@ -30,8 +33,11 @@ function TrimVideo({ mediaIndex }: TrimVideoProps) {
       <Switch
         isSelected={shouldTrimVideo}
         onValueChange={() => {
-          if (appProxy.state.videos[mediaIndex]?.config) {
-            const currentConfig = appProxy.state.videos[mediaIndex].config
+          if (
+            appProxy.state.media[mediaIndex].type === 'video' &&
+            appProxy.state.media[mediaIndex]?.config
+          ) {
+            const currentConfig = appProxy.state.media[mediaIndex].config
             const newState = !shouldTrimVideo
 
             currentConfig.shouldTrimVideo = newState
@@ -45,7 +51,7 @@ function TrimVideo({ mediaIndex }: TrimVideoProps) {
             }
 
             currentConfig.isVideoTransformEditMode = false
-            appProxy.state.videos[mediaIndex].isConfigDirty = true
+            appProxy.state.media[mediaIndex].isConfigDirty = true
           }
         }}
         isDisabled={shouldDisableInput}
@@ -60,8 +66,10 @@ function TrimVideo({ mediaIndex }: TrimVideoProps) {
             size="sm"
             color="success"
             onPress={() => {
-              appProxy.state.videos[mediaIndex].config.isVideoTrimEditMode =
-                false
+              if (appProxy.state.media[mediaIndex].type === 'video') {
+                appProxy.state.media[mediaIndex].config.isVideoTrimEditMode =
+                  false
+              }
             }}
             className="h-[unset] py-1 ml-auto"
             isDisabled={shouldDisableInput}
@@ -72,11 +80,13 @@ function TrimVideo({ mediaIndex }: TrimVideoProps) {
           <Button
             size="sm"
             onPress={() => {
-              appProxy.state.videos[mediaIndex].config.isVideoTrimEditMode =
-                true
-              appProxy.state.videos[
-                mediaIndex
-              ].config.isVideoTransformEditMode = false
+              if (appProxy.state.media[mediaIndex].type === 'video') {
+                appProxy.state.media[mediaIndex].config.isVideoTrimEditMode =
+                  true
+                appProxy.state.media[
+                  mediaIndex
+                ].config.isVideoTransformEditMode = false
+              }
             }}
             className="h-[unset] py-1 ml-auto"
             isDisabled={shouldDisableInput}

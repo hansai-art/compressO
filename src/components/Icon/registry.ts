@@ -26,7 +26,6 @@ import Pencil from '@/assets/icons/pencil.svg?react'
 import Play from '@/assets/icons/play.svg?react'
 import Question from '@/assets/icons/question.svg?react'
 import Redo from '@/assets/icons/redo.svg?react'
-import ResetZoom from '@/assets/icons/reset-zoom.svg?react'
 import RotateLeft from '@/assets/icons/rotate-left.svg?react'
 import Save from '@/assets/icons/save.svg?react'
 import Setting from '@/assets/icons/setting.svg?react'
@@ -36,6 +35,7 @@ import Tick from '@/assets/icons/tick.svg?react'
 import Trash from '@/assets/icons/trash.svg?react'
 import Video from '@/assets/icons/video.svg?react'
 import Warning from '@/assets/icons/warning.svg?react'
+import Zoom from '@/assets/icons/zoom.svg?react'
 
 type SVGAsComponent = React.FunctionComponent<React.SVGProps<SVGSVGElement>>
 
@@ -72,7 +72,7 @@ const registry = asRegistry({
   flipVertical: FlipVertical,
   flipHorizontal: FlipHorizontal,
   expand: Expand,
-  resetZoom: ResetZoom,
+  zoom: Zoom,
   pencil: Pencil,
   back: Back,
   pause: Pause,

@@ -7,7 +7,7 @@ import Select from '@/components/Select'
 import Switch from '@/components/Switch'
 import { extensions } from '@/types/compression'
 import { slideDownTransition } from '@/utils/animation'
-import { appProxy, normalizeBatchVideosConfig } from '../../-state'
+import { appProxy, normalizeBatchVideosConfig } from '../../../../-state'
 
 type VideoExtension = keyof typeof extensions.video
 
@@ -58,14 +58,17 @@ type VideoCodecProps = {
 function VideoCodec({ mediaIndex }: VideoCodecProps) {
   const {
     state: {
-      videos,
+      media,
       isCompressing,
       isProcessCompleted,
       commonConfigForBatchCompression,
       isLoadingMediaFiles,
     },
   } = useSnapshot(appProxy)
-  const video = videos.length > 0 && mediaIndex >= 0 ? videos[mediaIndex] : null
+  const video =
+    media.length > 0 && mediaIndex >= 0 && media[mediaIndex].type === 'video'
+      ? media[mediaIndex]
+      : null
   const { config } = video ?? {}
   const { shouldEnableCustomVideoCodec, customVideoCodec, convertToExtension } =
     config ?? commonConfigForBatchCompression ?? {}
@@ -83,10 +86,15 @@ function VideoCodec({ mediaIndex }: VideoCodecProps) {
         !currentCodec.compatible_containers.includes(currentExtension)
       ) {
         // Codec is incompatible with current extension, reset it
-        if (mediaIndex >= 0 && appProxy.state.videos[mediaIndex]?.config) {
-          appProxy.state.videos[mediaIndex].config.customVideoCodec = undefined
+        if (
+          mediaIndex >= 0 &&
+          appProxy.state.media[mediaIndex].type === 'video' &&
+          appProxy.state.media[mediaIndex]?.config
+        ) {
+          appProxy.state.media[mediaIndex].config.customVideoCodec = undefined
         } else {
-          if (appProxy.state.videos.length > 1) {
+          // TODO: adjust this for all media types
+          if (appProxy.state.media.length > 1) {
             appProxy.state.commonConfigForBatchCompression.customVideoCodec =
               undefined
           }
@@ -101,12 +109,17 @@ function VideoCodec({ mediaIndex }: VideoCodecProps) {
   ])
 
   const handleSwitchToggle = useCallback(() => {
-    if (mediaIndex >= 0 && appProxy.state.videos[mediaIndex]?.config) {
-      appProxy.state.videos[mediaIndex].config.shouldEnableCustomVideoCodec =
+    if (
+      mediaIndex >= 0 &&
+      appProxy.state.media[mediaIndex].type === 'video' &&
+      appProxy.state.media[mediaIndex]?.config
+    ) {
+      appProxy.state.media[mediaIndex].config.shouldEnableCustomVideoCodec =
         !shouldEnableCustomVideoCodec
-      appProxy.state.videos[mediaIndex].isConfigDirty = true
+      appProxy.state.media[mediaIndex].isConfigDirty = true
     } else {
-      if (appProxy.state.videos.length > 1) {
+      // TODO: adjust this for all media types
+      if (appProxy.state.media.length > 1) {
         appProxy.state.commonConfigForBatchCompression.shouldEnableCustomVideoCodec =
           !shouldEnableCustomVideoCodec
         normalizeBatchVideosConfig()
@@ -116,11 +129,16 @@ function VideoCodec({ mediaIndex }: VideoCodecProps) {
 
   const handleValueChange = useCallback(
     (value: string) => {
-      if (mediaIndex >= 0 && appProxy.state.videos[mediaIndex]?.config) {
-        appProxy.state.videos[mediaIndex].config.customVideoCodec = value
-        appProxy.state.videos[mediaIndex].isConfigDirty = true
+      if (
+        mediaIndex >= 0 &&
+        appProxy.state.media[mediaIndex].type === 'video' &&
+        appProxy.state.media[mediaIndex]?.config
+      ) {
+        appProxy.state.media[mediaIndex].config.customVideoCodec = value
+        appProxy.state.media[mediaIndex].isConfigDirty = true
       } else {
-        if (appProxy.state.videos.length > 1) {
+        // TODO: adjust this for all media types
+        if (appProxy.state.media.length > 1) {
           appProxy.state.commonConfigForBatchCompression.customVideoCodec =
             value
           normalizeBatchVideosConfig()
@@ -131,7 +149,7 @@ function VideoCodec({ mediaIndex }: VideoCodecProps) {
   )
 
   const shouldDisableInput =
-    videos.length === 0 ||
+    media.length === 0 ||
     isCompressing ||
     isProcessCompleted ||
     isLoadingMediaFiles

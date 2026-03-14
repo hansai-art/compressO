@@ -1,0 +1,230 @@
+import { core } from '@tauri-apps/api'
+import { TimelineAction } from '@xzdarcy/timeline-engine'
+import { motion } from 'framer-motion'
+import { useCallback } from 'react'
+import { toast } from 'sonner'
+import { snapshot, useSnapshot } from 'valtio'
+
+import Button from '@/components/Button'
+import Icon from '@/components/Icon'
+import { compressVideos } from '@/tauri/commands/ffmpeg'
+import { VideoMetadataConfig } from '@/types/app'
+import {
+  CompressionResult,
+  TrimSegment,
+  VideoTransformsHistory,
+} from '@/types/compression'
+import { formatBytes } from '@/utils/fs'
+import { appProxy } from '../-state'
+import CancelCompression from './CancelCompression'
+import SaveMedia from './SaveMedia'
+
+function StartCompression() {
+  const {
+    state: {
+      selectedMediaIndexForCustomization,
+      isCompressing,
+      isProcessCompleted,
+      isLoadingMediaFiles,
+    },
+  } = useSnapshot(appProxy)
+
+  const handleCompression = useCallback(async () => {
+    const appSnapshot = snapshot(appProxy)
+    if (appSnapshot.state.isCompressing) return
+
+    // Resets
+    appProxy.clearSnapshots()
+    appProxy.state.isBatchCompressionCancelled = false
+    appProxy.state.selectedMediaIndexForCustomization = -1
+    appProxy.state.showMediaInfo = false
+    for (const index in appProxy.state.media) {
+      if (appProxy.state.media[index].type === 'video') {
+        appProxy.state.media[index].config.isVideoTransformEditMode = false
+        appProxy.state.media[index].config.isVideoTrimEditMode = false
+      }
+    }
+
+    appProxy.takeSnapshot('beforeCompressionStarted')
+
+    try {
+      appProxy.state.isCompressing = true
+
+      for (const index in appProxy.state.media) {
+        if (appProxy.state.media[index].type === 'video') {
+          if (
+            appProxy.state.media[index]?.config?.shouldTransformVideo &&
+            appProxy.state.media[index].config?.transformVideoConfig?.previewUrl
+          ) {
+            appProxy.state.media[index].thumbnailPath =
+              appProxy.state.media[
+                index
+              ]?.config?.transformVideoConfig?.previewUrl
+          }
+          appProxy.state.media[index].config.isVideoTransformEditMode = false
+        }
+      }
+
+      const batchId = `${+new Date()}`
+      appProxy.state.batchId = batchId
+
+      const { results } = await compressVideos(
+        batchId,
+        appSnapshot.state.media
+          .filter((m) => m.type === 'video') // TODO: Adjust when for images
+          .map((v) => ({
+            videoId: v.id!,
+            videoPath: v.pathRaw!,
+            convertToExtension: v.config?.convertToExtension ?? 'mp4',
+            presetName: !v.config?.shouldDisableCompression
+              ? v.config.presetName
+              : null,
+            audioConfig: {
+              volume: v.config?.audioConfig?.volume ?? 100,
+              audioChannelConfig:
+                (v.config?.audioConfig?.volume ?? 100) !== 0
+                  ? (v.config?.audioConfig?.audioChannelConfig ?? null)
+                  : null,
+              bitrate:
+                (v.config?.audioConfig?.volume ?? 100) !== 0
+                  ? (v.config?.audioConfig?.bitrate ?? null)
+                  : null,
+              audioCodec: v.config?.shouldEnableCustomAudioCodec
+                ? (v.config?.customAudioCodec ?? null)
+                : null,
+              selectedAudioTracks:
+                v.config?.shouldEnableAudioTrackSelection &&
+                (v.config?.audioConfig?.volume ?? 100) !== 0
+                  ? (v.config?.selectedAudioTracks ?? null)
+                  : null,
+            },
+            quality: v.config?.shouldEnableQuality
+              ? (v.config?.quality as number)
+              : 101,
+            dimensions:
+              v.config?.shouldEnableCustomDimensions &&
+              v.config.customDimensions
+                ? ([
+                    Math.round(v.config.customDimensions[0]),
+                    Math.round(v.config.customDimensions[1]),
+                  ] as [number, number])
+                : null,
+            fps: v.config?.shouldEnableCustomFPS
+              ? v.config.customFPS?.toString?.()
+              : null,
+            videoCodec: v.config?.shouldEnableCustomVideoCodec
+              ? v.config.customVideoCodec
+              : null,
+            transformsHistory: v.config?.shouldTransformVideo
+              ? ((v.config.transformVideoConfig?.transformsHistory ??
+                  []) as VideoTransformsHistory[])
+              : null,
+            metadataConfig:
+              !v.config?.shouldPreserveMetadata && v.config?.metadataConfig
+                ? Object.entries(
+                    v.config?.metadataConfig as VideoMetadataConfig,
+                  ).reduce(
+                    (a, [key, value]: [string, any]) => {
+                      a[key] = value?.length > 0 ? value : null
+                      return a
+                    },
+                    {} as Record<string, string>,
+                  )
+                : null,
+            customThumbnailPath:
+              v.config?.shouldEnableCustomThumbnail &&
+              v.config?.customThumbnailPath?.length
+                ? v.config.customThumbnailPath
+                : null,
+            trimSegments:
+              v.config?.shouldTrimVideo && Array.isArray(v.config?.trimConfig)
+                ? (v.config.trimConfig
+                    .filter((a) => a.end >= a.start)
+                    .map(
+                      (action: TimelineAction): TrimSegment => ({
+                        start: action.start,
+                        end: action.end,
+                      }),
+                    ) as TrimSegment[])
+                : null,
+            subtitlesConfig:
+              v.config?.convertToExtension !== 'webm' &&
+              ((v.config?.subtitlesConfig?.shouldEnableSubtitles &&
+                v.config?.subtitlesConfig?.subtitles?.length > 0) ||
+                v.config?.subtitlesConfig?.preserveExistingSubtitles === true)
+                ? {
+                    subtitles:
+                      v.config.subtitlesConfig?.subtitles?.map((s) => ({
+                        subtitlePath: s.subtitlePath ?? null,
+                        language: s.language || 'eng',
+                        fileName: s.fileName ?? null,
+                      })) ?? [],
+                    shouldEnableSubtitles:
+                      v.config.subtitlesConfig.shouldEnableSubtitles ?? false,
+                    preserveExistingSubtitles:
+                      v.config.subtitlesConfig.preserveExistingSubtitles,
+                  }
+                : null,
+          })),
+      )
+      if (Object.keys(results).length === 0) {
+        throw new Error()
+      }
+
+      appProxy.state.isCompressing = false
+      appProxy.state.isProcessCompleted = true
+
+      const mediaSnapShot = snapshot(appProxy.state.media)
+      for (const index in mediaSnapShot) {
+        if (appProxy.state.media[index].type === 'video') {
+          const video = mediaSnapShot[index]
+          const videoResult: CompressionResult | null =
+            results[video.id!] || null
+
+          appProxy.state.media[index].isProcessCompleted = true
+          appProxy.state.media[index].compressedFile = {
+            isSuccessful: !(videoResult == null),
+            fileName: videoResult?.fileMetadata?.fileName ?? video.fileName,
+            fileNameToDisplay: `${video?.fileName?.slice(
+              0,
+              -((video?.extension?.length ?? 0) + 1),
+            )}.${videoResult?.fileMetadata?.extension}`,
+            pathRaw: videoResult?.fileMetadata?.path,
+            path: core.convertFileSrc(videoResult?.fileMetadata?.path ?? ''),
+            mimeType: videoResult?.fileMetadata?.mimeType,
+            sizeInBytes: videoResult?.fileMetadata?.size,
+            size: formatBytes(videoResult?.fileMetadata?.size ?? 0),
+            extension: videoResult?.fileMetadata?.extension,
+          }
+        }
+      }
+    } catch (error) {
+      if (error !== 'CANCELLED') {
+        toast.error('Something went wrong during compression.')
+        appProxy.timeTravel('beforeCompressionStarted')
+      }
+    }
+  }, [])
+
+  return selectedMediaIndexForCustomization < 0 ? (
+    <div className="mt-4">
+      {isCompressing ? (
+        <CancelCompression />
+      ) : isProcessCompleted ? (
+        <SaveMedia />
+      ) : (
+        <Button
+          as={motion.button}
+          onPress={handleCompression}
+          fullWidth
+          className="w-full text-primary bg-primary/20"
+          isDisabled={isLoadingMediaFiles}
+        >
+          Process <Icon name="logo" size={25} />
+        </Button>
+      )}
+    </div>
+  ) : null
+}
+
+export default StartCompression

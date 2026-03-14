@@ -16,6 +16,7 @@ import ThemeSwitcher from '@/components/ThemeSwitcher'
 import Title from '@/components/Title'
 import { toast } from '@/components/Toast'
 import Tooltip from '@/components/Tooltip'
+import { usePrimaryColor } from '@/hooks/usePrimaryColor'
 import { downloadAndInstallUpdateApp, updateStore } from '@/stores/updateStore'
 import { deleteCache as invokeDeleteCache } from '@/tauri/commands/fs'
 import About from './About'
@@ -102,6 +103,7 @@ function Setting() {
 function AppSetting() {
   const [confirmClearCache, setConfirmClearCache] = React.useState(false)
   const [isCacheDeleting, setIsCacheDeleting] = React.useState(false)
+  const { color, setColor } = usePrimaryColor()
 
   const deleteCache = async () => {
     setIsCacheDeleting(true)
@@ -128,7 +130,7 @@ function AppSetting() {
         <Divider className="my-2 dark:bg-zinc-700" />
         <div className="flex justify-between items-center">
           <p className="text-gray-600 dark:text-gray-400 text-sm">Color</p>
-          <ColorPicker />
+          <ColorPicker color={color} onChange={setColor} />
         </div>
         <Divider className="my-2 dark:bg-zinc-700" />
         <div className="flex justify-between items-center">

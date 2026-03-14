@@ -1,4 +1,5 @@
 import { core } from '@tauri-apps/api'
+import { motion } from 'framer-motion'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { PhotoView } from 'react-photo-view'
 import { OnProgressProps } from 'react-player/base'
@@ -284,127 +285,139 @@ function MediaThumbnail({ mediaIndex }: MediaThumbnailProps) {
     <div className="relative w-full flex items-center justify-center">
       <div className="relative w-full px-4">
         {mediaType === 'video' && previewMode === 'video' && mediaPath ? (
-          <VideoPlayer
-            ref={playerRef}
-            url={
-              isProcessCompleted && compressedFile
-                ? compressedFile?.path!
-                : mediaPath!
-            }
-            enableTimelinePlayer={
-              !(
-                showTrimmerLayout ||
-                showTransformerLayout ||
-                isProcessCompleted
-              )
-            }
-            progressInterval={10}
-            controls={false}
-            playPauseOnSpaceKeydown={!showTransformerLayout}
-            autoFocus
-            containerClassName="w-full h-full mx-auto"
-            contextMenu={
-              !isProcessCompleted ? (
-                <div className="min-w-[120px] p-0">
-                  <button
-                    className="flex items-center gap-1 w-full px-2 py-2 text-xs text-left hover:bg-default-100 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                    onClick={handleCopyCurrentFrame}
-                    disabled={isCopyingFrame}
-                  >
-                    <Icon name="copy" size={20} />
-                    <span>Copy current frame</span>
-                  </button>
-                </div>
-              ) : null
-            }
-            style={{
-              width: '100%',
-              minWidth: '50vw',
-              maxHeight: '65vh',
-              aspectRatio:
-                (mediaFile?.dimensions?.width ?? 1) /
-                (mediaFile?.dimensions?.height ?? 1),
-            }}
-            config={{
-              file: {
-                attributes: {
-                  crossOrigin: 'anonymous',
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.5 }}
+          >
+            <VideoPlayer
+              ref={playerRef}
+              url={
+                isProcessCompleted && compressedFile
+                  ? compressedFile?.path!
+                  : mediaPath!
+              }
+              enableTimelinePlayer={
+                !(
+                  showTrimmerLayout ||
+                  showTransformerLayout ||
+                  isProcessCompleted
+                )
+              }
+              progressInterval={10}
+              controls={false}
+              playPauseOnSpaceKeydown={!showTransformerLayout}
+              autoFocus
+              containerClassName="w-full h-full mx-auto"
+              contextMenu={
+                !isProcessCompleted ? (
+                  <div className="min-w-[120px] p-0">
+                    <button
+                      className="flex items-center gap-1 w-full px-2 py-2 text-xs text-left hover:bg-default-100 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      onClick={handleCopyCurrentFrame}
+                      disabled={isCopyingFrame}
+                    >
+                      <Icon name="copy" size={20} />
+                      <span>Copy current frame</span>
+                    </button>
+                  </div>
+                ) : null
+              }
+              style={{
+                width: '100%',
+                minWidth: '50vw',
+                maxHeight: '65vh',
+                aspectRatio:
+                  (mediaFile?.dimensions?.width ?? 1) /
+                  (mediaFile?.dimensions?.height ?? 1),
+              }}
+              config={{
+                file: {
+                  attributes: {
+                    crossOrigin: 'anonymous',
+                  },
+                  tracks: [],
                 },
-                tracks: [],
-              },
-            }}
-            disableClosedCaptions
-            onError={() => {
-              toast.warning('Switching to image thumbnail...')
-              if (appProxy.state.media[mediaIndex].type === 'video') {
-                appProxy.state.media[mediaIndex].previewMode = 'image'
-              }
-            }}
-            onProgress={({ playedSeconds }: OnProgressProps) => {
-              if (playerRef.current?.playerRef) {
-                setTimelineTime(playedSeconds)
-                autoScrollCursorToCurrentTime(scales)
-              }
-            }}
-            // ffmpeg duration is sometimes incorrect, so force set this duration to particular video
-            onDuration={(duration: number) => {
-              if (
-                duration &&
-                !Number.isNaN(duration) &&
-                !appProxy.state.isProcessCompleted
-              ) {
+              }}
+              disableClosedCaptions
+              onError={() => {
+                toast.warning('Switching to image thumbnail...')
                 if (appProxy.state.media[mediaIndex].type === 'video') {
-                  appProxy.state.media[mediaIndex].videoDuration = duration
+                  appProxy.state.media[mediaIndex].previewMode = 'image'
                 }
-                refreshTimeline()
-              }
-            }}
-            onPlay={() => {
-              setTimeout(() => {
-                autoScrollCursorToCurrentTime(scales)
-              }, 100)
-            }}
-            onArrowKeySeek={() => {
-              autoScrollCursorToCurrentTime(scales, {
-                onlyOnOutOfView: false,
-                smoothScrolling: true,
-              })
-            }}
-          />
+              }}
+              onProgress={({ playedSeconds }: OnProgressProps) => {
+                if (playerRef.current?.playerRef) {
+                  setTimelineTime(playedSeconds)
+                  autoScrollCursorToCurrentTime(scales)
+                }
+              }}
+              // ffmpeg duration is sometimes incorrect, so force set this duration to particular video
+              onDuration={(duration: number) => {
+                if (
+                  duration &&
+                  !Number.isNaN(duration) &&
+                  !appProxy.state.isProcessCompleted
+                ) {
+                  if (appProxy.state.media[mediaIndex].type === 'video') {
+                    appProxy.state.media[mediaIndex].videoDuration = duration
+                  }
+                  refreshTimeline()
+                }
+              }}
+              onPlay={() => {
+                setTimeout(() => {
+                  autoScrollCursorToCurrentTime(scales)
+                }, 100)
+              }}
+              onArrowKeySeek={() => {
+                autoScrollCursorToCurrentTime(scales, {
+                  onlyOnOutOfView: false,
+                  smoothScrolling: true,
+                })
+              }}
+            />
+          </motion.div>
         ) : (
           <div className="relative w-fit mx-auto">
-            <ImageViewer>
-              <PhotoView src={thumbnailPath!}>
-                <Image
-                  alt="video to compress"
-                  src={thumbnailPath as string}
-                  className="object-contain rounded-3xl max-h-[65vh] border-1 border-zinc-200 dark:border-zinc-900 cursor-zoom-in"
-                  onError={() => {
-                    if (!isProcessCompleted) {
-                      handleRegenerateThumbnail('00:00:01.00', 0, true)
-                    }
-                  }}
-                />
-              </PhotoView>
-            </ImageViewer>
-            {videoDuration && !isProcessCompleted ? (
-              <div className="absolute bottom-4 right-4 z-[10]">
-                <Tooltip content="Regenerate Thumbnail">
+            <Image
+              alt="video to compress"
+              src={thumbnailPath as string}
+              className="object-contain rounded-3xl max-h-[65vh] border-1 border-zinc-200 dark:border-zinc-900"
+              onError={() => {
+                if (!isProcessCompleted) {
+                  handleRegenerateThumbnail('00:00:01.00', 0, true)
+                }
+              }}
+            />
+            <div className="absolute bottom-4 right-4 z-[10] flex items-center gap-2">
+              {videoDuration && !isProcessCompleted ? (
+                <Tooltip content="Regenerate Thumbnail" className="w-0! h-0!">
                   <Button
                     size="sm"
+                    variant="light"
                     isIconOnly
                     onPress={() => {
                       handleRegenerateThumbnail()
                     }}
                     isDisabled={isThumbnailRegenerating}
                     isLoading={isThumbnailRegenerating}
-                    className="!p-0 !min-h-0 text-[10px] !h-[unset] !px-2 !py-1"
+                    className="!p-0 !min-h-0 !h-[unset] !py-2"
                   >
-                    <Icon name="image" size={20} />
+                    <Icon name="image" size={22} />
                   </Button>
                 </Tooltip>
-              </div>
-            ) : null}
+              ) : null}
+              <ImageViewer>
+                <PhotoView src={thumbnailPath!}>
+                  <div>
+                    <Tooltip content="Enlarge Image">
+                      <Icon name="zoom" size={20} className="cursor-pointer" />
+                    </Tooltip>
+                  </div>
+                </PhotoView>
+              </ImageViewer>
+            </div>
           </div>
         )}
         {mediaType === 'video' && showTrimmerLayout && videoDuration ? (

@@ -4,24 +4,28 @@ import { useSnapshot } from 'valtio'
 import Button from '@/components/Button'
 import Icon from '@/components/Icon'
 import Switch from '@/components/Switch'
-import { appProxy } from '../../-state'
+import { appProxy } from '../../../../-state'
 
 type TransformVideoProps = {
   mediaIndex: number
 }
 
+// TODO: Since we'll use transform for both image and video, see if we can reuse this component
 function TransformVideo({ mediaIndex }: TransformVideoProps) {
   if (mediaIndex < 0) return
 
   const {
-    state: { videos, isCompressing, isProcessCompleted, isLoadingMediaFiles },
+    state: { media, isCompressing, isProcessCompleted, isLoadingMediaFiles },
   } = useSnapshot(appProxy)
-  const video = videos.length > 0 ? videos[mediaIndex] : null
+  const video =
+    media.length > 0 && media[mediaIndex].type === 'video'
+      ? media[mediaIndex]
+      : null
   const { config } = video ?? {}
   const { shouldTransformVideo, isVideoTransformEditMode } = config ?? {}
 
   const shouldDisableInput =
-    videos.length === 0 ||
+    media.length === 0 ||
     isCompressing ||
     isProcessCompleted ||
     isLoadingMediaFiles
@@ -31,20 +35,23 @@ function TransformVideo({ mediaIndex }: TransformVideoProps) {
       <Switch
         isSelected={shouldTransformVideo}
         onValueChange={() => {
-          if (appProxy.state.videos[mediaIndex]?.config) {
-            appProxy.state.videos[mediaIndex].config.shouldTransformVideo =
+          if (
+            appProxy.state.media[mediaIndex].type === 'video' &&
+            appProxy.state.media[mediaIndex]?.config
+          ) {
+            appProxy.state.media[mediaIndex].config.shouldTransformVideo =
               !shouldTransformVideo
-            appProxy.state.videos[mediaIndex].config.isVideoTransformEditMode =
+            appProxy.state.media[mediaIndex].config.isVideoTransformEditMode =
               !shouldTransformVideo
-            appProxy.state.videos[mediaIndex].config.isVideoTrimEditMode = false
-            appProxy.state.videos[mediaIndex].isConfigDirty = true
+            appProxy.state.media[mediaIndex].config.isVideoTrimEditMode = false
+            appProxy.state.media[mediaIndex].isConfigDirty = true
 
             if (shouldTransformVideo) {
-              appProxy.state.videos[mediaIndex].config.transformVideoConfig =
+              appProxy.state.media[mediaIndex].config.transformVideoConfig =
                 undefined
-              appProxy.state.videos[mediaIndex].thumbnailPath =
+              appProxy.state.media[mediaIndex].thumbnailPath =
                 core.convertFileSrc(
-                  appProxy.state.videos[mediaIndex].thumbnailPathRaw!,
+                  appProxy.state.media[mediaIndex].thumbnailPathRaw!,
                 )
             }
           }
@@ -61,9 +68,11 @@ function TransformVideo({ mediaIndex }: TransformVideoProps) {
             size="sm"
             color="success"
             onPress={() => {
-              appProxy.state.videos[
-                mediaIndex
-              ].config.isVideoTransformEditMode = false
+              if (appProxy.state.media[mediaIndex].type === 'video') {
+                appProxy.state.media[
+                  mediaIndex
+                ].config.isVideoTransformEditMode = false
+              }
             }}
             className="h-[unset] py-1 ml-auto"
             isDisabled={shouldDisableInput}
@@ -74,11 +83,13 @@ function TransformVideo({ mediaIndex }: TransformVideoProps) {
           <Button
             size="sm"
             onPress={() => {
-              appProxy.state.videos[
-                mediaIndex
-              ].config.isVideoTransformEditMode = true
-              appProxy.state.videos[mediaIndex].config.isVideoTrimEditMode =
-                false
+              if (appProxy.state.media[mediaIndex].type === 'video') {
+                appProxy.state.media[
+                  mediaIndex
+                ].config.isVideoTransformEditMode = true
+                appProxy.state.media[mediaIndex].config.isVideoTrimEditMode =
+                  false
+              }
             }}
             className="h-[unset] py-1 ml-auto"
             isDisabled={shouldDisableInput}

@@ -2,7 +2,7 @@ import React, { useCallback } from 'react'
 import { snapshot, useSnapshot } from 'valtio'
 
 import Slider from '@/components/Slider/Slider'
-import { appProxy, normalizeBatchVideosConfig } from '../../-state'
+import { appProxy, normalizeBatchVideosConfig } from '../../../../-state'
 
 type AudioVolumeProps = {
   mediaIndex: number
@@ -11,14 +11,17 @@ type AudioVolumeProps = {
 function AudioVolume({ mediaIndex }: AudioVolumeProps) {
   const {
     state: {
-      videos,
+      media,
       isCompressing,
       isProcessCompleted,
       commonConfigForBatchCompression,
       isLoadingMediaFiles,
     },
   } = useSnapshot(appProxy)
-  const video = videos.length > 0 && mediaIndex >= 0 ? videos[mediaIndex] : null
+  const video =
+    media.length > 0 && mediaIndex >= 0 && media[mediaIndex].type === 'video'
+      ? media[mediaIndex]
+      : null
   const { config, videoInfoRaw } = video ?? {}
   const { audioConfig } = config ?? commonConfigForBatchCompression ?? {}
 
@@ -33,11 +36,11 @@ function AudioVolume({ mediaIndex }: AudioVolumeProps) {
   React.useEffect(() => {
     const appSnapshot = snapshot(appProxy)
     if (
-      appSnapshot.state.videos.length &&
+      appSnapshot.state.media.length &&
       volume !==
-        (mediaIndex >= 0
-          ? appSnapshot.state.videos[mediaIndex]?.config?.audioConfig?.volume
-          : appSnapshot.state.videos.length > 1
+        (mediaIndex >= 0 && appSnapshot.state.media[mediaIndex].type === 'video'
+          ? appSnapshot.state.media[mediaIndex]?.config?.audioConfig?.volume
+          : appSnapshot.state.media.length > 1
             ? appSnapshot.state.commonConfigForBatchCompression?.audioConfig
                 ?.volume
             : undefined)
@@ -46,16 +49,20 @@ function AudioVolume({ mediaIndex }: AudioVolumeProps) {
         clearTimeout(debounceRef.current)
       }
       debounceRef.current = setTimeout(() => {
-        if (mediaIndex >= 0 && appProxy.state.videos[mediaIndex]?.config) {
-          if (!appProxy.state.videos[mediaIndex].config.audioConfig) {
-            appProxy.state.videos[mediaIndex].config.audioConfig = {
+        if (
+          mediaIndex >= 0 &&
+          appProxy.state.media[mediaIndex].type === 'video' &&
+          appProxy.state.media[mediaIndex]?.config
+        ) {
+          if (!appProxy.state.media[mediaIndex].config.audioConfig) {
+            appProxy.state.media[mediaIndex].config.audioConfig = {
               volume: 100,
             }
           }
-          appProxy.state.videos[mediaIndex].config.audioConfig.volume = volume
-          appProxy.state.videos[mediaIndex].isConfigDirty = true
+          appProxy.state.media[mediaIndex].config.audioConfig.volume = volume
+          appProxy.state.media[mediaIndex].isConfigDirty = true
         } else {
-          if (appProxy.state.videos.length > 1) {
+          if (appProxy.state.media.length > 1) {
             if (!appProxy.state.commonConfigForBatchCompression.audioConfig) {
               appProxy.state.commonConfigForBatchCompression.audioConfig = {
                 volume: 100,
@@ -92,7 +99,7 @@ function AudioVolume({ mediaIndex }: AudioVolumeProps) {
 
   const hasNoAudio = videoInfoRaw?.audioStreams?.length === 0
   const shouldDisableInput =
-    videos.length === 0 ||
+    media.length === 0 ||
     isCompressing ||
     isProcessCompleted ||
     isLoadingMediaFiles ||

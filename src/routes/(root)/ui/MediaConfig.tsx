@@ -1,15 +1,17 @@
+import { ScrollShadow } from '@heroui/react'
 import { AnimatePresence } from 'framer-motion'
 import React from 'react'
 import { useSnapshot } from 'valtio'
 
 import Layout from '@/components/Layout'
 import { cn } from '@/utils/tailwind'
+import { appProxy } from '../-state'
 import CompressionProgress from './CompressionProgress'
 import CustomizeMediaOnBatchActions from './CustomizeMediaOnBatchActions'
-// import OutputSettings from './output-settings/-index'
-import { appProxy } from '../-state'
+import OutputSettings from './output-settings/-index'
 import PreviewBatchVideos from './PreviewBatchMedia'
 import PreviewSingleVideo from './PreviewSingleMedia'
+import StartCompression from './StartCompression'
 import styles from './styles.module.css'
 
 function MediaConfig() {
@@ -43,13 +45,18 @@ function MediaConfig() {
             )}
           </AnimatePresence>
         </section>
-        {/* <section className="p-4 w-full h-full rounded-xl border-2 border-zinc-200 dark:border-zinc-800">
-          <OutputSettings
-            mediaIndex={
-              media.length === 1 ? 0 : selectedMediaIndexForCustomization
-            }
-          />
-        </section> */}
+        <section className="relative p-4 w-full h-full rounded-xl border-2 border-zinc-200 dark:border-zinc-800">
+          <ScrollShadow className="h-[80vh] hxl:h-[85vh]" hideScrollBar>
+            <OutputSettings
+              mediaIndex={
+                media.length === 1 ? 0 : selectedMediaIndexForCustomization
+              }
+            />
+          </ScrollShadow>
+          <div className="absolute bottom-4 left-2 right-2">
+            <StartCompression />
+          </div>
+        </section>
       </div>
       {isCompressing ? <CompressionProgress /> : null}
     </Layout>

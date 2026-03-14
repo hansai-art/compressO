@@ -104,7 +104,7 @@ function PreviewSingleMedia({ mediaIndex }: PreviewSingleMediaProps) {
                 <p className=" text-gray-600 dark:text-gray-400">Size</p>
                 <span className="block font-black">{mediaSize}</span>
               </div>
-              <Divider orientation="vertical" className="h-10" />
+              <Divider orientation="vertical" className="h-8" />
             </>
             <>
               <div>
@@ -113,7 +113,7 @@ function PreviewSingleMedia({ mediaIndex }: PreviewSingleMediaProps) {
                   {mediaExtension ?? '-'}
                 </span>
               </div>
-              <Divider orientation="vertical" className="h-10" />
+              <Divider orientation="vertical" className="h-8" />
             </>
 
             {videoDuration ? (
@@ -124,7 +124,7 @@ function PreviewSingleMedia({ mediaIndex }: PreviewSingleMediaProps) {
                     {formatDuration(videoDuration) ?? '-'}
                   </span>
                 </div>
-                <Divider orientation="vertical" className="h-10" />{' '}
+                <Divider orientation="vertical" className="h-8" />{' '}
               </>
             ) : null}
             <>
@@ -138,7 +138,7 @@ function PreviewSingleMedia({ mediaIndex }: PreviewSingleMediaProps) {
                       {dimensions.width ?? '-'} x {dimensions.height ?? '-'}
                     </span>
                   </div>
-                  <Divider orientation="vertical" className="h-10" />{' '}
+                  <Divider orientation="vertical" className="h-8" />{' '}
                 </>
               ) : null}
             </>
@@ -149,6 +149,7 @@ function PreviewSingleMedia({ mediaIndex }: PreviewSingleMediaProps) {
                     <p className=" text-gray-600 dark:text-gray-400">FPS</p>
                     <span className="block font-black">{fps ?? '-'}</span>
                   </div>
+                  <Divider orientation="vertical" className="h-8" />{' '}
                 </>
               ) : null}
             </>
@@ -173,7 +174,12 @@ function PreviewSingleMedia({ mediaIndex }: PreviewSingleMediaProps) {
           {...slideUpTransition}
         >
           <div className="2xl:max-w-[50vw] mx-auto">
-            <VideoInfo mediaIndex={mediaIndex} />
+            <VideoInfo
+              mediaIndex={mediaIndex}
+              onClose={() => {
+                appProxy.state.showMediaInfo = false
+              }}
+            />
           </div>
           <div className="absolute top-4 right-4">
             <Button

@@ -14,7 +14,7 @@ import {
   slideDownStaggerAnimation,
   slideDownTransition,
 } from '@/utils/animation'
-import { appProxy, normalizeBatchVideosConfig } from '../../../-state'
+import { appProxy, normalizeBatchVideosConfig } from '../../../../-state'
 
 type SubtitlesProps = {
   mediaIndex: number
@@ -41,7 +41,7 @@ const LANGUAGE_OPTIONS: { code: string; name: string }[] = [
 function Subtitles({ mediaIndex }: SubtitlesProps) {
   const {
     state: {
-      videos,
+      media,
       isCompressing,
       isProcessCompleted,
       commonConfigForBatchCompression,
@@ -49,13 +49,16 @@ function Subtitles({ mediaIndex }: SubtitlesProps) {
     },
   } = useSnapshot(appProxy)
 
-  const video = videos.length > 0 && mediaIndex >= 0 ? videos[mediaIndex] : null
+  const video =
+    media.length > 0 && mediaIndex >= 0 && media[mediaIndex].type === 'video'
+      ? media[mediaIndex]
+      : null
   const { config } = video ?? {}
   const { subtitlesConfig, convertToExtension } =
     config ?? commonConfigForBatchCompression ?? {}
 
   const shouldDisableInput =
-    videos.length === 0 ||
+    media.length === 0 ||
     isCompressing ||
     isProcessCompleted ||
     isLoadingMediaFiles
@@ -69,20 +72,25 @@ function Subtitles({ mediaIndex }: SubtitlesProps) {
 
   const handleToggleChange = useCallback(
     (isSelected: boolean) => {
-      if (mediaIndex >= 0 && appProxy.state.videos[mediaIndex]?.config) {
-        if (!appProxy.state.videos[mediaIndex].config.subtitlesConfig) {
-          appProxy.state.videos[mediaIndex].config.subtitlesConfig = {
+      if (
+        mediaIndex >= 0 &&
+        appProxy.state.media[mediaIndex].type === 'video' &&
+        appProxy.state.media[mediaIndex]?.config
+      ) {
+        if (!appProxy.state.media[mediaIndex].config.subtitlesConfig) {
+          appProxy.state.media[mediaIndex].config.subtitlesConfig = {
             subtitles: [],
             shouldEnableSubtitles: isSelected,
             preserveExistingSubtitles: false,
           }
         } else {
-          appProxy.state.videos[mediaIndex].config
+          appProxy.state.media[mediaIndex].config
             .subtitlesConfig!.shouldEnableSubtitles = isSelected
         }
-        appProxy.state.videos[mediaIndex].isConfigDirty = true
+        appProxy.state.media[mediaIndex].isConfigDirty = true
       } else {
-        if (appProxy.state.videos.length > 1) {
+        // TODO: adjust this for all media types
+        if (appProxy.state.media.length > 1) {
           if (!appProxy.state.commonConfigForBatchCompression.subtitlesConfig) {
             appProxy.state.commonConfigForBatchCompression.subtitlesConfig = {
               subtitles: [],
@@ -102,20 +110,25 @@ function Subtitles({ mediaIndex }: SubtitlesProps) {
 
   const handlePreserveExistingChange = useCallback(
     (isSelected: boolean) => {
-      if (mediaIndex >= 0 && appProxy.state.videos[mediaIndex]?.config) {
-        if (!appProxy.state.videos[mediaIndex].config.subtitlesConfig) {
-          appProxy.state.videos[mediaIndex].config.subtitlesConfig = {
+      if (
+        mediaIndex >= 0 &&
+        appProxy.state.media[mediaIndex].type === 'video' &&
+        appProxy.state.media[mediaIndex]?.config
+      ) {
+        if (!appProxy.state.media[mediaIndex].config.subtitlesConfig) {
+          appProxy.state.media[mediaIndex].config.subtitlesConfig = {
             subtitles: [],
             shouldEnableSubtitles: true,
             preserveExistingSubtitles: isSelected,
           }
         } else {
-          appProxy.state.videos[mediaIndex].config
+          appProxy.state.media[mediaIndex].config
             .subtitlesConfig!.preserveExistingSubtitles = isSelected
         }
-        appProxy.state.videos[mediaIndex].isConfigDirty = true
+        appProxy.state.media[mediaIndex].isConfigDirty = true
       } else {
-        if (appProxy.state.videos.length > 1) {
+        // TODO: adjust this for all media types
+        if (appProxy.state.media.length > 1) {
           if (!appProxy.state.commonConfigForBatchCompression.subtitlesConfig) {
             appProxy.state.commonConfigForBatchCompression.subtitlesConfig = {
               subtitles: [],
@@ -154,20 +167,25 @@ function Subtitles({ mediaIndex }: SubtitlesProps) {
           fileName,
         }
 
-        if (mediaIndex >= 0 && appProxy.state.videos[mediaIndex]?.config) {
-          if (!appProxy.state.videos[mediaIndex].config.subtitlesConfig) {
-            appProxy.state.videos[mediaIndex].config.subtitlesConfig = {
+        if (
+          mediaIndex >= 0 &&
+          appProxy.state.media[mediaIndex].type === 'video' &&
+          appProxy.state.media[mediaIndex]?.config
+        ) {
+          if (!appProxy.state.media[mediaIndex].config.subtitlesConfig) {
+            appProxy.state.media[mediaIndex].config.subtitlesConfig = {
               subtitles: [],
               shouldEnableSubtitles: true,
               preserveExistingSubtitles: false,
             }
           }
-          appProxy.state.videos[
+          appProxy.state.media[
             mediaIndex
           ].config.subtitlesConfig!.subtitles.push(newSubtitle)
-          appProxy.state.videos[mediaIndex].isConfigDirty = true
+          appProxy.state.media[mediaIndex].isConfigDirty = true
         } else {
-          if (appProxy.state.videos.length > 1) {
+          // TODO: adjust this for all media types
+          if (appProxy.state.media.length > 1) {
             if (
               !appProxy.state.commonConfigForBatchCompression.subtitlesConfig
             ) {
@@ -191,15 +209,20 @@ function Subtitles({ mediaIndex }: SubtitlesProps) {
 
   const handleRemoveSubtitle = useCallback(
     (index: number) => {
-      if (mediaIndex >= 0 && appProxy.state.videos[mediaIndex]?.config) {
-        if (appProxy.state.videos[mediaIndex].config.subtitlesConfig) {
-          appProxy.state.videos[
+      if (
+        mediaIndex >= 0 &&
+        appProxy.state.media[mediaIndex].type === 'video' &&
+        appProxy.state.media[mediaIndex]?.config
+      ) {
+        if (appProxy.state.media[mediaIndex].config.subtitlesConfig) {
+          appProxy.state.media[
             mediaIndex
           ].config.subtitlesConfig!.subtitles.splice(index, 1)
-          appProxy.state.videos[mediaIndex].isConfigDirty = true
+          appProxy.state.media[mediaIndex].isConfigDirty = true
         }
       } else {
-        if (appProxy.state.videos.length > 1) {
+        // TODO: adjust this for all media types
+        if (appProxy.state.media.length > 1) {
           if (appProxy.state.commonConfigForBatchCompression.subtitlesConfig) {
             appProxy.state.commonConfigForBatchCompression.subtitlesConfig!.subtitles.splice(
               index,
@@ -217,15 +240,20 @@ function Subtitles({ mediaIndex }: SubtitlesProps) {
     (index: number, languageCode: string) => {
       const languageValue = languageCode === 'und' ? '' : languageCode
 
-      if (mediaIndex >= 0 && appProxy.state.videos[mediaIndex]?.config) {
-        if (appProxy.state.videos[mediaIndex].config.subtitlesConfig) {
-          appProxy.state.videos[mediaIndex].config.subtitlesConfig!.subtitles[
+      if (
+        mediaIndex >= 0 &&
+        appProxy.state.media[mediaIndex].type === 'video' &&
+        appProxy.state.media[mediaIndex]?.config
+      ) {
+        if (appProxy.state.media[mediaIndex].config.subtitlesConfig) {
+          appProxy.state.media[mediaIndex].config.subtitlesConfig!.subtitles[
             index
           ].language = languageValue
-          appProxy.state.videos[mediaIndex].isConfigDirty = true
+          appProxy.state.media[mediaIndex].isConfigDirty = true
         }
       } else {
-        if (appProxy.state.videos.length > 1) {
+        // TODO: adjust this for all media types
+        if (appProxy.state.media.length > 1) {
           if (appProxy.state.commonConfigForBatchCompression.subtitlesConfig) {
             appProxy.state.commonConfigForBatchCompression
               .subtitlesConfig!.subtitles[index].language = languageValue

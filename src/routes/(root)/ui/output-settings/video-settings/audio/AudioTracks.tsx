@@ -7,7 +7,7 @@ import Switch from '@/components/Switch'
 import { AudioStream } from '@/types/compression'
 import { slideDownTransition } from '@/utils/animation'
 import { cn } from '@/utils/tailwind'
-import { appProxy, normalizeBatchVideosConfig } from '../../-state'
+import { appProxy, normalizeBatchVideosConfig } from '../../../../-state'
 
 type AudioTracksProps = {
   mediaIndex: number
@@ -34,14 +34,17 @@ function AudioTracks({ mediaIndex }: AudioTracksProps) {
 
   const {
     state: {
-      videos,
+      media,
       isCompressing,
       isProcessCompleted,
       commonConfigForBatchCompression,
       isLoadingMediaFiles,
     },
   } = useSnapshot(appProxy)
-  const video = videos.length > 0 && mediaIndex >= 0 ? videos[mediaIndex] : null
+  const video =
+    media.length > 0 && mediaIndex >= 0 && media[mediaIndex].type === 'video'
+      ? media[mediaIndex]
+      : null
   const { config, videoInfoRaw } = video ?? {}
   const { shouldEnableAudioTrackSelection, selectedAudioTracks, audioConfig } =
     config ?? commonConfigForBatchCompression ?? {}
@@ -54,11 +57,15 @@ function AudioTracks({ mediaIndex }: AudioTracksProps) {
       (!selectedAudioTracks || selectedAudioTracks.length === 0)
     ) {
       const allTrackIndices = audioStreams.map((_, index) => index)
-      if (mediaIndex >= 0 && appProxy.state.videos[mediaIndex]?.config) {
-        appProxy.state.videos[mediaIndex].config.selectedAudioTracks =
+      if (
+        mediaIndex >= 0 &&
+        appProxy.state.media[mediaIndex].type === 'video' &&
+        appProxy.state.media[mediaIndex]?.config
+      ) {
+        appProxy.state.media[mediaIndex].config.selectedAudioTracks =
           allTrackIndices
       } else {
-        if (appProxy.state.videos.length > 1) {
+        if (appProxy.state.media.length > 1) {
           appProxy.state.commonConfigForBatchCompression.selectedAudioTracks =
             allTrackIndices
           normalizeBatchVideosConfig()
@@ -73,19 +80,24 @@ function AudioTracks({ mediaIndex }: AudioTracksProps) {
   ])
 
   const handleSwitchToggle = useCallback(() => {
-    if (mediaIndex >= 0 && appProxy.state.videos[mediaIndex]?.config) {
-      appProxy.state.videos[mediaIndex].config.shouldEnableAudioTrackSelection =
+    if (
+      mediaIndex >= 0 &&
+      appProxy.state.media[mediaIndex].type === 'video' &&
+      appProxy.state.media[mediaIndex]?.config
+    ) {
+      appProxy.state.media[mediaIndex].config.shouldEnableAudioTrackSelection =
         !shouldEnableAudioTrackSelection
-      appProxy.state.videos[mediaIndex].isConfigDirty = true
+      appProxy.state.media[mediaIndex].isConfigDirty = true
 
       if (!shouldEnableAudioTrackSelection) {
-        appProxy.state.videos[mediaIndex].config.selectedAudioTracks =
+        appProxy.state.media[mediaIndex].config.selectedAudioTracks =
           audioStreams.map((_, index) => index)
       } else {
-        appProxy.state.videos[mediaIndex].config.selectedAudioTracks = []
+        appProxy.state.media[mediaIndex].config.selectedAudioTracks = []
       }
     } else {
-      if (appProxy.state.videos.length > 1) {
+      // TODO: adjust this for all media types
+      if (appProxy.state.media.length > 1) {
         appProxy.state.commonConfigForBatchCompression.shouldEnableAudioTrackSelection =
           !shouldEnableAudioTrackSelection
         if (!shouldEnableAudioTrackSelection) {
@@ -113,12 +125,17 @@ function AudioTracks({ mediaIndex }: AudioTracksProps) {
         newSelected = [...currentSelected, trackIndex]
       }
 
-      if (mediaIndex >= 0 && appProxy.state.videos[mediaIndex]?.config) {
-        appProxy.state.videos[mediaIndex].config.selectedAudioTracks =
+      if (
+        mediaIndex >= 0 &&
+        appProxy.state.media[mediaIndex].type === 'video' &&
+        appProxy.state.media[mediaIndex]?.config
+      ) {
+        appProxy.state.media[mediaIndex].config.selectedAudioTracks =
           newSelected
-        appProxy.state.videos[mediaIndex].isConfigDirty = true
+        appProxy.state.media[mediaIndex].isConfigDirty = true
       } else {
-        if (appProxy.state.videos.length > 1) {
+        // TODO: adjust this for all media types
+        if (appProxy.state.media.length > 1) {
           appProxy.state.commonConfigForBatchCompression.selectedAudioTracks =
             newSelected
           normalizeBatchVideosConfig()
@@ -131,7 +148,7 @@ function AudioTracks({ mediaIndex }: AudioTracksProps) {
   const hasNoAudio = audioStreams.length === 0
 
   const shouldDisableInput =
-    videos.length === 0 ||
+    media.length === 0 ||
     isCompressing ||
     isProcessCompleted ||
     isLoadingMediaFiles ||

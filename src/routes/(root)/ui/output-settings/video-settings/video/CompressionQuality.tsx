@@ -5,7 +5,7 @@ import { snapshot, useSnapshot } from 'valtio'
 import Slider from '@/components/Slider/Slider'
 import Switch from '@/components/Switch'
 import { slideDownTransition } from '@/utils/animation'
-import { appProxy, normalizeBatchVideosConfig } from '../../-state'
+import { appProxy, normalizeBatchVideosConfig } from '../../../../-state'
 
 type CompressionQualityProps = {
   mediaIndex: number
@@ -16,12 +16,15 @@ function CompressionQuality({ mediaIndex }: CompressionQualityProps) {
     state: {
       isCompressing,
       isProcessCompleted,
-      videos,
+      media,
       commonConfigForBatchCompression,
       isLoadingMediaFiles,
     },
   } = useSnapshot(appProxy)
-  const video = videos.length > 0 && mediaIndex >= 0 ? videos[mediaIndex] : null
+  const video =
+    media.length > 0 && mediaIndex >= 0 && media[mediaIndex].type == 'video'
+      ? media[mediaIndex]
+      : null
   const { config } = video ?? {}
   const { quality: compressionQuality, shouldEnableQuality } =
     config ?? commonConfigForBatchCompression ?? {}
@@ -38,12 +41,13 @@ function CompressionQuality({ mediaIndex }: CompressionQualityProps) {
 
   React.useEffect(() => {
     const appSnapshot = snapshot(appProxy)
+    // TODO: Right now this quality applies for both video and image item within media. figure out what to do for this
     if (
-      appSnapshot.state.videos.length &&
+      appSnapshot.state.media.length &&
       quality !==
         (mediaIndex >= 0
-          ? appSnapshot.state.videos[mediaIndex]?.config?.quality
-          : appSnapshot.state.videos.length > 1
+          ? appSnapshot.state.media[mediaIndex]?.config?.quality
+          : appSnapshot.state.media.length > 1
             ? appSnapshot.state.commonConfigForBatchCompression?.quality
             : undefined)
     ) {
@@ -51,11 +55,11 @@ function CompressionQuality({ mediaIndex }: CompressionQualityProps) {
         clearTimeout(debounceRef.current)
       }
       debounceRef.current = setTimeout(() => {
-        if (mediaIndex >= 0 && appProxy.state.videos[mediaIndex]?.config) {
-          appProxy.state.videos[mediaIndex].config.quality = quality
-          appProxy.state.videos[mediaIndex].isConfigDirty = true
+        if (mediaIndex >= 0 && appProxy.state.media[mediaIndex]?.config) {
+          appProxy.state.media[mediaIndex].config.quality = quality
+          appProxy.state.media[mediaIndex].isConfigDirty = true
         } else {
-          if (appProxy.state.videos.length > 1) {
+          if (appProxy.state.media.length > 1) {
             appProxy.state.commonConfigForBatchCompression.quality = quality
             normalizeBatchVideosConfig()
           }
@@ -84,12 +88,17 @@ function CompressionQuality({ mediaIndex }: CompressionQualityProps) {
   }, [])
 
   const handleSwitchToggle = useCallback(() => {
-    if (mediaIndex >= 0 && appProxy.state.videos[mediaIndex]?.config) {
-      appProxy.state.videos[mediaIndex].config.shouldEnableQuality =
+    if (
+      mediaIndex >= 0 &&
+      appProxy.state.media[mediaIndex].type === 'video' &&
+      appProxy.state.media[mediaIndex]?.config
+    ) {
+      appProxy.state.media[mediaIndex].config.shouldEnableQuality =
         !shouldEnableQuality
-      appProxy.state.videos[mediaIndex].isConfigDirty = true
+      appProxy.state.media[mediaIndex].isConfigDirty = true
     } else {
-      if (appProxy.state.videos.length > 1) {
+      // TODO: adjust this for all media types
+      if (appProxy.state.media.length > 1) {
         appProxy.state.commonConfigForBatchCompression.shouldEnableQuality =
           !shouldEnableQuality
         normalizeBatchVideosConfig()
@@ -98,7 +107,7 @@ function CompressionQuality({ mediaIndex }: CompressionQualityProps) {
   }, [mediaIndex, shouldEnableQuality])
 
   const shouldDisableInput =
-    videos.length === 0 ||
+    media.length === 0 ||
     isCompressing ||
     isProcessCompleted ||
     isLoadingMediaFiles

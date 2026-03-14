@@ -41,6 +41,7 @@ import { appProxy } from '../-state'
 
 type VideoInfoProps = {
   mediaIndex: number
+  onClose?: () => void
 }
 
 const TABS = {
@@ -66,7 +67,7 @@ const TABS = {
   },
 } as const
 
-function VideoInfo({ mediaIndex }: VideoInfoProps) {
+function VideoInfo({ mediaIndex, onClose }: VideoInfoProps) {
   if (mediaIndex < 0) return null
 
   const {
@@ -157,20 +158,36 @@ function VideoInfo({ mediaIndex }: VideoInfoProps) {
     fetchTabData(tab)
   }, [tab, fetchTabData])
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose?.()
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [onClose])
+
   return (
     <section className="w-full h-full bg-white1 dark:bg-black1 p-6">
-      <Tabs
-        aria-label="Video Information"
-        size="sm"
-        selectedKey={tab}
-        onSelectionChange={(t) => setTab(t as keyof typeof TABS)}
-        className="w-full"
-        fullWidth
-      >
-        {Object.values(TABS).map((t) => (
-          <Tab key={t.id} value={t.id} title={t.title} />
-        ))}
-      </Tabs>
+      <div className="w-full flex justify-center">
+        <Tabs
+          aria-label="Video Information"
+          size="sm"
+          selectedKey={tab}
+          onSelectionChange={(t) => setTab(t as keyof typeof TABS)}
+          classNames={{
+            tabContent: 'text-[11px]',
+            tab: 'h-6',
+          }}
+        >
+          {Object.values(TABS).map((t) => (
+            <Tab key={t.id} value={t.id} title={t.title} />
+          ))}
+        </Tabs>
+      </div>
 
       <ScrollShadow
         className="mt-6 overflow-y-auto max-h-[calc(100vh-200px)] pb-10"

@@ -7,7 +7,7 @@ import Select from '@/components/Select'
 import Switch from '@/components/Switch'
 import { extensions } from '@/types/compression'
 import { slideDownTransition } from '@/utils/animation'
-import { appProxy, normalizeBatchVideosConfig } from '../../-state'
+import { appProxy, normalizeBatchVideosConfig } from '../../../../-state'
 
 type VideoExtension = keyof typeof extensions.video
 
@@ -76,14 +76,17 @@ type AudioCodecProps = {
 function AudioCodec({ mediaIndex }: AudioCodecProps) {
   const {
     state: {
-      videos,
+      media,
       isCompressing,
       isProcessCompleted,
       commonConfigForBatchCompression,
       isLoadingMediaFiles,
     },
   } = useSnapshot(appProxy)
-  const video = videos.length > 0 && mediaIndex >= 0 ? videos[mediaIndex] : null
+  const video =
+    media.length > 0 && mediaIndex >= 0 && media[mediaIndex].type === 'video'
+      ? media[mediaIndex]
+      : null
   const { config, videoInfoRaw } = video ?? {}
   const {
     shouldEnableCustomAudioCodec,
@@ -104,10 +107,14 @@ function AudioCodec({ mediaIndex }: AudioCodecProps) {
         !currentCodec.compatible_containers.includes(currentExtension)
       ) {
         // Codec is incompatible with current extension, reset it
-        if (mediaIndex >= 0 && appProxy.state.videos[mediaIndex]?.config) {
-          appProxy.state.videos[mediaIndex].config.customAudioCodec = undefined
+        if (
+          mediaIndex >= 0 &&
+          appProxy.state.media[mediaIndex].type === 'video' &&
+          appProxy.state.media[mediaIndex]?.config
+        ) {
+          appProxy.state.media[mediaIndex].config.customAudioCodec = undefined
         } else {
-          if (appProxy.state.videos.length > 1) {
+          if (appProxy.state.media.length > 1) {
             appProxy.state.commonConfigForBatchCompression.customAudioCodec =
               undefined
           }
@@ -122,12 +129,17 @@ function AudioCodec({ mediaIndex }: AudioCodecProps) {
   ])
 
   const handleSwitchToggle = useCallback(() => {
-    if (mediaIndex >= 0 && appProxy.state.videos[mediaIndex]?.config) {
-      appProxy.state.videos[mediaIndex].config.shouldEnableCustomAudioCodec =
+    if (
+      mediaIndex >= 0 &&
+      appProxy.state.media[mediaIndex].type === 'video' &&
+      appProxy.state.media[mediaIndex]?.config
+    ) {
+      appProxy.state.media[mediaIndex].config.shouldEnableCustomAudioCodec =
         !shouldEnableCustomAudioCodec
-      appProxy.state.videos[mediaIndex].isConfigDirty = true
+      appProxy.state.media[mediaIndex].isConfigDirty = true
     } else {
-      if (appProxy.state.videos.length > 1) {
+      // TODO: adjust this for all media types
+      if (appProxy.state.media.length > 1) {
         appProxy.state.commonConfigForBatchCompression.shouldEnableCustomAudioCodec =
           !shouldEnableCustomAudioCodec
         normalizeBatchVideosConfig()
@@ -137,11 +149,16 @@ function AudioCodec({ mediaIndex }: AudioCodecProps) {
 
   const handleValueChange = useCallback(
     (value: string) => {
-      if (mediaIndex >= 0 && appProxy.state.videos[mediaIndex]?.config) {
-        appProxy.state.videos[mediaIndex].config.customAudioCodec = value
-        appProxy.state.videos[mediaIndex].isConfigDirty = true
+      if (
+        mediaIndex >= 0 &&
+        appProxy.state.media[mediaIndex].type === 'video' &&
+        appProxy.state.media[mediaIndex]?.config
+      ) {
+        appProxy.state.media[mediaIndex].config.customAudioCodec = value
+        appProxy.state.media[mediaIndex].isConfigDirty = true
       } else {
-        if (appProxy.state.videos.length > 1) {
+        // TODO: adjust this for all media types
+        if (appProxy.state.media.length > 1) {
           appProxy.state.commonConfigForBatchCompression.customAudioCodec =
             value
           normalizeBatchVideosConfig()
@@ -154,7 +171,7 @@ function AudioCodec({ mediaIndex }: AudioCodecProps) {
   const hasNoAudio = videoInfoRaw?.audioStreams?.length === 0
 
   const shouldDisableInput =
-    videos.length === 0 ||
+    media.length === 0 ||
     isCompressing ||
     isProcessCompleted ||
     isLoadingMediaFiles ||

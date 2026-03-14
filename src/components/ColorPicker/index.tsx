@@ -3,10 +3,8 @@ import React, { useCallback } from 'react'
 import { RgbColorPicker } from 'react-colorful'
 
 import Button from '@/components/Button'
-import Icon from '@/components/Icon'
 import Popover from '@/components/Popover'
-import Tooltip from '@/components/Tooltip'
-import { DEFAULT_PRIMARY_COLOR, usePrimaryColor } from '@/hooks/usePrimaryColor'
+import { DEFAULT_PRIMARY_COLOR } from '@/hooks/usePrimaryColor'
 
 type RgbColor = { r: number; g: number; b: number }
 
@@ -19,9 +17,17 @@ function rgbObjectToString(rgb: RgbColor): string {
   return `${rgb.r} ${rgb.g} ${rgb.b}`
 }
 
-function ColorPicker() {
-  const { color, setColor } = usePrimaryColor()
+type ColorPickerProps = {
+  color: string
+  defaultColor?: string
+  onChange?: (color: string) => void
+}
 
+function ColorPicker({
+  color,
+  defaultColor = DEFAULT_PRIMARY_COLOR,
+  onChange,
+}: ColorPickerProps) {
   const rgbColor = React.useMemo(() => rgbStringToObject(color), [color])
 
   const [inputValue, setInputValue] = React.useState(
@@ -35,9 +41,9 @@ function ColorPicker() {
   const handleColorChange = useCallback(
     (newRgb: RgbColor) => {
       const rgbString = rgbObjectToString(newRgb)
-      setColor(rgbString)
+      onChange?.(rgbString)
     },
-    [setColor],
+    [onChange],
   )
 
   const handleInputBlur = useCallback(() => {
@@ -68,24 +74,6 @@ function ColorPicker() {
 
   return (
     <div className="flex items-center gap-2">
-      {color !== DEFAULT_PRIMARY_COLOR ? (
-        <Tooltip
-          content="Reset to default"
-          aria-label="Reset color"
-          placement="right"
-        >
-          <Button
-            isIconOnly
-            size="sm"
-            variant="light"
-            onPress={() => {
-              setColor(DEFAULT_PRIMARY_COLOR)
-            }}
-          >
-            <Icon name="redo" size={16} />
-          </Button>
-        </Tooltip>
-      ) : null}
       <Popover placement="bottom" showArrow>
         <PopoverTrigger>
           <div
@@ -107,6 +95,19 @@ function ColorPicker() {
                 className="w-[200px] px-2 py-1 text-sm text-center border rounded-lg bg-white dark:bg-zinc-800 dark:border-zinc-600 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary"
               />
             </div>
+            {color !== defaultColor ? (
+              <Button
+                fullWidth
+                size="sm"
+                className="mt-2"
+                color="danger"
+                onPress={() => {
+                  onChange?.(defaultColor)
+                }}
+              >
+                Reset
+              </Button>
+            ) : null}
           </div>
         </PopoverContent>
       </Popover>

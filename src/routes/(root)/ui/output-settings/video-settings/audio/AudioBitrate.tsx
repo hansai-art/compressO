@@ -6,7 +6,7 @@ import { useSnapshot } from 'valtio'
 import Select from '@/components/Select'
 import Switch from '@/components/Switch'
 import { slideDownTransition } from '@/utils/animation'
-import { appProxy, normalizeBatchVideosConfig } from '../../-state'
+import { appProxy, normalizeBatchVideosConfig } from '../../../../-state'
 
 const AUDIO_BITRATES = [
   { value: 64, label: '64 kbps' },
@@ -25,21 +25,28 @@ type AudioBitrateProps = {
 function AudioBitrate({ mediaIndex }: AudioBitrateProps) {
   const {
     state: {
-      videos,
+      media,
       isCompressing,
       isProcessCompleted,
       commonConfigForBatchCompression,
       isLoadingMediaFiles,
     },
   } = useSnapshot(appProxy)
-  const video = videos.length > 0 && mediaIndex >= 0 ? videos[mediaIndex] : null
+  const video =
+    media.length > 0 && mediaIndex >= 0 && media[mediaIndex].type === 'video'
+      ? media[mediaIndex]
+      : null
   const { config, videoInfoRaw } = video ?? {}
   const { audioConfig, shouldEnableCustomBitrate } =
     config ?? commonConfigForBatchCompression ?? {}
 
   const handleSwitchToggle = useCallback(() => {
-    if (mediaIndex >= 0 && appProxy.state.videos[mediaIndex]?.config) {
-      const videoConfig = appProxy.state.videos[mediaIndex].config
+    if (
+      mediaIndex >= 0 &&
+      appProxy.state.media[mediaIndex].type === 'video' &&
+      appProxy.state.media[mediaIndex]?.config
+    ) {
+      const videoConfig = appProxy.state.media[mediaIndex].config
       videoConfig.shouldEnableCustomBitrate = !shouldEnableCustomBitrate
       if (!shouldEnableCustomBitrate) {
         if (!videoConfig.audioConfig) {
@@ -51,9 +58,10 @@ function AudioBitrate({ mediaIndex }: AudioBitrateProps) {
           videoConfig.audioConfig.bitrate = null
         }
       }
-      appProxy.state.videos[mediaIndex].isConfigDirty = true
+      appProxy.state.media[mediaIndex].isConfigDirty = true
     } else {
-      if (appProxy.state.videos.length > 1) {
+      // TODO: adjust this for all media types
+      if (appProxy.state.media.length > 1) {
         const commonConfig = appProxy.state.commonConfigForBatchCompression
         commonConfig.shouldEnableCustomBitrate = !shouldEnableCustomBitrate
         if (!commonConfig.audioConfig) {
@@ -73,15 +81,20 @@ function AudioBitrate({ mediaIndex }: AudioBitrateProps) {
     (value: string) => {
       const bitrate = Number.parseInt(value, 10)
 
-      if (mediaIndex >= 0 && appProxy.state.videos[mediaIndex]?.config) {
-        const videoConfig = appProxy.state.videos[mediaIndex].config
+      if (
+        mediaIndex >= 0 &&
+        appProxy.state.media[mediaIndex].type === 'video' &&
+        appProxy.state.media[mediaIndex]?.config
+      ) {
+        const videoConfig = appProxy.state.media[mediaIndex].config
         if (!videoConfig.audioConfig) {
           videoConfig.audioConfig = { volume: 100 }
         }
         videoConfig.audioConfig.bitrate = bitrate
-        appProxy.state.videos[mediaIndex].isConfigDirty = true
+        appProxy.state.media[mediaIndex].isConfigDirty = true
       } else {
-        if (appProxy.state.videos.length > 1) {
+        // TODO: adjust this for all media types
+        if (appProxy.state.media.length > 1) {
           if (!appProxy.state.commonConfigForBatchCompression.audioConfig) {
             appProxy.state.commonConfigForBatchCompression.audioConfig = {
               volume: 100,
@@ -97,7 +110,7 @@ function AudioBitrate({ mediaIndex }: AudioBitrateProps) {
   )
 
   const shouldDisableInput =
-    videos.length === 0 ||
+    media.length === 0 ||
     isCompressing ||
     isProcessCompleted ||
     isLoadingMediaFiles ||

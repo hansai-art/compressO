@@ -6,7 +6,7 @@ import { useSnapshot } from 'valtio'
 import Select from '@/components/Select'
 import Switch from '@/components/Switch'
 import { slideDownTransition } from '@/utils/animation'
-import { appProxy, normalizeBatchVideosConfig } from '../../-state'
+import { appProxy, normalizeBatchVideosConfig } from '../../../../-state'
 
 const FPS = [24, 25, 30, 50, 60] as const
 
@@ -17,25 +17,33 @@ type VideoFPSProps = {
 function VideoFPS({ mediaIndex }: VideoFPSProps) {
   const {
     state: {
-      videos,
+      media,
       isCompressing,
       isProcessCompleted,
       commonConfigForBatchCompression,
       isLoadingMediaFiles,
     },
   } = useSnapshot(appProxy)
-  const video = videos.length > 0 && mediaIndex >= 0 ? videos[mediaIndex] : null
+  const video =
+    media.length > 0 && mediaIndex >= 0 && media[mediaIndex].type === 'video'
+      ? media[mediaIndex]
+      : null
   const { config, fps } = video ?? {}
   const { shouldEnableCustomFPS, customFPS } =
     config ?? commonConfigForBatchCompression ?? {}
 
   const handleSwitchToggle = useCallback(() => {
-    if (mediaIndex >= 0 && appProxy.state.videos[mediaIndex]?.config) {
-      appProxy.state.videos[mediaIndex].config.shouldEnableCustomFPS =
+    if (
+      mediaIndex >= 0 &&
+      appProxy.state.media[mediaIndex].type === 'video' &&
+      appProxy.state.media[mediaIndex]?.config
+    ) {
+      appProxy.state.media[mediaIndex].config.shouldEnableCustomFPS =
         !shouldEnableCustomFPS
-      appProxy.state.videos[mediaIndex].isConfigDirty = true
+      appProxy.state.media[mediaIndex].isConfigDirty = true
     } else {
-      if (appProxy.state.videos.length > 1) {
+      // TODO: adjust this for all media types
+      if (appProxy.state.media.length > 1) {
         appProxy.state.commonConfigForBatchCompression.shouldEnableCustomFPS =
           !shouldEnableCustomFPS
         normalizeBatchVideosConfig()
@@ -45,11 +53,16 @@ function VideoFPS({ mediaIndex }: VideoFPSProps) {
 
   const handleValueChange = useCallback(
     (value: number) => {
-      if (mediaIndex >= 0 && appProxy.state.videos[mediaIndex]?.config) {
-        appProxy.state.videos[mediaIndex].config.customFPS = +value
-        appProxy.state.videos[mediaIndex].isConfigDirty = true
+      if (
+        mediaIndex >= 0 &&
+        appProxy.state.media[mediaIndex].type === 'video' &&
+        appProxy.state.media[mediaIndex]?.config
+      ) {
+        appProxy.state.media[mediaIndex].config.customFPS = +value
+        appProxy.state.media[mediaIndex].isConfigDirty = true
       } else {
-        if (appProxy.state.videos.length > 1) {
+        // TODO: adjust this for all media types
+        if (appProxy.state.media.length > 1) {
           appProxy.state.commonConfigForBatchCompression.customFPS = +value
           normalizeBatchVideosConfig()
         }
@@ -59,7 +72,7 @@ function VideoFPS({ mediaIndex }: VideoFPSProps) {
   )
 
   const shouldDisableInput =
-    videos.length === 0 ||
+    media.length === 0 ||
     isCompressing ||
     isProcessCompleted ||
     isLoadingMediaFiles

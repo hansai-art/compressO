@@ -5,7 +5,7 @@ import prettyBytes from 'pretty-bytes'
  * @param {number} bytes: Bytes to format
  */
 export function formatBytes(bytes: number): string {
-  if (!bytes) return ''
+  if (!bytes) return '0'
   return prettyBytes(bytes)
 }
 

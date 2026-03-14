@@ -62,6 +62,7 @@ export const imageConfigInitialState: ImageConfig = {
 }
 
 const appInitialState: App = {
+  activeTab: 'all',
   media: [],
   isLoadingMediaFiles: false,
   totalSelectedMediaCount: 0,

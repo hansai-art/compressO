@@ -9,7 +9,7 @@ import Switch from '@/components/Switch'
 import Tooltip from '@/components/Tooltip'
 import { compressionPresets } from '@/types/compression'
 import { slideDownTransition } from '@/utils/animation'
-import { appProxy, normalizeBatchVideosConfig } from '../../-state'
+import { appProxy, normalizeBatchVideosConfig } from '../../../../-state'
 
 const PRESETS: {
   name: keyof typeof compressionPresets
@@ -34,23 +34,31 @@ function CompressionPreset({ mediaIndex }: CompressionPresetProps) {
     state: {
       isCompressing,
       isProcessCompleted,
-      videos,
+      media,
       commonConfigForBatchCompression,
       isLoadingMediaFiles,
     },
   } = useSnapshot(appProxy)
-  const video = videos.length > 0 && mediaIndex >= 0 ? videos[mediaIndex] : null
+  const video =
+    media.length > 0 && mediaIndex >= 0 && media[mediaIndex].type === 'video'
+      ? media[mediaIndex]
+      : null
   const { config } = video ?? {}
   const { presetName, shouldDisableCompression } =
     config ?? commonConfigForBatchCompression ?? {}
 
   const handleSwitchToggle = useCallback(() => {
-    if (mediaIndex >= 0 && appProxy.state.videos[mediaIndex]?.config) {
-      appProxy.state.videos[mediaIndex].config.shouldDisableCompression =
+    if (
+      mediaIndex >= 0 &&
+      appProxy.state.media[mediaIndex].type === 'video' &&
+      appProxy.state.media[mediaIndex]?.config
+    ) {
+      appProxy.state.media[mediaIndex].config.shouldDisableCompression =
         !shouldDisableCompression
-      appProxy.state.videos[mediaIndex].isConfigDirty = true
+      appProxy.state.media[mediaIndex].isConfigDirty = true
     } else {
-      if (appProxy.state.videos.length > 1) {
+      if (appProxy.state.media.length > 1) {
+        // TODO: adjust this for all media types
         appProxy.state.commonConfigForBatchCompression.shouldDisableCompression =
           !shouldDisableCompression
         normalizeBatchVideosConfig()
@@ -61,11 +69,16 @@ function CompressionPreset({ mediaIndex }: CompressionPresetProps) {
   const handleValueChange = useCallback(
     (value: keyof typeof compressionPresets) => {
       if (value?.length > 0) {
-        if (mediaIndex >= 0 && appProxy.state.videos[mediaIndex]?.config) {
-          appProxy.state.videos[mediaIndex].config.presetName = value
-          appProxy.state.videos[mediaIndex].isConfigDirty = true
+        if (
+          mediaIndex >= 0 &&
+          appProxy.state.media[mediaIndex].type === 'video' &&
+          appProxy.state.media[mediaIndex]?.config
+        ) {
+          appProxy.state.media[mediaIndex].config.presetName = value
+          appProxy.state.media[mediaIndex].isConfigDirty = true
         } else {
-          if (appProxy.state.videos.length > 1) {
+          // TODO: adjust this for all media types
+          if (appProxy.state.media.length > 1) {
             appProxy.state.commonConfigForBatchCompression.presetName = value
             normalizeBatchVideosConfig()
           }
@@ -76,7 +89,7 @@ function CompressionPreset({ mediaIndex }: CompressionPresetProps) {
   )
 
   const shouldDisableInput =
-    videos.length === 0 ||
+    media.length === 0 ||
     isCompressing ||
     isProcessCompleted ||
     isLoadingMediaFiles
@@ -120,7 +133,6 @@ function CompressionPreset({ mediaIndex }: CompressionPresetProps) {
                 }}
               >
                 {PRESETS?.map((preset) => (
-                  // Right now if we use SelectItem it breaks the code so opting for SelectItem from NextUI directly
                   <SelectItem
                     key={preset.name}
                     textValue={preset.name}

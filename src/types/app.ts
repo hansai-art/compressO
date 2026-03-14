@@ -168,6 +168,7 @@ export type Image = {
 }
 
 export type App = {
+  activeTab: 'all' | 'videos' | 'images'
   batchId?: string
   media: ((Video & { type: 'video' }) | (Image & { type: 'image' }))[]
   isLoadingMediaFiles: boolean

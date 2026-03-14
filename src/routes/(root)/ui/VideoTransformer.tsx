@@ -254,7 +254,7 @@ function VideoTransformer({ mediaIndex }: VideoTransformerProps) {
         <>
           <Button size="sm" isIconOnly onPress={resetZoom}>
             <Tooltip content="Reset Zoom" aria-label="Reset Zoom">
-              <Icon name="resetZoom" size={20} />
+              <Icon name="zoom" size={20} />
             </Tooltip>
             <Divider className="my-3 h-5" orientation="vertical" />
           </Button>{' '}
