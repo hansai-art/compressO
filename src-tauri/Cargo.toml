@@ -46,9 +46,7 @@ tauri-plugin-updater = "2.0.0"
 wgpu = "23.0.1"
 clipboard-rs = "0.3.2"
 oxipng = { version = "9", features = ["parallel", "zopfli", "filetime"], default-features = false }
-mozjpeg = "0.9.5"
 webp = "0.3"
-gif = "0.12"
 img-parts = "0.4.0"
 
 [target.'cfg(target_os = "linux")'.dependencies]

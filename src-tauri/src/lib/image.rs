@@ -36,7 +36,7 @@ pub struct ImageCompressor {
     app: AppHandle,
     pngquant: Command,
     jpegoptim: Command,
-    gifsicle: Command,
+    gifski: Command,
     assets_dir: PathBuf,
     ffmpeg: FFMPEG,
 }
@@ -55,9 +55,9 @@ impl ImageCompressor {
             Err(err) => return Err(format!("[jpegoptim-sidecar]: {:?}", err.to_string())),
         };
 
-        let gifsicle = match app.shell().sidecar("compresso_gifsicle") {
+        let gifski = match app.shell().sidecar("compresso_gifski") {
             Ok(command) => Command::from(command),
-            Err(err) => return Err(format!("[gifsicle-sidecar]: {:?}", err.to_string())),
+            Err(err) => return Err(format!("[gifski-sidecar]: {:?}", err.to_string())),
         };
 
         let app_data_dir = match app.path().app_data_dir() {
@@ -76,7 +76,7 @@ impl ImageCompressor {
             app: app.to_owned(),
             pngquant,
             jpegoptim,
-            gifsicle,
+            gifski,
             assets_dir,
             ffmpeg,
         })
@@ -127,7 +127,7 @@ impl ImageCompressor {
                     quality,
                     image_id,
                     is_lossless.unwrap_or(true),
-                    strip_metadata.unwrap_or_default(),
+                    strip_metadata.unwrap_or(true),
                 )
                 .await?
             }
@@ -137,7 +137,7 @@ impl ImageCompressor {
                     quality,
                     image_id,
                     is_lossless.unwrap_or(true),
-                    strip_metadata.unwrap_or_default(),
+                    strip_metadata.unwrap_or(true),
                 )
                 .await?
             }
@@ -147,7 +147,7 @@ impl ImageCompressor {
                     quality,
                     image_id,
                     is_lossless.unwrap_or(true),
-                    strip_metadata.unwrap_or_default(),
+                    strip_metadata.unwrap_or(true),
                 )
                 .await?
             }
@@ -157,7 +157,7 @@ impl ImageCompressor {
                     quality,
                     image_id,
                     is_lossless.unwrap_or(true),
-                    strip_metadata.unwrap_or_default(),
+                    strip_metadata.unwrap_or(true),
                 )
                 .await?
             }
@@ -167,7 +167,7 @@ impl ImageCompressor {
                     quality,
                     image_id,
                     is_lossless.unwrap_or(true),
-                    strip_metadata.unwrap_or_default(),
+                    strip_metadata.unwrap_or(true),
                 )
                 .await?
             }
@@ -483,30 +483,43 @@ impl ImageCompressor {
             .iter()
             .collect();
 
-        if !is_lossless {
-            let quality_param = quality.max(1).min(100);
+        let output_path_str = output_path
+            .to_str()
+            .ok_or("Invalid output path")?
+            .to_string();
 
-            let lossy_arg = format!("--lossy={}", quality_param);
-            let output_path_str = output_path.to_str().unwrap().to_string();
-
-            let command = self
-                .gifsicle
-                .args(["-o", &lossy_arg, "--verbose", image_path, &output_path_str])
-                .stdout(Stdio::piped())
-                .stderr(Stdio::piped());
-
-            let child = SharedChild::spawn(command)
-                .map_err(|e| format!("Failed to run gifsicle: {}", e))?;
-            let cp = Arc::new(child);
-
-            match cp.wait() {
-                Ok(status) if status.success() => {}
-                Ok(_) => return Err(String::from("gifsicle failed")),
-                Err(e) => return Err(format!("gifsicle error: {}", e)),
-            };
+        let gifski_quality = if is_lossless {
+            100 // No support for true lossless, we'll just compress into highest quality
         } else {
-            std::fs::copy(image_path, &output_path).map_err(|e| e.to_string())?;
+            quality.clamp(1, 100)
+        };
+
+        let quality_str = gifski_quality.to_string();
+
+        let args = vec!["-Q", &quality_str, "-o", &output_path_str, image_path];
+
+        if strip_metadata {
+            // No support for webp container for now
         }
+
+        log::info!("[image] gifski command: {:?}", args);
+
+        let command = self
+            .gifski
+            .args(&args)
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped());
+
+        let child =
+            SharedChild::spawn(command).map_err(|e| format!("Failed to run gifski: {}", e))?;
+
+        let cp = Arc::new(child);
+
+        match cp.wait() {
+            Ok(status) if status.success() => {}
+            Ok(_) => return Err("gifski failed".into()),
+            Err(e) => return Err(format!("gifski error: {}", e)),
+        };
 
         Ok(output_path)
     }
