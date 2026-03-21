@@ -370,14 +370,11 @@ impl MediaProcessExecutor {
         let should_cancel = Arc::new(Mutex::new(false));
         let processes_shared = Arc::new(Mutex::new(Vec::<Child>::new()));
 
-        // Spawn processes sequentially with stdout -> stdin piping
         let mut previous_stdout: Option<std::process::ChildStdout> = None;
         let command_count = self.commands.len();
 
         for (idx, mut cmd) in self.commands.into_iter().enumerate() {
-            // Configure stdin/stdout for piping
             if idx > 0 {
-                // All processes except the first get stdin from previous process's stdout
                 if let Some(stdout) = previous_stdout {
                     cmd.stdin(stdout);
                     log::debug!(
@@ -397,9 +394,7 @@ impl MediaProcessExecutor {
                 cmd.stdout(std::process::Stdio::piped());
             }
 
-            // Spawn the process
             let mut child = cmd.spawn().map_err(|e| {
-                // Kill any previously spawned processes on error
                 let mut processes = processes_shared.lock().unwrap();
                 for process in processes.iter_mut() {
                     process.kill().ok();
@@ -407,11 +402,9 @@ impl MediaProcessExecutor {
                 format!("Failed to spawn process {}: {}", idx, e)
             })?;
 
-            // Take stdout for next process (except for the last one)
             if idx < command_count - 1 {
                 previous_stdout = child.stdout.take();
                 if previous_stdout.is_none() {
-                    // Kill spawned processes and return error
                     let mut processes = processes_shared.lock().unwrap();
                     for process in processes.iter_mut() {
                         process.kill().ok();
@@ -422,7 +415,6 @@ impl MediaProcessExecutor {
                     ));
                 }
             } else {
-                // Last process - drop any stdout reference
                 previous_stdout = None;
             }
 
@@ -433,7 +425,6 @@ impl MediaProcessExecutor {
             );
         }
 
-        // Move processes into shared container for closures
         *processes_shared.lock().unwrap() = processes;
         let process_count = processes_shared.lock().unwrap().len();
 
@@ -486,11 +477,10 @@ impl MediaProcessExecutor {
             event_ids.push(cancel_id);
         }
 
-        // Log stderr from ALL processes
         #[cfg(debug_assertions)]
         {
-            let procs = processes_shared.lock().unwrap();
-            for (idx, _proc) in procs.iter().enumerate() {
+            let process = processes_shared.lock().unwrap();
+            for (idx, _process) in process.iter().enumerate() {
                 // Note: Child doesn't have take_stderr(), so we can't log stderr in piped mode
                 // This is a limitation of using Child instead of SharedChild
                 log::debug!(
@@ -500,51 +490,102 @@ impl MediaProcessExecutor {
             }
         }
 
-        // Take processes out of shared container for waiting
         let processes = std::mem::take(&mut *processes_shared.lock().unwrap());
 
-        // Wait for ALL processes to complete
         let mut final_exit_code = 0u8;
         let mut all_success = true;
 
         for (idx, mut proc) in processes.into_iter().enumerate() {
             log::debug!("[media_process] Waiting for process {} to complete", idx);
 
-            match proc.wait() {
-                Ok(status) if status.success() => {
-                    log::debug!("[media_process] Process {} completed successfully", idx);
+            if *should_cancel.lock().unwrap() {
+                log::info!("[media_process] Cancelled before process {}", idx);
+                proc.kill().ok();
+                let _ = proc.wait();
+                if let Some(ref callback) = self.cancel_callback {
+                    callback();
                 }
-                Ok(status) => {
-                    log::error!(
-                        "[media_process] Process {} failed with exit code: {:?}",
-                        idx,
-                        status.code()
+                return Err("CANCELLED".to_string());
+            }
+
+            let (tx, rx) =
+                std::sync::mpsc::channel::<Result<std::process::ExitStatus, std::io::Error>>();
+
+            std::thread::spawn(move || {
+                let result = proc.wait();
+                tx.send(result).ok();
+            });
+
+            loop {
+                tokio::time::sleep(tokio::time::Duration::from_millis(100)).await; // 100ms polling
+
+                if *should_cancel.lock().unwrap() {
+                    log::info!(
+                        "[media_process] Cancelled while waiting for process {} to complete",
+                        idx
                     );
-                    all_success = false;
-                    final_exit_code = status.code().unwrap_or(1) as u8;
-                    // Note: Remaining processes will be killed when the function returns
-                    break;
+                    drop(rx);
+                    if let Some(ref callback) = self.cancel_callback {
+                        callback();
+                    }
+                    return Err("CANCELLED".to_string());
                 }
-                Err(e) => {
-                    log::error!("[media_process] Process {} wait failed: {}", idx, e);
-                    all_success = false;
-                    final_exit_code = 1;
-                    // Note: Remaining processes will be killed when the function returns
-                    break;
+
+                match rx.try_recv() {
+                    Ok(wait_result) => {
+                        match wait_result {
+                            Ok(exit_status) => {
+                                if exit_status.success() {
+                                    log::debug!(
+                                        "[media_process] Process {} completed successfully",
+                                        idx
+                                    );
+                                } else {
+                                    log::error!(
+                                        "[media_process] Process {} failed with exit code: {:?}",
+                                        idx,
+                                        exit_status.code()
+                                    );
+                                    all_success = false;
+                                    final_exit_code = exit_status.code().unwrap_or(1) as u8;
+                                }
+                            }
+                            Err(e) => {
+                                log::error!("[media_process] Process {} wait failed: {}", idx, e);
+                                all_success = false;
+                                final_exit_code = 1;
+                            }
+                        }
+                        break;
+                    }
+                    Err(std::sync::mpsc::TryRecvError::Empty) => {
+                        // Process not done yet, continue polling
+                        continue;
+                    }
+                    Err(std::sync::mpsc::TryRecvError::Disconnected) => {
+                        log::error!("[media_process] Process {} wait channel disconnected", idx);
+                        all_success = false;
+                        final_exit_code = 1;
+                        break;
+                    }
                 }
+            }
+
+            if !all_success {
+                break;
+            }
+
+            if *should_cancel.lock().unwrap() {
+                log::info!("[media_process] Cancelled after process {} completed", idx);
+                if let Some(ref callback) = self.cancel_callback {
+                    callback();
+                }
+                return Err("CANCELLED".to_string());
             }
         }
 
         for event_id in event_ids {
             window.unlisten(event_id);
-        }
-
-        let is_cancelled = *should_cancel.lock().unwrap();
-        if is_cancelled {
-            if let Some(ref callback) = self.cancel_callback {
-                callback();
-            }
-            return Err("CANCELLED".to_string());
         }
 
         if !all_success {
