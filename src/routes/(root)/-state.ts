@@ -41,7 +41,7 @@ export const videoConfigInitialState: VideoConfig = {
   shouldEnableAudioTrackSelection: false,
   quality: 50,
   shouldEnableQuality: false,
-  shouldPreserveMetadata: true,
+  shouldPreserveMetadata: false,
   metadataConfig: null,
   customThumbnailPath: null,
   shouldEnableCustomThumbnail: false,

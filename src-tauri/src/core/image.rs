@@ -144,7 +144,6 @@ impl ImageCompressor {
                     batch_id.as_str(),
                     is_lossless.unwrap_or(true),
                     quality,
-                    strip_metadata.unwrap_or(true),
                 )
                 .await?
             }
@@ -156,7 +155,6 @@ impl ImageCompressor {
                     batch_id.as_str(),
                     is_lossless.unwrap_or(true),
                     quality,
-                    strip_metadata.unwrap_or(true),
                 )
                 .await?
             }
@@ -166,7 +164,6 @@ impl ImageCompressor {
                     compression_output_path.to_str().unwrap(),
                     is_lossless.unwrap_or(true),
                     quality,
-                    strip_metadata.unwrap_or(true),
                 )
                 .await?
             }
@@ -178,7 +175,6 @@ impl ImageCompressor {
                     batch_id.as_str(),
                     is_lossless.unwrap_or(true),
                     quality,
-                    strip_metadata.unwrap_or(true),
                 )
                 .await?
             }
@@ -229,7 +225,6 @@ impl ImageCompressor {
                                     &temp_png_path,
                                     "png",
                                     100, // full quality
-                                    true,
                                 )
                                 .await
                             {
@@ -258,7 +253,6 @@ impl ImageCompressor {
                             output_path.to_str().unwrap(),
                             output_extension,
                             quality,
-                            strip_metadata.unwrap_or(true),
                         )
                         .await?;
                     }
@@ -275,6 +269,28 @@ impl ImageCompressor {
             // Clean up intermediate temp file
             if let Some(intermediate) = intermediate_path {
                 let _ = fs::remove_file(&intermediate);
+            }
+        }
+
+        if !strip_metadata.unwrap_or(true) {
+            match output_extension {
+                "png" => {
+                    let _ = self.copy_image_metadata(
+                        ImageContainer::Png,
+                        input_path,
+                        output_path.to_str().unwrap(),
+                    );
+                }
+                "jpg" | "jpeg" => {
+                    let _ = self.copy_image_metadata(
+                        ImageContainer::Jpeg,
+                        input_path,
+                        output_path.to_str().unwrap(),
+                    );
+                }
+                _ => {
+                    // No support for now
+                }
             }
         }
 
@@ -389,33 +405,23 @@ impl ImageCompressor {
         batch_id: &str,
         is_lossless: bool,
         quality: u8,
-        strip_metadata: bool,
     ) -> Result<(), String> {
         if is_lossless {
             let mut options = Options::default();
 
             options.deflate = Deflaters::Libdeflater { compression: 12 };
             options.optimize_alpha = true;
-
-            options.strip = if strip_metadata {
-                StripChunks::All
-            } else {
-                StripChunks::Safe
-            };
+            options.strip = StripChunks::All;
 
             optimize(
                 &InFile::Path(PathBuf::from(input_path)),
                 &OutFile::Path {
                     path: Some(PathBuf::from(output_path)),
-                    preserve_attrs: !strip_metadata,
+                    preserve_attrs: false,
                 },
                 &options,
             )
             .map_err(|e| format!("PNG optimization failed: {:?}", e))?;
-
-            if !strip_metadata {
-                let _ = self.copy_image_metadata(ImageContainer::Png, input_path, output_path);
-            }
 
             return Ok(());
         } else {
@@ -424,14 +430,7 @@ impl ImageCompressor {
             let quality_str = quality.clamp(1, 100).to_string();
 
             let result = self
-                .run_pngquant(
-                    input_path,
-                    output_path,
-                    image_id,
-                    batch_id,
-                    &quality_str,
-                    strip_metadata,
-                )
+                .run_pngquant(input_path, output_path, image_id, batch_id, &quality_str)
                 .await;
 
             match result {
@@ -452,7 +451,6 @@ impl ImageCompressor {
                         image_id,
                         batch_id,
                         &format!("0-{}", quality),
-                        strip_metadata,
                     )
                     .await?;
                     return Ok(());
@@ -471,7 +469,6 @@ impl ImageCompressor {
         image_id: &str,
         batch_id: &str,
         quality_str: &str,
-        strip_metadata: bool,
     ) -> Result<PathBuf, String> {
         let mut args: Vec<&str> = vec!["--quality", quality_str, "--force", "--strip"];
 
@@ -503,10 +500,6 @@ impl ImageCompressor {
             return Err(String::from("Failed to run pngquant"));
         }
 
-        if !strip_metadata {
-            let _ = self.copy_image_metadata(ImageContainer::Png, input_path, output_path);
-        }
-
         Ok(PathBuf::from(output_path))
     }
 
@@ -518,7 +511,6 @@ impl ImageCompressor {
         batch_id: &str,
         is_lossless: bool,
         quality: u8,
-        strip_metadata: bool,
     ) -> Result<(), String> {
         std::fs::copy(input_path, &output_path).map_err(|e| e.to_string())?;
 
@@ -559,10 +551,6 @@ impl ImageCompressor {
             return Err(String::from("Failed to convert to jpeg."));
         }
 
-        if !strip_metadata {
-            let _ = self.copy_image_metadata(ImageContainer::Jpeg, input_path, output_path);
-        }
-
         Ok(())
     }
 
@@ -572,7 +560,6 @@ impl ImageCompressor {
         output_path: &str,
         is_lossless: bool,
         quality: u8,
-        strip_metadata: bool,
     ) -> Result<(), String> {
         let img = ImageReader::open(input_path)
             .map_err(|e| e.to_string())?
@@ -592,9 +579,6 @@ impl ImageCompressor {
             encoder.encode(encoder_quality as f32)
         };
 
-        if strip_metadata {
-            // No support for webp container for now
-        }
         std::fs::write(&output_path, webp_data.to_vec()).map_err(|e| e.to_string())?;
 
         Ok(())
@@ -608,7 +592,6 @@ impl ImageCompressor {
         batch_id: &str,
         is_lossless: bool,
         quality: u8,
-        strip_metadata: bool,
     ) -> Result<(), String> {
         let output_path_str = output_path.to_string();
 
@@ -621,10 +604,6 @@ impl ImageCompressor {
         let quality_str = gifski_quality.to_string();
 
         let args = vec!["-Q", &quality_str, "-o", &output_path_str, input_path];
-
-        if strip_metadata {
-            // No support for gif container for now
-        }
 
         log::info!("[image] gifski command: {:?}", args);
 
@@ -831,7 +810,6 @@ impl ImageCompressor {
         output_path: &str,
         output_format: &str,
         quality: u8,
-        strip_metadata: bool,
     ) -> Result<(), String> {
         if !PathBuf::from(input_path).exists() {
             return Err(String::from("Input image file does not exist."));
@@ -877,10 +855,8 @@ impl ImageCompressor {
             }
         }
 
-        if strip_metadata {
-            cmd_args.push("-map_metadata".to_string());
-            cmd_args.push("-1".to_string());
-        }
+        cmd_args.push("-map_metadata".to_string());
+        cmd_args.push("-1".to_string());
 
         cmd_args.push("-y".to_string());
         cmd_args.push(output_path.to_string());

@@ -52,10 +52,12 @@ const ImageMetadata = ({ mediaIndex }: ImageMetadataProps) => {
     media.length === 0 ||
     isCompressing ||
     isProcessCompleted ||
-    (['gif', 'svg'] as ImageExtension[]).includes(
+    (['gif', 'svg', 'webp'] as ImageExtension[]).includes(
       image?.extension as ImageExtension,
     ) ||
-    convertToExtension === 'svg'
+    (['svg', 'webp'] as ImageExtension[]).includes(
+      convertToExtension as ImageExtension,
+    )
 
   return (
     <Switch
