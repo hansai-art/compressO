@@ -11,6 +11,7 @@ import { subscribeKey } from 'valtio/utils'
 import Icon from '@/components/Icon'
 import Image from '@/components/Image'
 import ImageViewer from '@/components/ImageViewer'
+import Popover, { PopoverContent, PopoverTrigger } from '@/components/Popover'
 import useTimelineEngine from '@/components/Timeline/useTimelineEngine'
 import Tooltip from '@/components/Tooltip'
 import VideoPlayer, { VideoPlayerRef } from '@/components/VideoPlayer'
@@ -416,27 +417,62 @@ function MediaThumbnail({ mediaIndex }: MediaThumbnailProps) {
               {!showTransformerLayout ? (
                 <div className="absolute bottom-3 right-3 z-[10] flex items-center gap-3 bg-zinc-900/10 dark:bg-zinc-900/40 min-h-[25px] px-2 rounded-2xl">
                   {mediaFile?.type === 'video' &&
+                  mediaFile?.previewMode === 'image' ? (
+                    <Popover>
+                      <PopoverTrigger>
+                        <button>
+                          <Icon
+                            name="info"
+                            size={20}
+                            className="cursor-pointer"
+                          />
+                        </button>
+                      </PopoverTrigger>
+                      <PopoverContent>
+                        <div className="py-2 px-1 max-w-[250px]">
+                          <p>
+                            This video is unable to play by this app because it
+                            contains advanced codec/configurations. Such videos
+                            require dedicated media players like VLC.
+                          </p>
+                          {!isProcessCompleted ? (
+                            <>
+                              <br />
+                              <p>
+                                Rest assured, you can still apply the output
+                                settings and perform all the conversions.
+                              </p>
+                            </>
+                          ) : null}
+                        </div>
+                      </PopoverContent>
+                    </Popover>
+                  ) : null}
+                  {mediaFile?.type === 'video' &&
                   mediaFile.videoDuration &&
                   !isProcessCompleted ? (
-                    <Button
-                      size="sm"
-                      variant="light"
-                      isIconOnly
-                      onPress={() => {
-                        handleRegenerateThumbnail()
-                      }}
-                      isDisabled={isThumbnailRegenerating}
-                      isLoading={isThumbnailRegenerating}
-                      className="!p-0 !min-h-0 !py-2 !w-[unset] !min-w-[unset] !h-0 "
-                    >
-                      <Tooltip
-                        content="Regenerate Thumbnail"
-                        className="w-0! h-0!"
+                    <>
+                      <Button
+                        size="sm"
+                        variant="light"
+                        isIconOnly
+                        onPress={() => {
+                          handleRegenerateThumbnail()
+                        }}
+                        isDisabled={isThumbnailRegenerating}
+                        isLoading={isThumbnailRegenerating}
+                        className="!p-0 !min-h-0 !py-2 !w-[unset] !min-w-[unset] !h-0 "
                       >
-                        <Icon name="image" size={20} />
-                      </Tooltip>
-                    </Button>
+                        <Tooltip
+                          content="Regenerate Thumbnail"
+                          className="w-0! h-0!"
+                        >
+                          <Icon name="image" size={20} />
+                        </Tooltip>
+                      </Button>
+                    </>
                   ) : null}
+
                   <ImageViewer
                     // @ts-ignore
                     providerProps={
