@@ -138,6 +138,12 @@ function StartCompression() {
                             Math.round(v.config.customDimensions[1]),
                           ] as [number, number])
                         : null,
+
+                    speed:
+                      v.config?.shouldEnableCustomSpeed &&
+                      v.config.customSpeed !== 1
+                        ? v.config.customSpeed
+                        : null,
                     fps: v.config?.shouldEnableCustomFPS
                       ? v.config.customFPS?.toString?.()
                       : null,

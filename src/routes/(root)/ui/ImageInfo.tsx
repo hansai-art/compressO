@@ -529,9 +529,6 @@ function ExifDisplay({ exif }: { exif: ExifInfo }) {
           transition={{ delay: 0.5 }}
           className="space-y-4"
         >
-          <h3 className="text-lg font-semibold text-primary select-text">
-            All EXIF Tags
-          </h3>
           <div className="space-y-2">
             {exif.tags.map((tag, index) => (
               <div key={index}>

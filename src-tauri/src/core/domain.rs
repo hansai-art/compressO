@@ -149,6 +149,7 @@ pub struct VideoCompressionConfig {
     pub should_enable_custom_thumbnail: Option<bool>,
     pub trim_segments: Option<Vec<VideoTrimSegment>>,
     pub subtitles_config: Option<SubtitlesConfig>,
+    pub speed: Option<f32>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]

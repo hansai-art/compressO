@@ -223,6 +223,7 @@ export type VideoCompressionConfig = {
   customThumbnailPath?: string | null
   trimSegments?: VideoTrimSegment[] | null
   subtitlesConfig?: SubtitlesConfig | null
+  speed?: number | null
 }
 
 export type ImageCompressionProgress = {

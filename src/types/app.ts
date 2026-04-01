@@ -86,6 +86,8 @@ export type VideoConfig = {
   shouldEnableAudioTrackSelection?: boolean
   selectedAudioTracks?: number[]
   subtitlesConfig?: SubtitlesConfig | null
+  shouldEnableCustomSpeed?: boolean
+  customSpeed?: number | null
 }
 
 export type Video = {
