@@ -334,7 +334,6 @@ impl FFMPEG {
                 "".to_string()
             };
 
-        // Speed filter
         let clamped_speed = speed.map(|s| s.clamp(0.25, 4.0));
         let video_speed_filter = if let Some(speed_value) = clamped_speed {
             if speed_value != 1.0 {
