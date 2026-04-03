@@ -1,8 +1,9 @@
 use crate::core::domain::{
     AudioConfig, BatchCompressionResult, BatchVideoCompressionProgress,
     BatchVideoIndividualCompressionResult, CustomEvents, MediaMetadataConfig, MediaTransform,
-    MediaTransformCrop, MediaTransformHistory, SubtitlesConfig, VideoCompressionConfig,
-    VideoCompressionProgress, VideoCompressionResult, VideoThumbnail, VideoTrimSegment,
+    MediaTransformCrop, MediaTransformHistory, SubtitleStream, SubtitlesConfig,
+    VideoCompressionConfig, VideoCompressionProgress, VideoCompressionResult, VideoThumbnail,
+    VideoTrimSegment,
 };
 use crate::core::ffprobe::FFPROBE;
 use crate::core::image::ImageCompressor;
@@ -79,19 +80,19 @@ impl FFMPEG {
         };
         let has_audio_stream = !audio_streams.is_empty();
 
-        // Detect existing subtitle streams in source video
-        let (existing_subtitle_count, _) = {
+        let (existing_subtitle_count, existing_subtitle_streams): (usize, Vec<SubtitleStream>) = {
             if let Some(subs_config) = subtitles_config {
                 let preserve = subs_config.preserve_existing_subtitles.unwrap_or(false);
                 if preserve {
                     let mut ffprobe = FFPROBE::new(&self.app)?;
-                    let count = ffprobe.get_subtitle_streams(video_path).await?.len();
-                    (count, true)
+                    let streams = ffprobe.get_subtitle_streams(video_path).await?;
+                    let count = streams.len();
+                    (count, streams)
                 } else {
-                    (0, false)
+                    (0, Vec::new())
                 }
             } else {
-                (0, false)
+                (0, Vec::new())
             }
         };
         let has_existing_subtitles = existing_subtitle_count > 0;
@@ -130,35 +131,34 @@ impl FFMPEG {
             }
         }
 
-        let subtitle_input_indices: Vec<(usize, String)> =
-            if !is_gif_target && convert_to_extension != "webm" {
-                if let Some(subs_config) = subtitles_config {
-                    if subs_config.should_enable_subtitles.unwrap_or(false) {
-                        let mut indices = Vec::new();
-                        for sub in &subs_config.subtitles {
-                            if let Some(ref sub_path) = sub.subtitle_path {
-                                if sub_path.len() > 0 {
-                                    cmd_args.extend_from_slice(&["-i", sub_path]);
-                                    let lang = if sub.language == "und" {
-                                        String::new()
-                                    } else {
-                                        sub.language.clone()
-                                    };
-                                    indices.push((input_index, lang));
-                                    input_index += 1;
-                                }
+        let subtitle_input_indices: Vec<(usize, String)> = if !is_gif_target {
+            if let Some(subs_config) = subtitles_config {
+                if subs_config.should_enable_subtitles.unwrap_or(false) {
+                    let mut indices = Vec::new();
+                    for sub in &subs_config.subtitles {
+                        if let Some(ref sub_path) = sub.subtitle_path {
+                            if sub_path.len() > 0 {
+                                cmd_args.extend_from_slice(&["-i", sub_path]);
+                                let lang = if sub.language == "und" {
+                                    String::new()
+                                } else {
+                                    sub.language.clone()
+                                };
+                                indices.push((input_index, lang));
+                                input_index += 1;
                             }
                         }
-                        indices
-                    } else {
-                        Vec::new()
                     }
+                    indices
                 } else {
                     Vec::new()
                 }
             } else {
                 Vec::new()
-            };
+            }
+        } else {
+            Vec::new()
+        };
 
         let should_strip_metadata = strip_metadata.unwrap_or(false);
         if should_strip_metadata {
@@ -689,14 +689,41 @@ impl FFMPEG {
 
         if !is_gif_target {
             if has_existing_subtitles {
-                for idx in 0..existing_subtitle_count {
+                // Bitmap subtitle codecs that are not compatible with MP4/WebM
+                let bitmap_codecs = ["hdmv_pgs_subtitle", "dvd_subtitle", "xsub"];
+
+                for (idx, stream) in existing_subtitle_streams.iter().enumerate() {
+                    let is_bitmap = bitmap_codecs.contains(&stream.codec.as_str());
+                    let output_container = convert_to_extension;
+
+                    // Skip bitmap subtitles for non-MKV containers
+                    if is_bitmap && output_container != "mkv" {
+                        log::warn!(
+                            "[ffmpeg] Skipping bitmap subtitle stream {} (codec: {}) - not compatible with {} container",
+                            idx,
+                            stream.codec,
+                            output_container
+                        );
+                        continue;
+                    }
+
+                    // Skip ALL subtitles for AVI container (poor subtitle support)
+                    if output_container == "avi" {
+                        log::warn!("[ffmpeg] Skipping subtitle stream {} (codec: {}) - AVI container has limited subtitle support", idx, stream.codec);
+                        continue;
+                    }
+
                     subtitle_args_owned.push("-map".to_string());
                     subtitle_args_owned.push(format!("0:s:{}", idx));
 
-                    let subtitle_codec = match convert_to_extension {
+                    // Smart codec selection based on container and subtitle type
+                    let subtitle_codec = match output_container {
+                        "mkv" if is_bitmap => "copy",
                         "mkv" => "srt",
+                        "webm" => "webvtt",
                         _ => "mov_text",
                     };
+
                     subtitle_args_owned.push(format!("-c:s:{}", subtitle_index));
                     subtitle_args_owned.push(subtitle_codec.to_string());
                     subtitle_index += 1;
@@ -704,11 +731,19 @@ impl FFMPEG {
             }
 
             for (sub_input_idx, language) in subtitle_input_indices.iter() {
+                // Skip external subtitles for AVI container (poor subtitle support)
+                if convert_to_extension == "avi" {
+                    log::warn!("[ffmpeg] Skipping external subtitle file - AVI container has limited subtitle support");
+                    continue;
+                }
+
                 subtitle_args_owned.push("-map".to_string());
                 subtitle_args_owned.push(format!("{}:s", sub_input_idx));
 
+                // Smart codec selection for external subtitle files
                 let subtitle_codec = match convert_to_extension {
-                    "mkv" => "srt",
+                    "mkv" => "copy", // External subtitles are usually text-based, copy is safe
+                    "webm" => "webvtt",
                     _ => "mov_text",
                 };
                 subtitle_args_owned.push(format!("-c:s:{}", subtitle_index));
@@ -1121,10 +1156,16 @@ impl FFMPEG {
             String::from("00:00:00.00")
         };
 
-        log::info!("dimensions {:?}", dimensions);
-
         let mut ffmpeg_cmd = self.get_ffmpeg_command()?;
-        ffmpeg_cmd.args(["-i", video_path, "-f", "yuv4mpegpipe", "-"]);
+        ffmpeg_cmd.args([
+            "-i",
+            video_path,
+            "-pix_fmt",
+            "yuv420p", // Convert to 8-bit for yuv4mpegpipe compatibility
+            "-f",
+            "yuv4mpegpipe",
+            "-",
+        ]);
 
         let gifski_quality = quality.clamp(1, 100);
         let mut gifski_args: Vec<String> = vec!["-Q".to_string(), gifski_quality.to_string()];

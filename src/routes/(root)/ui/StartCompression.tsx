@@ -187,11 +187,10 @@ function StartCompression() {
                             ) as VideoTrimSegment[])
                         : null,
                     subtitlesConfig:
-                      v.config?.convertToExtension !== 'webm' &&
-                      ((v.config?.subtitlesConfig?.shouldEnableSubtitles &&
+                      (v.config?.subtitlesConfig?.shouldEnableSubtitles &&
                         v.config?.subtitlesConfig?.subtitles?.length > 0) ||
-                        v.config?.subtitlesConfig?.preserveExistingSubtitles ===
-                          true)
+                      v.config?.subtitlesConfig?.preserveExistingSubtitles ===
+                        true
                         ? {
                             subtitles:
                               v.config.subtitlesConfig?.subtitles?.map((s) => ({
