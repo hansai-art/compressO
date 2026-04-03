@@ -47,6 +47,31 @@
         "ext": ["avi"],
         "mimeType": "video/x-msvideo",
         "role": "Editor"
+      },
+      {
+        "ext": ["png"],
+        "mimeType": "image/png",
+        "role": "Editor"
+      },
+      {
+        "ext": ["jpg", "jpeg"],
+        "mimeType": "image/jpeg",
+        "role": "Editor"
+      },
+      {
+        "ext": ["webp"],
+        "mimeType": "image/webp",
+        "role": "Editor"
+      },
+      {
+        "ext": ["gif"],
+        "mimeType": "image/gif",
+        "role": "Editor"
+      },
+      {
+        "ext": ["svg"],
+        "mimeType": "image/svg+xml",
+        "role": "Editor"
       }
     ],
     "icon": [
