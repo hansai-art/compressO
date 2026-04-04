@@ -244,18 +244,18 @@ function BasicInfoDisplay({
           <div className="grid grid-cols-2 gap-4 mt-4">
             <div>
               <InfoItem label="Width" value={`${dimensions.width}px`} />
-              <Divider className="my-3" />
+              <Divider className="!my-2" />
             </div>
             <div>
               <InfoItem label="Height" value={`${dimensions.height}px`} />
-              <Divider className="my-3" />
+              <Divider className="!my-2" />
             </div>
           </div>
 
           {dimensions.aspectRatio ? (
             <>
               <InfoItem label="Aspect Ratio" value={dimensions.aspectRatio} />
-              <Divider className="my-3" />
+              <Divider className="!my-2" />
             </>
           ) : null}
 
@@ -265,7 +265,7 @@ function BasicInfoDisplay({
                 label="Orientation"
                 value={`${dimensions.orientation}°`}
               />
-              <Divider className="my-3" />
+              <Divider className="!my-2" />
             </>
           ) : null}
 
@@ -275,7 +275,7 @@ function BasicInfoDisplay({
                 label="DPI"
                 value={`${dimensions.dpi[0]} × ${dimensions.dpi[1]}`}
               />
-              <Divider className="my-3" />
+              <Divider className="!my-2" />
             </>
           ) : null}
 
@@ -283,7 +283,7 @@ function BasicInfoDisplay({
             label="Megapixels"
             value={`${dimensions.megapixels.toFixed(2)} MP`}
           />
-          <Divider className="my-3" />
+          <Divider className="!my-2" />
         </>
       )}
     </div>
@@ -296,31 +296,31 @@ function ColorInfoDisplay({ info }: { info: ImageColorInfo }) {
       {info.colorType ? (
         <>
           <InfoItem label="Color Type" value={info.colorType} />
-          <Divider className="my-3" />
+          <Divider className="!my-2" />
         </>
       ) : null}
 
       {info.bitDepth ? (
         <>
           <InfoItem label="Bit Depth" value={`${info.bitDepth}-bit`} />
-          <Divider className="my-3" />
+          <Divider className="!my-2" />
         </>
       ) : null}
 
       <InfoItem label="Alpha Channel" value={info.hasAlpha ? 'Yes' : 'No'} />
-      <Divider className="my-3" />
+      <Divider className="!my-2" />
 
       {info.colorSpace ? (
         <>
           <InfoItem label="Color Space" value={info.colorSpace} />
-          <Divider className="my-3" />
+          <Divider className="!my-2" />
         </>
       ) : null}
 
       {info.pixelFormat ? (
         <>
           <InfoItem label="Pixel Format" value={info.pixelFormat} />
-          <Divider className="my-3" />
+          <Divider className="!my-2" />
         </>
       ) : null}
     </div>
@@ -370,28 +370,28 @@ function ExifDisplay({ exif }: { exif: ExifInfo }) {
           {exif.make ? (
             <>
               <InfoItem label="Make" value={exif.make} />
-              <Divider className="my-3" />
+              <Divider className="!my-2" />
             </>
           ) : null}
 
           {exif.model ? (
             <>
               <InfoItem label="Model" value={exif.model} />
-              <Divider className="my-3" />
+              <Divider className="!my-2" />
             </>
           ) : null}
 
           {exif.lensModel ? (
             <>
               <InfoItem label="Lens Model" value={exif.lensModel} />
-              <Divider className="my-3" />
+              <Divider className="!my-2" />
             </>
           ) : null}
 
           {exif.software ? (
             <>
               <InfoItem label="Software" value={exif.software} />
-              <Divider className="my-3" />
+              <Divider className="!my-2" />
             </>
           ) : null}
         </motion.div>
@@ -411,35 +411,35 @@ function ExifDisplay({ exif }: { exif: ExifInfo }) {
           {exif.iso ? (
             <>
               <InfoItem label="ISO" value={`ISO ${exif.iso}`} />
-              <Divider className="my-3" />
+              <Divider className="!my-1" />
             </>
           ) : null}
 
           {exif.exposureTime ? (
             <>
               <InfoItem label="Exposure Time" value={exif.exposureTime} />
-              <Divider className="my-3" />
+              <Divider className="!my-1" />
             </>
           ) : null}
 
           {exif.fNumber ? (
             <>
               <InfoItem label="Aperture" value={`f/${exif.fNumber}`} />
-              <Divider className="my-3" />
+              <Divider className="!my-1" />
             </>
           ) : null}
 
           {exif.focalLength ? (
             <>
               <InfoItem label="Focal Length" value={exif.focalLength} />
-              <Divider className="my-3" />
+              <Divider className="!my-1" />
             </>
           ) : null}
 
           {exif.flash ? (
             <>
               <InfoItem label="Flash" value={exif.flash} />
-              <Divider className="my-3" />
+              <Divider className="!my-1" />
             </>
           ) : null}
         </motion.div>
@@ -459,14 +459,14 @@ function ExifDisplay({ exif }: { exif: ExifInfo }) {
           {exif.dateTimeOriginal ? (
             <>
               <InfoItem label="Date Taken" value={exif.dateTimeOriginal} />
-              <Divider className="my-3" />
+              <Divider className="!my-2" />
             </>
           ) : null}
 
           {exif.dateTimeDigitized ? (
             <>
               <InfoItem label="Date Digitized" value={exif.dateTimeDigitized} />
-              <Divider className="my-3" />
+              <Divider className="!my-2" />
             </>
           ) : null}
         </motion.div>
@@ -486,14 +486,14 @@ function ExifDisplay({ exif }: { exif: ExifInfo }) {
           {exif.artist ? (
             <>
               <InfoItem label="Artist" value={exif.artist} />
-              <Divider className="my-3" />
+              <Divider className="!my-2" />
             </>
           ) : null}
 
           {exif.copyright ? (
             <>
               <InfoItem label="Copyright" value={exif.copyright} />
-              <Divider className="my-3" />
+              <Divider className="!my-2" />
             </>
           ) : null}
         </motion.div>
@@ -516,31 +516,33 @@ function ExifDisplay({ exif }: { exif: ExifInfo }) {
                 label="Coordinates"
                 value={`${exif.gpsCoordinates[0].toFixed(6)}°, ${exif.gpsCoordinates[1].toFixed(6)}°`}
               />
-              <Divider className="my-3" />
+              <Divider className="!my-2" />
             </>
           ) : null}
         </motion.div>
       ) : null}
 
       {exif.tags && exif.tags.length > 0 ? (
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5 }}
-          className="space-y-4"
-        >
-          <h3 className="text-lg font-semibold text-primary select-text">
-            All EXIF Tags
-          </h3>
-          <div className="space-y-2">
-            {exif.tags.map((tag, index) => (
-              <div key={index}>
-                <InfoItem label={startCase(tag.key)} value={tag.value} />
-                <Divider className="my-2" />
-              </div>
-            ))}
-          </div>
-        </motion.div>
+        <>
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.5 }}
+            className="space-y-4"
+          >
+            <div className="space-y-2">
+              <h3 className="text-lg font-semibold text-primary select-text">
+                All Tags
+              </h3>
+              {exif.tags.map((tag, index) => (
+                <div key={index}>
+                  <InfoItem label={startCase(tag.key)} value={tag.value} />
+                  <Divider className="my-2" />
+                </div>
+              ))}
+            </div>
+          </motion.div>
+        </>
       ) : null}
     </div>
   )

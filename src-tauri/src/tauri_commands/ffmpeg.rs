@@ -27,6 +27,7 @@ pub async fn compress_video(
     trim_segments: Option<Vec<VideoTrimSegment>>,
     subtitles_config: Option<SubtitlesConfig>,
     strip_metadata: Option<bool>,
+    speed: Option<f32>,
 ) -> Result<VideoCompressionResult, String> {
     let mut ffmpeg = ffmpeg::FFMPEG::new(&app)?;
     if let Ok(files) =
@@ -55,6 +56,7 @@ pub async fn compress_video(
             custom_thumbnail_path,
             trim_segments.as_ref(),
             subtitles_config.as_ref(),
+            speed,
         )
         .await
     {

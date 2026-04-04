@@ -45,6 +45,7 @@ export type AudioConfig = {
 export type SubtitleConfig = {
   subtitlePath: string | null
   language: string
+  title?: string
   fileName: string | null
 }
 
@@ -52,6 +53,7 @@ export type SubtitlesConfig = {
   subtitles: SubtitleConfig[]
   shouldEnableSubtitles?: boolean
   preserveExistingSubtitles?: boolean
+  title?: string | null
 }
 
 export type VideoConfig = {
@@ -86,6 +88,8 @@ export type VideoConfig = {
   shouldEnableAudioTrackSelection?: boolean
   selectedAudioTracks?: number[]
   subtitlesConfig?: SubtitlesConfig | null
+  shouldEnableCustomSpeed?: boolean
+  customSpeed?: number | null
 }
 
 export type Video = {

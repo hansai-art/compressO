@@ -1,8 +1,9 @@
 use crate::core::domain::{
     AudioConfig, BatchCompressionResult, BatchVideoCompressionProgress,
     BatchVideoIndividualCompressionResult, CustomEvents, MediaMetadataConfig, MediaTransform,
-    MediaTransformCrop, MediaTransformHistory, SubtitlesConfig, VideoCompressionConfig,
-    VideoCompressionProgress, VideoCompressionResult, VideoThumbnail, VideoTrimSegment,
+    MediaTransformCrop, MediaTransformHistory, SubtitleStream, SubtitlesConfig,
+    VideoCompressionConfig, VideoCompressionProgress, VideoCompressionResult, VideoThumbnail,
+    VideoTrimSegment,
 };
 use crate::core::ffprobe::FFPROBE;
 use crate::core::image::ImageCompressor;
@@ -67,6 +68,7 @@ impl FFMPEG {
         custom_thumbnail_path: Option<&str>,
         trim_segments: Option<&Vec<VideoTrimSegment>>,
         subtitles_config: Option<&SubtitlesConfig>,
+        speed: Option<f32>,
     ) -> Result<VideoCompressionResult, String> {
         if !EXTENSIONS.contains(&convert_to_extension) {
             return Err(String::from("Invalid convert to extension."));
@@ -78,19 +80,19 @@ impl FFMPEG {
         };
         let has_audio_stream = !audio_streams.is_empty();
 
-        // Detect existing subtitle streams in source video
-        let (existing_subtitle_count, _) = {
+        let (existing_subtitle_count, existing_subtitle_streams): (usize, Vec<SubtitleStream>) = {
             if let Some(subs_config) = subtitles_config {
                 let preserve = subs_config.preserve_existing_subtitles.unwrap_or(false);
                 if preserve {
                     let mut ffprobe = FFPROBE::new(&self.app)?;
-                    let count = ffprobe.get_subtitle_streams(video_path).await?.len();
-                    (count, true)
+                    let streams = ffprobe.get_subtitle_streams(video_path).await?;
+                    let count = streams.len();
+                    (count, streams)
                 } else {
-                    (0, false)
+                    (0, Vec::new())
                 }
             } else {
-                (0, false)
+                (0, Vec::new())
             }
         };
         let has_existing_subtitles = existing_subtitle_count > 0;
@@ -129,35 +131,35 @@ impl FFMPEG {
             }
         }
 
-        let subtitle_input_indices: Vec<(usize, String)> =
-            if !is_gif_target && convert_to_extension != "webm" {
-                if let Some(subs_config) = subtitles_config {
-                    if subs_config.should_enable_subtitles.unwrap_or(false) {
-                        let mut indices = Vec::new();
-                        for sub in &subs_config.subtitles {
-                            if let Some(ref sub_path) = sub.subtitle_path {
-                                if sub_path.len() > 0 {
-                                    cmd_args.extend_from_slice(&["-i", sub_path]);
-                                    let lang = if sub.language == "und" {
-                                        String::new()
-                                    } else {
-                                        sub.language.clone()
-                                    };
-                                    indices.push((input_index, lang));
-                                    input_index += 1;
-                                }
+        let subtitle_input_indices: Vec<(usize, String, Option<String>)> = if !is_gif_target {
+            if let Some(subs_config) = subtitles_config {
+                if subs_config.should_enable_subtitles.unwrap_or(false) {
+                    let mut indices = Vec::new();
+                    for sub in &subs_config.subtitles {
+                        if let Some(ref sub_path) = sub.subtitle_path {
+                            if sub_path.len() > 0 {
+                                cmd_args.extend_from_slice(&["-i", sub_path]);
+                                let lang = if sub.language == "und" {
+                                    String::new()
+                                } else {
+                                    sub.language.clone()
+                                };
+                                let title = sub.title.as_ref().map(|t| t.trim().to_string());
+                                indices.push((input_index, lang, title));
+                                input_index += 1;
                             }
                         }
-                        indices
-                    } else {
-                        Vec::new()
                     }
+                    indices
                 } else {
                     Vec::new()
                 }
             } else {
                 Vec::new()
-            };
+            }
+        } else {
+            Vec::new()
+        };
 
         let should_strip_metadata = strip_metadata.unwrap_or(false);
         if should_strip_metadata {
@@ -333,10 +335,56 @@ impl FFMPEG {
                 "".to_string()
             };
 
-        let combined_audio_filter_with_comma = if !combined_audio_filter.is_empty() {
-            format!(",{}", combined_audio_filter)
+        let clamped_speed = speed.map(|s| s.clamp(0.25, 4.0));
+        let video_speed_filter = if let Some(speed_value) = clamped_speed {
+            if speed_value != 1.0 {
+                let pts_multiplier = 1.0 / speed_value;
+                Some(format!("setpts={}*PTS", pts_multiplier))
+            } else {
+                None
+            }
         } else {
-            "".to_string()
+            None
+        };
+
+        fn build_audio_speed_filter(speed: f32) -> String {
+            if speed == 1.0 {
+                return String::new();
+            }
+            if speed >= 0.5 && speed <= 2.0 {
+                return format!("atempo={}", speed);
+            }
+            if speed < 0.5 {
+                // For speeds < 0.5, chain multiple atempo=0.5 filters
+                let mut filters = Vec::new();
+                let mut remaining = speed;
+                while remaining < 0.5 {
+                    filters.push("atempo=0.5".to_string());
+                    remaining /= 0.5;
+                }
+                if remaining > 0.0 && remaining != 1.0 {
+                    filters.push(format!("atempo={}", remaining));
+                }
+                filters.join(",")
+            } else {
+                // For speeds > 2.0, chain multiple atempo=2.0 filters
+                let mut filters = Vec::new();
+                let mut remaining = speed;
+                while remaining > 2.0 {
+                    filters.push("atempo=2.0".to_string());
+                    remaining /= 2.0;
+                }
+                if remaining > 0.0 && remaining != 1.0 {
+                    filters.push(format!("atempo={}", remaining));
+                }
+                filters.join(",")
+            }
+        }
+
+        let audio_speed_filter = if let Some(speed_value) = clamped_speed {
+            build_audio_speed_filter(speed_value)
+        } else {
+            String::new()
         };
 
         if let Some(segments) = trim_segments {
@@ -344,13 +392,17 @@ impl FFMPEG {
                 map_video = true;
                 if segments.len() == 1 {
                     let seg = &segments[0];
-                    // Single trim: trim -> post_process -> [outv]
+                    // Single trim: trim -> speed -> post_process -> [outv]
+                    let speed_part = video_speed_filter
+                        .as_ref()
+                        .map(|f| format!("{},", f))
+                        .unwrap_or_default();
                     filter_complex_parts.push(format!(
-                        "[0:v]trim={}:{},setpts=PTS-STARTPTS,{}[outv]",
-                        seg.start, seg.end, video_post_process
+                        "[0:v]trim={}:{},setpts=PTS-STARTPTS,{}{}[outv]",
+                        seg.start, seg.end, speed_part, video_post_process
                     ));
                 } else {
-                    // Multi trim: trim segments -> concat -> post process -> [outv]
+                    // Multi trim: trim segments -> concat -> speed -> post process -> [outv]
                     let mut video_parts = Vec::new();
                     let mut video_labels = Vec::new();
                     for (i, seg) in segments.iter().enumerate() {
@@ -363,10 +415,15 @@ impl FFMPEG {
                     }
                     filter_complex_parts.push(video_parts.join("; "));
 
+                    let speed_part = video_speed_filter
+                        .as_ref()
+                        .map(|f| format!("{},", f))
+                        .unwrap_or_default();
                     filter_complex_parts.push(format!(
-                        "{} concat=n={}:v=1:a=0,{}[outv]",
+                        "{} concat=n={}:v=1:a=0,{}{}[outv]",
                         video_labels.join(""),
                         segments.len(),
+                        speed_part,
                         video_post_process
                     ));
                 }
@@ -375,7 +432,11 @@ impl FFMPEG {
 
         // If no trimming, just apply post-processing to input
         if !map_video {
-            filter_complex_parts.push(format!("[0:v]{}[outv]", video_post_process));
+            let speed_part = video_speed_filter
+                .as_ref()
+                .map(|f| format!("{},", f))
+                .unwrap_or_default();
+            filter_complex_parts.push(format!("[0:v]{}{}[outv]", speed_part, video_post_process));
             map_video = true;
         }
 
@@ -398,6 +459,26 @@ impl FFMPEG {
                             format!("outa{}", track_idx)
                         };
 
+                        // Combine audio filters: volume/channel + speed
+                        let audio_filters_with_speed = if !combined_audio_filter.is_empty()
+                            && !audio_speed_filter.is_empty()
+                        {
+                            format!("{},{}", combined_audio_filter, audio_speed_filter)
+                        } else if !combined_audio_filter.is_empty() {
+                            combined_audio_filter.clone()
+                        } else if !audio_speed_filter.is_empty() {
+                            audio_speed_filter.clone()
+                        } else {
+                            String::new()
+                        };
+
+                        let audio_filters_with_speed_comma = if !audio_filters_with_speed.is_empty()
+                        {
+                            format!(",{}", audio_filters_with_speed)
+                        } else {
+                            "".to_string()
+                        };
+
                         if segments.len() == 1 {
                             let seg = &segments[0];
                             filter_complex_parts.push(format!(
@@ -405,7 +486,7 @@ impl FFMPEG {
                                 track_index,
                                 seg.start,
                                 seg.end,
-                                combined_audio_filter_with_comma,
+                                audio_filters_with_speed_comma,
                                 out_label
                             ));
                         } else {
@@ -424,7 +505,7 @@ impl FFMPEG {
                                 audio_parts.join("; "),
                                 audio_labels.join(""),
                                 segments.len(),
-                                combined_audio_filter_with_comma,
+                                audio_filters_with_speed_comma,
                                 out_label
                             ));
                         }
@@ -491,18 +572,30 @@ impl FFMPEG {
             if has_audio_stream
                 && !map_audio
                 && (!combined_audio_filter.is_empty()
+                    || !audio_speed_filter.is_empty()
                     || (audio_config.volume > 0 && audio_config.volume != 100))
             {
                 let mut args = vec![];
+                let audio_filters_with_speed =
+                    if !combined_audio_filter.is_empty() && !audio_speed_filter.is_empty() {
+                        format!("{},{}", combined_audio_filter, audio_speed_filter)
+                    } else if !combined_audio_filter.is_empty() {
+                        combined_audio_filter.clone()
+                    } else if !audio_speed_filter.is_empty() {
+                        audio_speed_filter.clone()
+                    } else {
+                        String::new()
+                    };
+
                 if let Some(ref selected_tracks) = audio_config.selected_audio_tracks {
                     for &track_index in selected_tracks {
                         args.push(format!("-filter:a:{}", track_index));
-                        args.push(combined_audio_filter.clone());
+                        args.push(audio_filters_with_speed.clone());
                     }
                 } else {
                     for track_index in 0..audio_streams.len() {
                         args.push(format!("-filter:a:{}", track_index));
-                        args.push(combined_audio_filter.clone());
+                        args.push(audio_filters_with_speed.clone());
                     }
                 }
                 args
@@ -597,26 +690,66 @@ impl FFMPEG {
 
         if !is_gif_target {
             if has_existing_subtitles {
-                for idx in 0..existing_subtitle_count {
+                let bitmap_codecs = ["hdmv_pgs_subtitle", "dvd_subtitle", "xsub"];
+
+                for (idx, stream) in existing_subtitle_streams.iter().enumerate() {
+                    let is_bitmap = bitmap_codecs.contains(&stream.codec.as_str());
+                    let output_container = convert_to_extension;
+
+                    if is_bitmap && output_container != "mkv" {
+                        log::warn!(
+                            "[ffmpeg] Skipping bitmap subtitle stream {} (codec: {}) - not compatible with {} container",
+                            idx,
+                            stream.codec,
+                            output_container
+                        );
+                        continue;
+                    }
+
+                    if output_container == "avi" {
+                        log::warn!("[ffmpeg] Skipping subtitle stream {} (codec: {}) - AVI container has limited subtitle support", idx, stream.codec);
+                        continue;
+                    }
+
                     subtitle_args_owned.push("-map".to_string());
                     subtitle_args_owned.push(format!("0:s:{}", idx));
 
-                    let subtitle_codec = match convert_to_extension {
+                    let subtitle_codec = match output_container {
+                        "mkv" if is_bitmap => "copy",
                         "mkv" => "srt",
+                        "webm" => "webvtt",
                         _ => "mov_text",
                     };
+
                     subtitle_args_owned.push(format!("-c:s:{}", subtitle_index));
                     subtitle_args_owned.push(subtitle_codec.to_string());
+
+                    if let Some(ref lang) = stream.language {
+                        subtitle_args_owned.push(format!("-metadata:s:s:{}", subtitle_index));
+                        subtitle_args_owned.push(format!("language={}", lang));
+                    }
+
+                    if let Some(ref title) = stream.title {
+                        subtitle_args_owned.push(format!("-metadata:s:s:{}", subtitle_index));
+                        subtitle_args_owned.push(format!("title={}", title.trim()));
+                    }
+
                     subtitle_index += 1;
                 }
             }
 
-            for (sub_input_idx, language) in subtitle_input_indices.iter() {
+            for (sub_input_idx, language, title) in subtitle_input_indices.iter() {
+                if convert_to_extension == "avi" {
+                    log::warn!("[ffmpeg] Skipping external subtitle file - AVI container has limited subtitle support");
+                    continue;
+                }
+
                 subtitle_args_owned.push("-map".to_string());
                 subtitle_args_owned.push(format!("{}:s", sub_input_idx));
 
                 let subtitle_codec = match convert_to_extension {
-                    "mkv" => "srt",
+                    "mkv" => "copy",
+                    "webm" => "webvtt",
                     _ => "mov_text",
                 };
                 subtitle_args_owned.push(format!("-c:s:{}", subtitle_index));
@@ -626,6 +759,12 @@ impl FFMPEG {
                     subtitle_args_owned.push(format!("-metadata:s:s:{}", subtitle_index));
                     subtitle_args_owned.push(format!("language={}", language));
                 }
+
+                if let Some(ref t) = title {
+                    subtitle_args_owned.push(format!("-metadata:s:s:{}", subtitle_index));
+                    subtitle_args_owned.push(format!("title={}", t));
+                }
+
                 subtitle_index += 1;
             }
         }
@@ -805,6 +944,7 @@ impl FFMPEG {
             let trim_segments = video_options.trim_segments.as_ref();
             let subtitles_config = video_options.subtitles_config.as_ref();
             let strip_metadata = video_options.strip_metadata;
+            let speed = video_options.speed;
 
             match ffmpeg_instance
                 .compress_video(
@@ -824,6 +964,7 @@ impl FFMPEG {
                     thumbnail_path,
                     trim_segments,
                     subtitles_config,
+                    speed,
                 )
                 .await
             {
@@ -1027,10 +1168,16 @@ impl FFMPEG {
             String::from("00:00:00.00")
         };
 
-        log::info!("dimensions {:?}", dimensions);
-
         let mut ffmpeg_cmd = self.get_ffmpeg_command()?;
-        ffmpeg_cmd.args(["-i", video_path, "-f", "yuv4mpegpipe", "-"]);
+        ffmpeg_cmd.args([
+            "-i",
+            video_path,
+            "-pix_fmt",
+            "yuv420p", // Convert to 8-bit for yuv4mpegpipe compatibility
+            "-f",
+            "yuv4mpegpipe",
+            "-",
+        ]);
 
         let gifski_quality = quality.clamp(1, 100);
         let mut gifski_args: Vec<String> = vec!["-Q".to_string(), gifski_quality.to_string()];

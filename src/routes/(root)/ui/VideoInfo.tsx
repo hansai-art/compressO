@@ -17,6 +17,7 @@ import Code from '@/components/Code'
 import Divider from '@/components/Divider'
 import Dropdown from '@/components/Dropdown'
 import Icon from '@/components/Icon'
+import Popover, { PopoverContent, PopoverTrigger } from '@/components/Popover'
 import ScrollShadow from '@/components/ScrollShadow'
 import Spinner from '@/components/Spinner'
 import Tabs from '@/components/Tabs'
@@ -741,66 +742,81 @@ function SubtitleStreamsDisplay({
               <h3 className="text-lg font-semibold text-primary select-text">
                 Subtitle Stream {index + 1}
               </h3>
-              <ButtonGroup variant="flat" size="sm">
-                <Button
-                  radius="lg"
-                  onPress={() => handleDownload(stream, index, selectedFormat)}
-                  isDisabled={downloadingIndex === index || !isExtractable}
-                  color={!isExtractable ? 'default' : undefined}
-                  startContent={
-                    downloadingIndex === index ? (
-                      <Spinner size="sm" />
-                    ) : !isExtractable ? (
-                      <Icon name="cross" size={20} />
-                    ) : (
-                      <Icon name="download" size={20} />
-                    )
-                  }
-                >
-                  {downloadingIndex === index
-                    ? 'Downloading...'
-                    : !isExtractable
-                      ? 'Unsupported'
-                      : `Download as ${formatConfig.name}`}
-                </Button>
-                <Dropdown size="sm">
-                  <DropdownTrigger>
-                    <Button isIconOnly radius="lg">
-                      <Icon name="chevron" />
-                    </Button>
-                  </DropdownTrigger>
-                  <DropdownMenu
-                    disallowEmptySelection
-                    aria-label="Subtitle format"
-                    selectedKeys={new Set([selectedFormat])}
-                    selectionMode="single"
-                    onSelectionChange={(keys) => {
-                      const format = Array.from(keys)[0] as SubtitleFormat
-                      setSelectedFormat(format)
-                    }}
+              <div className="flex items-center">
+                {!isExtractable ? (
+                  <Popover>
+                    <PopoverTrigger>
+                      <button>
+                        <Icon name="info" className="text-warning-400" />
+                      </button>
+                    </PopoverTrigger>
+                    <PopoverContent className="max-w-xs">
+                      <p className="text-xs text-amber-600 dark:text-amber-400 select-text max-w-[250px]">
+                        This subtitle format ({stream.codec}) cannot be
+                        converted to SRT. It is likely an image-based format
+                        (e.g., Blu-ray PGS or DVD VobSub). Thus, it is not
+                        downloadable.
+                      </p>
+                    </PopoverContent>
+                  </Popover>
+                ) : null}
+
+                <ButtonGroup variant="flat" size="sm">
+                  <Button
+                    radius="lg"
+                    onPress={() =>
+                      handleDownload(stream, index, selectedFormat)
+                    }
+                    isDisabled={downloadingIndex === index || !isExtractable}
+                    color={!isExtractable ? 'default' : undefined}
+                    startContent={
+                      downloadingIndex === index ? (
+                        <Spinner size="sm" />
+                      ) : !isExtractable ? (
+                        <Icon name="cross" size={20} />
+                      ) : (
+                        <Icon name="download" size={20} />
+                      )
+                    }
                   >
-                    <DropdownItem key="srt">
-                      {SUBTITLE_FORMATS.srt.name}
-                    </DropdownItem>
-                    <DropdownItem key="vtt">
-                      {SUBTITLE_FORMATS.vtt.name}
-                    </DropdownItem>
-                  </DropdownMenu>
-                </Dropdown>
-              </ButtonGroup>
+                    {downloadingIndex === index
+                      ? 'Downloading...'
+                      : !isExtractable
+                        ? 'Unsupported'
+                        : `Download as ${formatConfig.name}`}
+                  </Button>
+                  <Dropdown size="sm">
+                    <DropdownTrigger>
+                      <Button isIconOnly radius="lg">
+                        <Icon name="chevron" />
+                      </Button>
+                    </DropdownTrigger>
+                    <DropdownMenu
+                      disallowEmptySelection
+                      aria-label="Subtitle format"
+                      selectedKeys={new Set([selectedFormat])}
+                      selectionMode="single"
+                      onSelectionChange={(keys) => {
+                        const format = Array.from(keys)[0] as SubtitleFormat
+                        setSelectedFormat(format)
+                      }}
+                    >
+                      <DropdownItem key="srt">
+                        {SUBTITLE_FORMATS.srt.name}
+                      </DropdownItem>
+                      <DropdownItem key="vtt">
+                        {SUBTITLE_FORMATS.vtt.name}
+                      </DropdownItem>
+                    </DropdownMenu>
+                  </Dropdown>
+                </ButtonGroup>
+              </div>
             </div>
 
             <InfoItem
               label="Codec"
               value={`${stream.codec} (${stream.codecLongName})`}
             />
-            {!isExtractable && (
-              <p className="text-xs text-amber-600 dark:text-amber-400 select-text">
-                ⚠️ This subtitle format ({stream.codec}) cannot be converted to
-                SRT. It is likely an image-based format (e.g., Blu-ray PGS or
-                DVD VobSub).
-              </p>
-            )}
             <Divider className="my-3" />
 
             {stream.language ? (

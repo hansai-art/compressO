@@ -15,6 +15,7 @@ import CustomThumbnail from './video/CustomThumbnail'
 import VideoDimensions from './video/Dimensions'
 import VideoExtension from './video/Extension'
 import VideoFPS from './video/FPS'
+import VideoSpeed from './video/Speed'
 import TransformVideo from './video/TransformVideo'
 import TrimVideo from './video/TrimVideo'
 import VideoCodec from './video/VideoCodec'
@@ -115,6 +116,10 @@ function VideoSettings({ mediaIndex }: VideoSettingsProps) {
                   <Divider className="my-3" />
                 </>
               ) : null}
+              <>
+                <VideoSpeed mediaIndex={mediaIndex} />
+                <Divider className="my-3" />
+              </>
               <>
                 <VideoFPS mediaIndex={mediaIndex} />
                 <Divider className="my-3" />

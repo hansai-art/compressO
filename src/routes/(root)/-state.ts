@@ -52,6 +52,8 @@ export const videoConfigInitialState: VideoConfig = {
     subtitles: [],
     shouldEnableSubtitles: false,
   },
+  shouldEnableCustomSpeed: false,
+  customSpeed: undefined,
 }
 
 export const svgSettingInitialState = {
