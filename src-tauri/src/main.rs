@@ -186,14 +186,24 @@ async fn main() {
             {
                 // Start the local video server for Linux
                 // This works around the WebKit bug where file:// URLs don't work for videos on Linux
-                use tokio::sync::oneshot;
+                use std::sync::mpsc;
+                use std::thread;
+                use std::time::Duration;
 
-                let (tx, rx) = oneshot::channel();
+                let (tx, rx) = mpsc::channel();
 
-                tokio::spawn(async move {
-                    match server::start_server().await {
+                thread::spawn(move || {
+                    let rt = match tokio::runtime::Runtime::new() {
+                        Ok(rt) => rt,
+                        Err(e) => {
+                            let _ = tx.send(Err(Box::new(e) as Box<dyn std::error::Error>));
+                            return;
+                        }
+                    };
+
+                    match rt.block_on(server::start_server()) {
                         Ok(state) => {
-                            let _ = tx.send(state);
+                            let _ = tx.send(Ok(state));
                         }
                         Err(e) => {
                             log::error!("Failed to start video server: {:?}", e);
@@ -202,22 +212,20 @@ async fn main() {
                     }
                 });
 
-                // Wait for the server to start and get the port
-                // Use a timeout to avoid hanging forever
-                let server_state =
-                    match tokio::time::timeout(tokio::time::Duration::from_secs(5), rx).await {
-                        Ok(Ok(state)) => state,
-                        Ok(Err(e)) => {
-                            log::error!("Video server startup failed: {:?}", e);
-                            return Err(e);
-                        }
-                        Err(_) => {
-                            return Err(Box::new(std::io::Error::new(
-                                std::io::ErrorKind::TimedOut,
-                                "Video server startup timed out after 5 seconds",
-                            )));
-                        }
-                    };
+                // Wait for the server to start with a timeout
+                let server_state = match rx.recv_timeout(Duration::from_secs(5)) {
+                    Ok(Ok(state)) => state,
+                    Ok(Err(e)) => {
+                        log::error!("Video server startup failed: {:?}", e);
+                        return Err(e);
+                    }
+                    Err(_) => {
+                        return Err(Box::new(std::io::Error::new(
+                            std::io::ErrorKind::TimedOut,
+                            "Video server startup timed out after 5 seconds",
+                        )));
+                    }
+                };
 
                 log::info!("Video server started on port {}", server_state.port);
 
