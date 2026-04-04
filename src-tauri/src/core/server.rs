@@ -1,14 +1,14 @@
 use axum::{
     body::Body,
-    extract::{Path as AxumPath, Query, Request},
-    http::{header, HeaderMap, StatusCode},
+    extract::{Query, Request},
+    http::{header, StatusCode},
     response::{IntoResponse, Response},
     routing::get,
     Router,
 };
 use serde::Deserialize;
 use std::path::PathBuf;
-use std::sync::Arc;
+use tokio::io::{AsyncReadExt, AsyncSeekExt};
 use tokio::net::TcpListener;
 use tokio::sync::broadcast;
 use tokio_util::io::ReaderStream;
@@ -138,7 +138,7 @@ async fn serve_video(
             let content_length = end - start + 1;
 
             // Create a reader that starts from the requested position
-            let file = match tokio::fs::File::open(&path).await {
+            let mut file = match tokio::fs::File::open(&path).await {
                 Ok(f) => f,
                 Err(e) => {
                     log::error!("Failed to reopen file for range request: {:?}", e);
@@ -159,14 +159,11 @@ async fn serve_video(
             let body = Body::from_stream(stream);
 
             return Ok((
+                StatusCode::PARTIAL_CONTENT,
                 [(header::CONTENT_TYPE, mime_type)],
-                [(
-                    header::CONTENT_RANGE,
-                    format!("bytes {}-{}/{}", start, end, file_len),
-                )],
+                [(header::CONTENT_RANGE, format!("bytes {}-{}/{}", start, end, file_len))],
                 [(header::CONTENT_LENGTH, content_length.to_string())],
                 [(header::ACCEPT_RANGES, "bytes")],
-                StatusCode::PARTIAL_CONTENT,
                 body,
             )
                 .into_response());
@@ -178,6 +175,7 @@ async fn serve_video(
     let body = Body::from_stream(stream);
 
     Ok((
+        StatusCode::OK,
         [(header::CONTENT_TYPE, mime_type)],
         [(header::CONTENT_LENGTH, file_len.to_string())],
         [(header::ACCEPT_RANGES, "bytes")],

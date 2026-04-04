@@ -54,6 +54,7 @@ axum = "0.7"
 tower = "0.5"
 tower-http = { version = "0.5", features = ["cors", "fs"] }
 urlencoding = "2.1"
+tokio-util = "0.7"
 
 [target.'cfg(target_os = "macos")'.dependencies]
 objc = "0.2"

@@ -190,7 +190,10 @@ async fn main() {
                 let rt = match tokio::runtime::Handle::try_current() {
                     Ok(handle) => handle,
                     Err(e) => {
-                        return Err(Box::new(e) as Box<dyn std::error::Error>);
+                        return Err(Box::new(std::io::Error::new(
+                            std::io::ErrorKind::Other,
+                            format!("Failed to get tokio runtime: {}", e),
+                        )));
                     }
                 };
 
@@ -198,7 +201,7 @@ async fn main() {
                     Ok(state) => state,
                     Err(e) => {
                         log::error!("Failed to start video server: {:?}", e);
-                        return Err(Box::new(e) as Box<dyn std::error::Error>);
+                        return Err(e);
                     }
                 };
 
