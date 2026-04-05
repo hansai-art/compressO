@@ -29,7 +29,7 @@ function Dimensions({ mediaIndex }: VideoDimensionsProps) {
     customDimensions: videoCustomDimensions,
   } = config ?? {}
   const isCropping = Boolean(
-    config?.shouldTransformVideo &&
+    config?.isVideoTransformEditMode &&
       config?.transformVideoConfig?.transforms?.crop,
   )
 

@@ -29,7 +29,7 @@ function Dimensions({ mediaIndex }: DimensionsProps) {
     customDimensions: imageCustomDimensions,
   } = config ?? {}
   const isCropping = Boolean(
-    config?.shouldTransformImage &&
+    config?.isImageTransformEditMode &&
       config?.transformImageConfig?.transforms?.crop,
   )
 
