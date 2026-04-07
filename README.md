@@ -67,6 +67,24 @@ brew install --cask codeforreal1/tap/compresso
 This app is created using [Tauri](https://tauri.app/), a Rust🦀 framework for building a cross-platform desktop app. It uses [Vite](https://vite.dev/) as a frontend layer. The compression is done entirely by 3rd part tools like [FFmpeg](https://ffmpeg.org/), [pngquant](https://pngquant.org/), [jpegoptim](https://github.com/tjko/jpegoptim), [gifski](https://gif.ski/), etc. using platform specific standalone binaries.
 The app works completely offline and no any network requests is made to/from the app(except for built-in app updates).
 
+### Building
+Make sure [Rust](https://rust-lang.org/) & [Node.js](https://nodejs.org/) toolchains are installed.
+
+Local Development:
+- Start Tauri server
+```
+pnpm tauri:dev 
+```
+- Start Vite server:
+```
+pnpm vite:dev
+```
+
+Production Build:
+```
+pnpm tauri:build
+```
+
 ### Screenshots
 <details>
 <summary>
