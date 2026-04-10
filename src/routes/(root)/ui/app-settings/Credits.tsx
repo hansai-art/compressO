@@ -9,13 +9,12 @@ export default function Credits() {
     <div className="w-full py-10 pb-4 px-6">
       <section className="mb-4">
         <Title
-          title="Credits"
+          title="致謝"
           iconProps={{ name: 'lowResHeart' }}
           className="mb-6"
         />
         <p className="text-gray-600 dark:text-gray-400 text-[12px] text-center mt-1">
-          CompressO would not be possible without these incredible open-source
-          tools and libraries:
+          CompressO 能夠完成，離不開這些優秀的開源工具與函式庫：
         </p>
       </section>
       <div className="grid grid-cols-2 gap-4">
@@ -35,7 +34,7 @@ export default function Credits() {
               href="https://ffmpeg.org/"
               className="text-xs text-primary hover:underline"
             >
-              Website
+              官網
             </Link>
             <Divider orientation="vertical" className="mx-1 h-4" />
             <Link
@@ -63,7 +62,7 @@ export default function Credits() {
               href="https://pngquant.org/"
               className="text-xs text-primary hover:underline"
             >
-              Website
+              官網
             </Link>
             <Divider orientation="vertical" className="mx-1 h-4" />
             <Link
@@ -126,9 +125,9 @@ export default function Credits() {
 
         <div className="text-center pt-2 col-span-full">
           <p className="text-xs text-gray-600 dark:text-gray-400">
-            Complete third-party notices and licenses is available{' '}
+            完整第三方聲明與授權可查看{' '}
             <Link href="https://github.com/codeforreal1/compressO/blob/main/THIRD_PARTY_NOTICES.md">
-              here
+              這裡
             </Link>
           </p>
         </div>

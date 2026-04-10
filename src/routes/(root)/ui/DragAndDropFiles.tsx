@@ -62,7 +62,7 @@ function DragAndDropFiles({
             if (Array.isArray(files)) {
               onFile?.(files)
             } else {
-              toast.error('Invalid files/folders')
+              toast.error('檔案或資料夾無效。')
             }
           }
         })
@@ -103,7 +103,7 @@ function DragAndDropFiles({
               >
                 <Icon name="dragAndDrop" className="text-primary" size={50} />
                 <p className="my-2 text-gray-600 dark:text-gray-400 text-sm">
-                  Drop anywhere...
+                  放開即可加入檔案…
                 </p>
               </motion.div>
             </div>

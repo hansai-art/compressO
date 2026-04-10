@@ -32,14 +32,14 @@ function SaveMedia() {
         if (isBatch) {
           const selectedDirectory = await open({
             directory: true,
-            title: 'Choose directory to save the compressed media.',
+            title: '選擇要儲存壓縮結果的資料夾',
           })
           if (selectedDirectory) {
             pathToSave = selectedDirectory as string
           }
         } else {
           pathToSave = await save({
-            title: 'Choose location to save the compressed media.',
+            title: '選擇要儲存壓縮結果的位置',
             defaultPath: `compressO-${compressedFile?.fileNameToDisplay ?? fileName ?? ''}`,
           })
         }
@@ -96,7 +96,7 @@ function SaveMedia() {
           }
         }
       } catch (_) {
-        toast.error('Could not save media to the given path.')
+        toast.error('無法儲存到指定路徑。')
         for (let i = 0; i < media.length; i++) {
           appProxy.state.media[i].compressedFile = {
             ...(snapshot(appProxy).state.media[i].compressedFile ?? {}),
@@ -134,7 +134,7 @@ function SaveMedia() {
 
     try {
       await copyFileToClipboard(savedPath)
-      toast.success('Copied to clipboard.')
+      toast.success('已複製到剪貼簿。')
     } catch {}
   }
 
@@ -148,7 +148,7 @@ function SaveMedia() {
         isDisabled={isSaving || isSaved}
         fullWidth
       >
-        {isSaving ? 'Saving...' : isSaved ? 'Saved' : `Save Media`}
+        {isSaving ? '儲存中…' : isSaved ? '已儲存' : '儲存檔案'}
         {!isSaving ? (
           <Icon
             name={isSaved ? 'tick' : 'download'}
@@ -158,10 +158,7 @@ function SaveMedia() {
       </Button>
       {isSaved ? (
         <>
-          <Tooltip
-            content="Show in File Explorer"
-            aria-label="Show in File Explorer"
-          >
+          <Tooltip content="在檔案總管中顯示" aria-label="在檔案總管中顯示">
             <Button
               isIconOnly
               className="ml-2 text-green-500"
@@ -176,8 +173,8 @@ function SaveMedia() {
       mediaFile?.isProcessCompleted &&
       mediaFile?.compressedFile?.isSuccessful ? (
         <Tooltip
-          content="Copy output to clipboard"
-          aria-label="Copy output to clipboard"
+          content="將輸出檔複製到剪貼簿"
+          aria-label="將輸出檔複製到剪貼簿"
         >
           <Button
             isIconOnly
