@@ -61,7 +61,7 @@ function Extension({ mediaIndex }: VideoExtensionProps) {
   return (
     <Select
       fullWidth
-      label="Extension:"
+      label="輸出格式："
       className="block flex-shrink-0 rounded-2xl"
       size="sm"
       value={convertToExtension}
@@ -79,10 +79,10 @@ function Extension({ mediaIndex }: VideoExtensionProps) {
     >
       <SelectItem
         key="-"
-        textValue="Same as input"
+        textValue="與原檔相同"
         className="flex justify-center items-center"
       >
-        Same as input
+        與原檔相同
       </SelectItem>
       <SelectSection>
         {videoExtensions?.map((ext) => (

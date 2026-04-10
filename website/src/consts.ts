@@ -1,4 +1,3 @@
-export const SITE_TITLE =
-  'CompressO: Compress any video/image into a tiny size.'
+export const SITE_TITLE = 'CompressO：把任何影片或圖片壓縮成更小的檔案'
 export const SITE_DESCRIPTION =
-  'CompressO is a 100% free forever, offline, and open-source video/image compression app available for Mac, Windows & Linux.'
+  'CompressO 是一款 100% 免費、離線、開源的影片與圖片壓縮工具，支援 Mac、Windows 與 Linux。'

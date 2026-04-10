@@ -61,7 +61,7 @@ const Extension = ({ mediaIndex, disabled }: ExtensionProps) => {
   return (
     <Select
       fullWidth
-      label="Extension:"
+      label="輸出格式："
       value={convertToExtension}
       selectedKeys={[convertToExtension]}
       onChange={(evt) => {
@@ -75,7 +75,7 @@ const Extension = ({ mediaIndex, disabled }: ExtensionProps) => {
       }}
       isDisabled={shouldDisableInput}
     >
-      <SelectItem key="-">Same as input</SelectItem>
+      <SelectItem key="-">與原檔相同</SelectItem>
       <SelectSection>
         {Object.values(extensions.image)
           .filter(

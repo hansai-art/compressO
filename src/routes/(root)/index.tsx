@@ -69,7 +69,7 @@ function Root() {
       })
 
       if (mediaPaths.length === 0) {
-        toast.error('No valid media files found.')
+        toast.error('找不到可用的媒體檔案。')
         return
       }
 
@@ -199,7 +199,7 @@ function Root() {
             }
             appProxy.state.media.push(imageState)
           } else {
-            throw new Error('Invalid media type.')
+            throw new Error('無效的媒體類型。')
           }
         } catch {
           corruptedFilesCount++
@@ -208,7 +208,7 @@ function Root() {
       appProxy.state.isLoadingMediaFiles = false
       if (corruptedFilesCount > 0) {
         toast.error(
-          `${mediaPaths.length > 1 ? 'Some files seem' : 'File seems'} to be corrupted/invalid ${mediaPaths.length > 1 ? 'and are filtered out' : ''}.`,
+          `${mediaPaths.length > 1 ? '部分檔案疑似' : '此檔案疑似'}損毀或格式無效${mediaPaths.length > 1 ? '，已自動略過。' : '。'}`,
         )
         if (corruptedFilesCount === mediaPaths.length) {
           resetProxy()
@@ -223,21 +223,21 @@ function Root() {
       const filePath = await open({
         directory: false,
         multiple: true,
-        title: `Select images/videos to compress.`,
+        title: '選擇要壓縮的圖片或影片',
         filters: [
           { name: 'video', extensions: Object.keys(extensions?.video) },
           { name: 'image', extensions: Object.keys(extensions?.image) },
         ],
       })
       if (filePath == null) {
-        const message = 'File selection config is invalid.'
+        const message = '檔案選擇設定無效。'
         // biome-ignore lint/suspicious/noConsole: <>
         console.warn(message)
         return
       }
       handleMediaSelection(filePath)
     } catch (error: any) {
-      toast.error(error?.message ?? 'Could not select media.')
+      toast.error(error?.message ?? '無法選取媒體檔案。')
     }
   }, [handleMediaSelection])
 
@@ -280,9 +280,9 @@ function Root() {
         <div className="flex flex-col justify-center items-center py-16 px-20 border-2 border-dashed border-zinc-200 dark:border-zinc-800 rounded-3xl">
           <Icon name="addMedia" className="text-primary" size={60} />
           <p className="text-sm mt-4 text-gray-600 dark:text-gray-400 text-center">
-            Drag & Drop
-            <span className="block text-xs">Or</span>
-            Click to select media
+            拖曳檔案到這裡
+            <span className="block text-xs">或</span>
+            點擊選擇媒體檔案
           </p>
         </div>
       </motion.div>

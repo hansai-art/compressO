@@ -1,29 +1,30 @@
 ---
-import { motion } from "framer-motion";
-import BaseHead from "../components/BaseHead.astro";
-import Header from "../components/Header.astro";
-import Footer from "../components/Footer.astro";
-import { SITE_TITLE, SITE_DESCRIPTION } from "../consts";
-import {
-  getLatestRelease,
-  getDownloadAssets,
-  fetchGitHubStars,
-} from "../utils/github";
-import OGImage from "../assets/og.jpg";
-import aboutImage from "../assets/about.jpg";
-import privateImage from "../assets/private.jpg";
-import featuresImage from "../assets/features.jpg";
-import heroImage from "../assets/hero.jpg";
-import compressoLogo from "../assets/compresso.png";
-import HeroAnimatedContent from "../components/HeroAnimatedContent";
+import { motion } from 'framer-motion'
 
-const latestRelease = await getLatestRelease();
-const downloads = getDownloadAssets(latestRelease.tag_name);
-const githubStars = await fetchGitHubStars();
+import aboutImage from '../assets/about.jpg'
+import compressoLogo from '../assets/compresso.png'
+import featuresImage from '../assets/features.jpg'
+import heroImage from '../assets/hero.jpg'
+import OGImage from '../assets/og.jpg'
+import privateImage from '../assets/private.jpg'
+import BaseHead from '../components/BaseHead.astro'
+import Footer from '../components/Footer.astro'
+import Header from '../components/Header.astro'
+import HeroAnimatedContent from '../components/HeroAnimatedContent'
+import { SITE_DESCRIPTION, SITE_TITLE } from '../consts'
+import {
+  fetchGitHubStars,
+  getDownloadAssets,
+  getLatestRelease,
+} from '../utils/github'
+
+const latestRelease = await getLatestRelease()
+const downloads = getDownloadAssets(latestRelease.tag_name)
+const githubStars = await fetchGitHubStars()
 ---
 
 <!doctype html>
-<html lang="en">
+<html lang="zh-Hant-TW">
   <head>
     <BaseHead
       title={SITE_TITLE}
@@ -37,11 +38,11 @@ const githubStars = await fetchGitHubStars();
       <div class="hero-content">
         <HeroAnimatedContent client:visible />
         <p>
-          CompressO is a completely free & open-source video/image
-          compression app available for Mac, Windows & Linux.
+          CompressO 是一款完全免費、開源的影片／圖片壓縮工具，
+          支援 Mac、Windows 與 Linux。
           <br />
-          No signup, no cloud uploads, no tracking. Just powerful compression that runs entirely private
-          on your machine.
+          不用註冊、不上傳雲端、不做追蹤。所有壓縮都在你的電腦本機完成，
+          兼顧效率與隱私。
         </p>
         <div class="cta-group">
           <a href="#downloads" class="btn btn-primary text-zinc-900!">
@@ -57,7 +58,7 @@ const githubStars = await fetchGitHubStars();
               <polyline points="7 10 12 15 17 10"></polyline>
               <line x1="12" y1="15" x2="12" y2="3"></line>
             </svg>
-            Download
+            立即下載
           </a>
           <a
             href="https://github.com/codeforreal1/compressO"
@@ -68,7 +69,7 @@ const githubStars = await fetchGitHubStars();
                 d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"
               ></path>
             </svg>
-            View on GitHub <span id="github-stars">{githubStars ? `⭐️ ${githubStars.toLocaleString()}` : ""}</span>
+            前往 GitHub <span id="github-stars">{githubStars ? `⭐️ ${githubStars.toLocaleString()}` : ""}</span>
           </a>
         </div>
         <div class="hero-image rounded-[25px]! xl:rounded-[100px]!">
@@ -83,64 +84,58 @@ const githubStars = await fetchGitHubStars();
       <div class="container">
         <div class="section-header">
           <h2 class="section-title">
-            Powerful compression.<br />
-            <span class="gradient-text">Zero compromise</span>
+            強大壓縮能力。<br />
+            <span class="gradient-text">品質不妥協</span>
           </h2>
           <p class="section-subtitle">
-            CompressO combines industry-leading compression algorithms with a
-            focus on privacy and simplicity.
+            CompressO 結合高品質壓縮演算法，並把隱私與易用性放在第一位。
           </p>
         </div>
 
         <div class="feature-grid">
           <div class="feature-card">
             <div class="feature-icon">🔒</div>
-            <h3>100% Offline</h3>
+            <h3>100% 離線</h3>
             <p>
-              Your videos never leave your device. All compression happens
-              locally on your machine, ensuring complete privacy and security.
+              檔案不會離開你的裝置，所有壓縮都在本機進行，完整保護隱私與安全。
             </p>
           </div>
 
           <div class="feature-card">
             <div class="feature-icon">⚡</div>
-            <h3>Lightning Fast</h3>
-            <p>Powered by latest FFmpeg. Compress videos within seconds.</p>
+            <h3>高速處理</h3>
+            <p>採用最新 FFmpeg，幾秒內就能完成影片壓縮。</p>
           </div>
 
           <div class="feature-card">
             <div class="feature-icon">🎯</div>
-            <h3>Smart Compression</h3>
+            <h3>智慧壓縮</h3>
             <p>
-              Advanced algorithms maintain visual quality while dramatically
-              reducing file size. Perfect for sharing and storage.
+              在盡量保留畫質的前提下大幅縮小檔案，非常適合分享與保存。
             </p>
           </div>
 
           <div class="feature-card">
             <div class="feature-icon">🎨</div>
-            <h3>Simple Interface</h3>
+            <h3>簡單介面</h3>
             <p>
-              Drag & drop, copy-paste or select videos, compress. No complicated
-              settings or technical knowledge required. Just results that work.
+              拖曳、貼上或點選即可開始壓縮，不必研究複雜參數，新手也能快速上手。
             </p>
           </div>
 
           <div class="feature-card">
             <div class="feature-icon">🌐</div>
-            <h3>Universal Format</h3>
+            <h3>多格式支援</h3>
             <p>
-              Support for all major video formats including MP4, MOV, AVI, and
-              more. Export to any format you need.
+              支援 MP4、MOV、AVI 等主流格式，也能依需求輸出成不同格式。
             </p>
           </div>
 
           <div class="feature-card">
             <div class="feature-icon">💎</div>
-            <h3>Quality Control</h3>
+            <h3>畫質控制</h3>
             <p>
-              Fine-tune compression settings to balance file size and quality.
-              Preview results before saving.
+              可微調壓縮設定，在檔案大小與畫質之間取得平衡，儲存前也能先預覽。
             </p>
           </div>
         </div>
@@ -153,178 +148,160 @@ const githubStars = await fetchGitHubStars();
       <div class="container">
         <div class="showcase-content">
           <div class="showcase-text">
-            <span class="section-tag">Powerful Features</span>
-            <h2>Packed with <span class="gradient-text">everything</span><br />you need!</h2>
+            <span class="section-tag">強大功能</span>
+            <h2>你需要的 <span class="gradient-text">功能</span><br />都在這裡！</h2>
             <p>
-              CompressO goes beyond simple compression. It's a comprehensive
-              video processing tool designed for power users and casual users
-              alike.
+              CompressO 不只是單純壓縮，更是一套同時適合進階使用者與新手的
+              完整影音處理工具。
             </p>
             <ul class="feature-list feature-list-vertical" id="featureList">
               <li>
                 <div class="feature-item-content">
-                  <strong>Batch Compression</strong>
+                  <strong>批次壓縮</strong>
                   <span
-                    >Process multiple videos and images at once with smart queue
-                    management</span
+                    >可同時處理多個影片與圖片，並具備智慧佇列管理</span
                   >
                 </div>
               </li>
               <li>
                 <div class="feature-item-content">
-                  <strong>Video Editing</strong>
+                  <strong>影片編輯</strong>
                   <span
-                    >Trim, split, crop, rotate, flip, and zoom videos before
-                    compression</span
+                    >壓縮前可先裁切片段、分割、裁剪、旋轉、翻轉與縮放影片</span
                   >
                 </div>
               </li>
               <li>
                 <div class="feature-item-content">
-                  <strong>Image Editing</strong>
+                  <strong>圖片編輯</strong>
                   <span
-                    >Crop, rotate, flip, and adjust dimensions of images before
-                    compression</span
+                    >壓縮前可先裁剪、旋轉、翻轉與調整圖片尺寸</span
                   >
                 </div>
               </li>
               <li>
                 <div class="feature-item-content">
-                  <strong>Video Controls</strong>
+                  <strong>影片控制</strong>
                   <span
-                    >Customize codec, quality, dimensions, resolution, FPS, speed and
-                    output format</span
+                    >可自訂編碼器、畫質、尺寸、解析度、FPS、速度與輸出格式</span
                   >
                 </div>
               </li>
               <li>
                 <div class="feature-item-content">
-                  <strong>Image Controls</strong>
+                  <strong>圖片控制</strong>
                   <span
-                    >Adjust quality, format, and optimization settings for JPEG,
-                    PNG, WebP, and GIF</span
+                    >可調整 JPEG、PNG、WebP、GIF 的畫質、格式與最佳化設定</span
                   >
                 </div>
               </li>
               <li>
                 <div class="feature-item-content">
-                  <strong>Audio Controls</strong>
+                  <strong>音訊控制</strong>
                   <span
-                    >Adjust codec, volume, channels, bitrate, and select audio
-                    tracks</span
+                    >可調整編碼器、音量、聲道、位元率，並選擇保留的音軌</span
                   >
                 </div>
               </li>
               <li>
                 <div class="feature-item-content">
-                  <strong>Clipboard Support</strong>
+                  <strong>剪貼簿支援</strong>
                   <span
-                    >Paste video or image files and directories directly from
-                    clipboard for instant batch processing</span
+                    >可直接從剪貼簿貼上影片、圖片或資料夾，立即批次處理</span
                   >
                 </div>
               </li>
               <li class="feature-hidden">
                 <div class="feature-item-content">
-                  <strong>Format Conversion</strong>
+                  <strong>格式轉換</strong>
                   <span
-                    >Convert between image formats (JPEG, PNG, WebP, GIF) and
-                    video formats seamlessly</span
+                    >可輕鬆在圖片格式（JPEG、PNG、WebP、GIF）與影片格式間轉換</span
                   >
                 </div>
               </li>
               <li class="feature-hidden">
                 <div class="feature-item-content">
-                  <strong>SVG Conversion</strong>
+                  <strong>SVG 轉換</strong>
                   <span
-                    >Convert SVG files to PNG, JPEG, or WebP formats with advanced
-                    rasterization settings</span
+                    >可把 SVG 轉成 PNG、JPEG、WebP，並調整進階點陣化設定</span
                   >
                 </div>
               </li>
               <li class="feature-hidden">
                 <div class="feature-item-content">
-                  <strong>GIF Tools</strong>
+                  <strong>GIF 工具</strong>
                   <span
-                    >Create animated GIFs from videos and compress existing GIFs
-                    while maintaining quality</span
+                    >可由影片產生 GIF，也能壓縮既有 GIF 並盡量保留品質</span
                   >
                 </div>
               </li>
               <li class="feature-hidden">
                 <div class="feature-item-content">
-                  <strong>Comparison Slider</strong>
+                  <strong>比較滑桿</strong>
                   <span
-                    >Compare original and compressed images or videos with an
-                    interactive before/after slider</span
+                    >可用互動式前後比較滑桿查看原檔與壓縮後差異</span
                   >
                 </div>
               </li>
               <li class="feature-hidden">
                 <div class="feature-item-content">
-                  <strong>Drag & Drop</strong>
+                  <strong>拖曳加入</strong>
                   <span
-                    >Drop entire folders containing videos or images for automatic
-                    batch compression</span
+                    >可直接拖入整個資料夾，自動批次壓縮其中的影片與圖片</span
                   >
                 </div>
               </li>
               <li class="feature-hidden">
                 <div class="feature-item-content">
-                  <strong>File Explorer Integration</strong>
+                  <strong>檔案總管整合</strong>
                   <span
-                    >Right-click any video or image in your file manager and "Open
-                    with CompressO"</span
+                    >可在檔案管理器中右鍵影片或圖片，直接用 CompressO 開啟</span
                   >
                 </div>
               </li>
               <li class="feature-hidden">
                 <div class="feature-item-content">
-                  <strong>Complete Metadata Info</strong>
+                  <strong>完整中繼資料</strong>
                   <span
-                    >View full metadata for videos and images including dimensions,
-                    format, EXIF data, streams, subtitles, and chapters</span
+                    >可查看尺寸、格式、EXIF、串流、字幕與章節等完整資訊</span
                   >
                 </div>
               </li>
               <li class="feature-hidden">
                 <div class="feature-item-content">
-                  <strong>Copy to Clipboard</strong>
+                  <strong>複製到剪貼簿</strong>
                   <span
-                    >Copy compressed videos or images directly to clipboard for
-                    easy pasting</span
+                    >可把壓縮後的影片或圖片直接複製到剪貼簿，方便立即貼上</span
                   >
                 </div>
               </li>
               <li class="feature-hidden">
                 <div class="feature-item-content">
-                  <strong>Metadata Editing</strong>
+                  <strong>中繼資料編輯</strong>
                   <span
-                    >Edit title, artist, album, year, genre, description,
-                    copyright, and more for videos</span
+                    >可編輯影片的標題、作者、專輯、年份、類型、描述、版權等欄位</span
                   >
                 </div>
               </li>
               <li class="feature-hidden">
                 <div class="feature-item-content">
-                  <strong>Image Metadata</strong>
+                  <strong>圖片中繼資料</strong>
                   <span
-                    >Preserve EXIF and other metadata when compressing images</span
+                    >壓縮圖片時可保留 EXIF 與其他中繼資料</span
                   >
                 </div>
               </li>
               <li class="feature-hidden">
                 <div class="feature-item-content">
-                  <strong>Custom Thumbnails</strong>
+                  <strong>自訂縮圖</strong>
                   <span
-                    >Set custom thumbnails that display as video previews in
-                    file managers</span
+                    >可設定自訂縮圖，讓檔案管理器顯示你指定的影片預覽圖</span
                   >
                 </div>
               </li>
             </ul>
             <button class="show-all-btn" id="showAllBtn"
-              >See More Features</button
+              >查看更多功能</button
             >
           </div>
           <div class="showcase-visual">
@@ -344,24 +321,23 @@ const githubStars = await fetchGitHubStars();
       <div class="container">
         <div class="showcase-content">
           <div class="showcase-visual">
-            <img src={privateImage.src} alt="Privacy First" loading="lazy" />
+             <img src={privateImage.src} alt="隱私優先" loading="lazy" />
           </div>
           <div class="showcase-text">
-            <span class="section-tag">Privacy First</span>
-            <h2>Your videos stay yours.<br />
-              <span class="gradient-text">Always!</span>
-            </h2>
-            <p>
-              Unlike online compression services, CompressO never uploads your
-              files. No account required. No tracking. No data collection. Just
-              pure, local compression that respects your privacy.
-            </p>
-            <ul class="feature-list">
-              <li>No internet connection required</li>
-              <li>No user accounts or sign-ups</li>
-              <li>No file size limits</li>
-              <li>No watermarks</li>
-              <li>No tracking</li>
+             <span class="section-tag">隱私優先</span>
+             <h2>你的檔案只屬於你。<br />
+               <span class="gradient-text">一直都是！</span>
+             </h2>
+             <p>
+               不像線上壓縮服務，CompressO 不會上傳你的檔案。不用帳號、不做追蹤、
+               不收集資料，只有尊重隱私的本機壓縮。
+             </p>
+             <ul class="feature-list">
+               <li>不需要網路連線</li>
+               <li>不需要帳號或註冊</li>
+               <li>沒有檔案大小限制</li>
+               <li>沒有浮水印</li>
+               <li>沒有任何追蹤</li>
             </ul>
           </div>
         </div>
@@ -374,21 +350,20 @@ const githubStars = await fetchGitHubStars();
       <div class="container">
         <div class="showcase-content">
           <div class="showcase-text">
-            <span class="section-tag">Open Source</span>
-            <h2>Free & Open Source.<br />
-              <span class="gradient-text">Forever!</span>
-            </h2>
-            <p>
-              CompressO is fully open-source software. The code is available on
-              GitHub, so you can audit it, contribute to it, or even fork it for
-              your own projects.
-            </p>
-            <ul class="feature-list">
-              <li>MIT License - use it anywhere</li>
-              <li>Transparent development on GitHub</li>
-              <li>Community-driven features</li>
-              <li>Regular updates and improvements</li>
-              <li>No hidden costs or premium tiers</li>
+             <span class="section-tag">開源精神</span>
+             <h2>免費且開源。<br />
+               <span class="gradient-text">永久如此！</span>
+             </h2>
+             <p>
+               CompressO 是完整開源軟體，原始碼公開在 GitHub 上，你可以審查、
+               參與貢獻，甚至 fork 成自己的版本。
+             </p>
+             <ul class="feature-list">
+               <li>採用 MIT 授權，可自由使用</li>
+               <li>開發過程透明公開</li>
+               <li>社群驅動功能演進</li>
+               <li>持續更新與改進</li>
+               <li>沒有隱藏費用與付費分級</li>
             </ul>
             <a
               href="https://github.com/codeforreal1/compressO"
@@ -405,11 +380,11 @@ const githubStars = await fetchGitHubStars();
                   d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"
                 ></path>
               </svg>
-              Star on GitHub
+               到 GitHub 按星
             </a>
           </div>
           <div class="showcase-visual">
-            <img src={aboutImage.src} alt="Open Source" loading="lazy" />
+             <img src={aboutImage.src} alt="開源軟體" loading="lazy" />
           </div>
         </div>
       </div>
@@ -424,9 +399,9 @@ const githubStars = await fetchGitHubStars();
           class="w-30 h-auto block  mx-auto!"
       />
       <div class="container">
-        <h2 class="gradient-text">Ready to compress your videos/images?</h2>
+         <h2 class="gradient-text">準備好開始壓縮影片與圖片了嗎？</h2>
         <div id="downloads" class="downloads-section">
-          <h3>Direct Downloads</h3>
+           <h3>直接下載</h3>
           <div class="downloads-grid">
             <div class="download-column">
               <div class="download-os-header">
