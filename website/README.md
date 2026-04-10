@@ -1,8 +1,8 @@
-# CompressO Website
+# CompressO 網站
 
-Made with Astro 🗲
+使用 Astro 🗲 製作。
 
-### Development:
+### 開發
 
 ```
 pnpm install
