@@ -88,7 +88,7 @@ function CompressionActions() {
       <AlertDialog
         title="尚未儲存檔案"
         disclosure={alertDisclosure}
-        description={`壓縮完成的檔案${media.length > 1 ? '尚未儲存' : '尚未儲存'}，確定要放棄嗎？`}
+         description="壓縮結果尚未儲存，確定要放棄嗎？"
         renderFooter={({ closeModal }) => (
           <>
             <AlertDialogButton onPress={closeModal}>返回</AlertDialogButton>
